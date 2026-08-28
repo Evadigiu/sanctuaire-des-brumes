@@ -6,6 +6,12 @@
 
 const SESSION_KEY = "sdb_session";
 
+// Calcule le chemin vers la racine du site, que ce fichier soit appelé
+// depuis index.html (racine) ou depuis une page dans /etapes/.
+// Évite d'avoir à coder en dur l'adresse du site (github.io/nom-du-depot/,
+// puis plus tard un nom de domaine personnalisé).
+const BASE_PATH = window.location.pathname.includes("/etapes/") ? "../" : "";
+
 /**
  * Tente d'activer un code au point de départ.
  * Retourne { ok: true, session } ou { ok: false, message }
@@ -85,11 +91,11 @@ function getSession() {
 function requireActiveSession() {
   const session = getSession();
   if (!session) {
-    window.location.href = "/index.html?error=no_session";
+    window.location.href = BASE_PATH + "index.html?error=no_session";
     return null;
   }
   if (new Date(session.expiresAt) < new Date()) {
-    window.location.href = "/index.html?error=expired";
+    window.location.href = BASE_PATH + "index.html?error=expired";
     return null;
   }
   return session;
@@ -135,7 +141,7 @@ function startCountdown(elementId) {
     if (remainingMs <= 0) {
       el.textContent = "Temps écoulé";
       clearInterval(interval);
-      setTimeout(() => { window.location.href = "/index.html?error=expired"; }, 2000);
+      setTimeout(() => { window.location.href = BASE_PATH + "index.html?error=expired"; }, 2000);
       return;
     }
     const totalSec = Math.floor(remainingMs / 1000);
