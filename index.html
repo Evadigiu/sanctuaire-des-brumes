@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Le Sanctuaire des Brumes</title>
+<link rel="stylesheet" href="/assets/css/style.css">
+</head>
+<body>
+
+<div class="wrap">
+  <div class="eyebrow">Le Sanctuaire des Brumes</div>
+  <h1>Vous êtes l'enquêteur·rice</h1>
+  <p class="muted">Zoo de Mulhouse, édition Toussaint 2026</p>
+
+  <div class="card">
+    <p>Hier soir, la pleine lune a provoqué d'étranges phénomènes dans le parc zoologique. Isabelle, soigneuse animalière, a disparu après avoir été appelée près de l'enclos des loups. Vous avez jusqu'à trois heures pour découvrir ce qu'il lui est arrivé, à votre rythme : certains groupes bouclent l'enquête en une heure, d'autres prennent tout leur temps.</p>
+    <p class="muted">Les témoins et les épreuves sont matérialisés par des bornes QR code à scanner dans le parc. Chaque fin d'étape vous indique où vous rendre ensuite. Merci de ne pas toucher aux décors.</p>
+  </div>
+
+  <div class="card">
+    <label for="participantName">Votre nom d'enquêteur (optionnel)</label>
+    <input type="text" id="participantName" placeholder="Ex. Inspecteur Dupont">
+
+    <label for="codeInput">Code secret remis à l'accueil</label>
+    <input type="text" id="codeInput" placeholder="Ex. AB12CD" autocapitalize="characters">
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="acceptRules">
+      <label for="acceptRules" style="margin:0; text-transform:none; letter-spacing:0; font-size:0.9rem; color:var(--fog);">
+        J'accepte les consignes et je suis prêt·e à démarrer l'enquête.
+      </label>
+    </div>
+
+    <div class="error-box" id="errorBox"></div>
+
+    <button id="startBtn" disabled>Démarrer l'enquête</button>
+  </div>
+</div>
+
+<footer>Pomelo Événementiel &times; Zoo de Mulhouse</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="/assets/js/supabase-client.js"></script>
+<script src="/assets/js/game.js"></script>
+<script>
+  const acceptBox = document.getElementById("acceptRules");
+  const codeInput = document.getElementById("codeInput");
+  const startBtn = document.getElementById("startBtn");
+  const errorBox = document.getElementById("errorBox");
+
+  function refreshButtonState() {
+    startBtn.disabled = !(acceptBox.checked && codeInput.value.trim().length > 0);
+  }
+  acceptBox.addEventListener("change", refreshButtonState);
+  codeInput.addEventListener("input", refreshButtonState);
+
+  // Message d'erreur venant d'une redirection (session expirée, etc.)
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("error") === "expired") {
+    errorBox.textContent = "Votre session de jeu est terminée (3h écoulées).";
+    errorBox.classList.add("visible");
+  } else if (params.get("error") === "no_session") {
+    errorBox.textContent = "Merci de démarrer l'enquête depuis cette page avec votre code.";
+    errorBox.classList.add("visible");
+  }
+
+  startBtn.addEventListener("click", async () => {
+    startBtn.disabled = true;
+    startBtn.textContent = "Vérification...";
+    errorBox.classList.remove("visible");
+
+    const result = await activateCode(codeInput.value, document.getElementById("participantName").value);
+
+    if (!result.ok) {
+      errorBox.textContent = result.message;
+      errorBox.classList.add("visible");
+      startBtn.disabled = false;
+      startBtn.textContent = "Démarrer l'enquête";
+      return;
+    }
+
+    // Redirection vers la 1ère étape du sens attribué.
+    // Le sens B n'étant pas encore confirmé sur le terrain, les deux
+    // sens pointent pour l'instant vers le même contenu (sens A).
+    // À corriger dans etapes/ une fois le repérage terrain fait.
+    window.location.href = "/etapes/bureau-soignants.html";
+  });
+</script>
+
+</body>
+</html>
