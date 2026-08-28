@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Statistiques, Le Sanctuaire des Brumes</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<style>
+  .wrap { max-width: 1000px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--hair); font-size: 0.9rem; }
+  th { color: var(--gold); text-transform: uppercase; letter-spacing: 1px; font-size: 0.75rem; }
+  tr.slow { background: rgba(232, 96, 76, 0.08); }
+  .stat-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+  .stat-card { background: var(--panel); border: 1px solid var(--hair); border-radius: 8px; padding: 16px 20px; flex: 1; min-width: 160px; text-align: center; }
+  .stat-card .num { font-size: 1.8rem; color: var(--gold-bright); font-weight: 700; }
+  .stat-card .label { color: var(--fog); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+  h2 { font-family: Georgia, serif; color: var(--gold-bright); font-size: 1.1rem; margin-top: 32px; }
+  #gate { max-width: 360px; margin: 100px auto; text-align: center; }
+  .note { color: var(--fog); font-size: 0.85rem; font-style: italic; margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <h1>Accès réservé</h1>
+  <p class="muted">Statistiques, équipe Pomelo uniquement.</p>
+  <input type="text" id="pwd" placeholder="Mot de passe">
+  <button id="enterBtn">Entrer</button>
+  <div class="error-box" id="gateError">Mot de passe incorrect.</div>
+</div>
+
+<div class="wrap" id="statsPage" style="display:none;">
+  <div class="eyebrow">Backoffice, Pomelo Événementiel</div>
+  <h1>Statistiques du jeu</h1>
+  <p class="muted"><a href="dashboard.html" style="color:var(--gold);">← Voir le suivi en direct</a></p>
+
+  <div class="stat-row" id="summaryRow"></div>
+
+  <h2>Temps passé par étape</h2>
+  <p class="note">Trié du plus long au plus court, sur la médiane (moins sensible aux pauses exceptionnelles qu'un groupe peut faire qu'une simple moyenne).</p>
+  <table>
+    <thead><tr><th>Borne</th><th>Passages</th><th>Durée médiane</th><th>Durée moyenne</th></tr></thead>
+    <tbody id="durationBody"><tr><td colspan="4" class="loading">Chargement...</td></tr></tbody>
+  </table>
+
+  <h2>Où les groupes abandonnent</h2>
+  <p class="note">Dernière borne atteinte par les groupes qui n'ont jamais terminé (code expiré sans avoir scanné la Serre).</p>
+  <table>
+    <thead><tr><th>Dernière borne atteinte</th><th>Nombre d'abandons</th></tr></thead>
+    <tbody id="abandonBody"><tr><td colspan="2" class="loading">Chargement...</td></tr></tbody>
+  </table>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../assets/js/supabase-client.js"></script>
+<script>
+  const DASHBOARD_PASSWORD = "brumes2026"; // même mot de passe que le dashboard, à changer avant le lancement
+
+  document.getElementById("enterBtn").addEventListener("click", () => {
+    if (document.getElementById("pwd").value === DASHBOARD_PASSWORD) {
+      document.getElementById("gate").style.display = "none";
+      document.getElementById("statsPage").style.display = "block";
+      loadStats();
+    } else {
+      document.getElementById("gateError").classList.add("visible");
+    }
+  });
+
+  function formatDuration(intervalStr) {
+    if (!intervalStr) return "—";
+    // Supabase renvoie un format type "00:04:32" ou "00:12:05.123"
+    const parts = intervalStr.split(":");
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    if (h > 0) return `${h}h ${m}min`;
+    return `${m}min`;
+  }
+
+  async function loadStats() {
+    // Résumé global
+    const { data: summary } = await supabaseClient.from("completion_summary").select("*").maybeSingle();
+    const summaryRow = document.getElementById("summaryRow");
+    if (summary) {
+      const total = (summary.termines || 0) + (summary.abandonnes || 0) + (summary.en_cours || 0);
+      const tauxCompletion = total > 0 ? Math.round((summary.termines / total) * 100) : 0;
+      summaryRow.innerHTML = `
+        <div class="stat-card"><div class="num">${summary.termines || 0}</div><div class="label">Enquêtes terminées</div></div>
+        <div class="stat-card"><div class="num">${summary.abandonnes || 0}</div><div class="label">Abandons</div></div>
+        <div class="stat-card"><div class="num">${summary.en_cours || 0}</div><div class="label">En cours</div></div>
+        <div class="stat-card"><div class="num">${tauxCompletion}%</div><div class="label">Taux de complétion</div></div>
+      `;
+    }
+
+    // Durée par étape
+    const { data: durations, error: durError } = await supabaseClient
+      .from("avg_duration_by_point")
+      .select("*");
+    const durationBody = document.getElementById("durationBody");
+    if (durError) {
+      durationBody.innerHTML = `<tr><td colspan="4">Erreur : ${durError.message}</td></tr>`;
+    } else if (!durations || durations.length === 0) {
+      durationBody.innerHTML = `<tr><td colspan="4" class="muted">Pas encore assez de données (il faut au moins deux bornes scannées par un même groupe).</td></tr>`;
+    } else {
+      const maxMedian = Math.max(...durations.map(d => {
+        const p = d.duree_mediane ? d.duree_mediane.split(":") : [0, 0];
+        return parseInt(p[0]) * 60 + parseInt(p[1]);
+      }));
+      durationBody.innerHTML = durations.map(d => {
+        const p = d.duree_mediane ? d.duree_mediane.split(":") : [0, 0];
+        const minTotal = parseInt(p[0]) * 60 + parseInt(p[1]);
+        const isSlow = maxMedian > 0 && minTotal === maxMedian;
+        return `<tr class="${isSlow ? 'slow' : ''}">
+          <td>${d.label}</td>
+          <td>${d.nb_passages}</td>
+          <td>${formatDuration(d.duree_mediane)}</td>
+          <td>${formatDuration(d.duree_moyenne)}</td>
+        </tr>`;
+      }).join("");
+    }
+
+    // Points d'abandon
+    const { data: abandons, error: abError } = await supabaseClient
+      .from("abandon_points")
+      .select("*");
+    const abandonBody = document.getElementById("abandonBody");
+    if (abError) {
+      abandonBody.innerHTML = `<tr><td colspan="2">Erreur : ${abError.message}</td></tr>`;
+    } else if (!abandons || abandons.length === 0) {
+      abandonBody.innerHTML = `<tr><td colspan="2" class="muted">Aucun abandon enregistré pour l'instant.</td></tr>`;
+    } else {
+      abandonBody.innerHTML = abandons.map(a => `<tr>
+        <td>${a.derniere_borne}</td>
+        <td>${a.nb_abandons}</td>
+      </tr>`).join("");
+    }
+  }
+</script>
+
+</body>
+</html>

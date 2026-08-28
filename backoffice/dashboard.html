@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suivi en direct, Le Sanctuaire des Brumes</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<style>
+  .wrap { max-width: 1000px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--hair); font-size: 0.9rem; }
+  th { color: var(--gold); text-transform: uppercase; letter-spacing: 1px; font-size: 0.75rem; }
+  tr.stale { background: rgba(232, 96, 76, 0.08); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; }
+  .badge.horaire { background: rgba(123,178,125,0.18); color: var(--green); }
+  .badge.antihoraire { background: rgba(238,63,129,0.15); color: var(--pink); }
+  .stat-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+  .stat-card { background: var(--panel); border: 1px solid var(--hair); border-radius: 8px; padding: 16px 20px; flex: 1; min-width: 160px; }
+  .stat-card .num { font-size: 1.8rem; color: var(--gold-bright); font-weight: 700; }
+  .stat-card .label { color: var(--fog); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+  #gate { max-width: 360px; margin: 100px auto; text-align: center; }
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <h1>Accès réservé</h1>
+  <p class="muted">Suivi en direct, équipe Pomelo uniquement.</p>
+  <input type="text" id="pwd" placeholder="Mot de passe">
+  <button id="enterBtn">Entrer</button>
+  <div class="error-box" id="gateError">Mot de passe incorrect.</div>
+</div>
+
+<div class="wrap" id="dashboard" style="display:none;">
+  <div class="eyebrow">Backoffice, Pomelo Événementiel</div>
+  <h1>Suivi en direct</h1>
+  <p class="muted"><a href="statistiques.html" style="color:var(--gold);">Voir les statistiques →</a></p>
+  <p class="muted">Groupes ayant activé leur code et actuellement en jeu. Ne montre pas les réservations SeeTickets, seulement les codes activés sur le terrain. Actualisation automatique toutes les 15 secondes.</p>
+
+  <div class="stat-row" id="statRow"></div>
+
+  <h2 style="font-family:Georgia,serif; color:var(--gold-bright); font-size:1.1rem; margin-top:24px;">Groupes actifs</h2>
+  <table id="liveTable">
+    <thead>
+      <tr><th>Code</th><th>Pers.</th><th>Sens</th><th>Dernière borne</th><th>Depuis</th></tr>
+    </thead>
+    <tbody id="liveBody"><tr><td colspan="5" class="loading">Chargement...</td></tr></tbody>
+  </table>
+
+  <h2 style="font-family:Georgia,serif; color:var(--gold-bright); font-size:1.1rem; margin-top:32px;">Réconciliation par jour</h2>
+  <table id="reconTable">
+    <thead>
+      <tr><th>Jour</th><th>Codes activés</th><th>Participants estimés</th></tr>
+    </thead>
+    <tbody id="reconBody"><tr><td colspan="3" class="loading">Chargement...</td></tr></tbody>
+  </table>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../assets/js/supabase-client.js"></script>
+<script>
+  // Protection légère : décourage la consultation occasionnelle par
+  // quelqu'un qui tomberait sur l'URL. Ce n'est PAS une vraie sécurité :
+  // les données elles-mêmes restent lisibles via la clé publique du site,
+  // comme toutes les tables en lecture publique de ce projet. Une vraie
+  // authentification (Supabase Auth) sera à mettre en place avant le
+  // lancement si ce dashboard doit rester confidentiel.
+  const DASHBOARD_PASSWORD = "brumes2026"; // à changer avant le lancement
+
+  document.getElementById("enterBtn").addEventListener("click", () => {
+    if (document.getElementById("pwd").value === DASHBOARD_PASSWORD) {
+      document.getElementById("gate").style.display = "none";
+      document.getElementById("dashboard").style.display = "block";
+      loadData();
+      setInterval(loadData, 15000);
+    } else {
+      document.getElementById("gateError").classList.add("visible");
+    }
+  });
+
+  function timeAgo(dateStr) {
+    const diffSec = Math.floor((new Date() - new Date(dateStr)) / 1000);
+    if (diffSec < 60) return `${diffSec}s`;
+    const min = Math.floor(diffSec / 60);
+    if (min < 60) return `${min} min`;
+    const h = Math.floor(min / 60);
+    return `${h}h ${min % 60}min`;
+  }
+
+  async function loadData() {
+    // Groupes actifs
+    const { data: live, error: liveError } = await supabaseClient
+      .from("live_dashboard")
+      .select("*")
+      .order("last_scan_at", { ascending: false });
+
+    const liveBody = document.getElementById("liveBody");
+    if (liveError) {
+      liveBody.innerHTML = `<tr><td colspan="5">Erreur de chargement : ${liveError.message}</td></tr>`;
+    } else if (!live || live.length === 0) {
+      liveBody.innerHTML = `<tr><td colspan="5" class="muted">Aucun groupe en jeu actuellement.</td></tr>`;
+    } else {
+      liveBody.innerHTML = live.map(g => {
+        const staleMin = g.last_scan_at ? (new Date() - new Date(g.last_scan_at)) / 60000 : 999;
+        const staleClass = staleMin > 20 ? "stale" : "";
+        return `<tr class="${staleClass}">
+          <td>${g.code}</td>
+          <td>${g.max_participants}</td>
+          <td><span class="badge ${g.direction}">${g.direction}</span></td>
+          <td>${g.last_point || "—"}</td>
+          <td>${g.last_scan_at ? timeAgo(g.last_scan_at) : "—"}</td>
+        </tr>`;
+      }).join("");
+    }
+
+    // Statistiques rapides
+    const statRow = document.getElementById("statRow");
+    const activeCount = live ? live.length : 0;
+    const staleCount = live ? live.filter(g => g.last_scan_at && (new Date() - new Date(g.last_scan_at)) / 60000 > 20).length : 0;
+    statRow.innerHTML = `
+      <div class="stat-card"><div class="num">${activeCount}</div><div class="label">Groupes en jeu</div></div>
+      <div class="stat-card"><div class="num">${staleCount}</div><div class="label">Sans scan depuis 20+ min</div></div>
+    `;
+
+    // Réconciliation par jour
+    const { data: recon, error: reconError } = await supabaseClient
+      .from("reconciliation_daily")
+      .select("*")
+      .order("jour", { ascending: false });
+
+    const reconBody = document.getElementById("reconBody");
+    if (reconError) {
+      reconBody.innerHTML = `<tr><td colspan="3">Erreur : ${reconError.message}</td></tr>`;
+    } else if (!recon || recon.length === 0) {
+      reconBody.innerHTML = `<tr><td colspan="3" class="muted">Aucune donnée pour l'instant.</td></tr>`;
+    } else {
+      reconBody.innerHTML = recon.map(r => `<tr>
+        <td>${r.jour}</td>
+        <td>${r.codes_actives}</td>
+        <td>${r.participants_max_estimes || 0}</td>
+      </tr>`).join("");
+    }
+  }
+</script>
+
+</body>
+</html>
