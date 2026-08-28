@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bureau des soignants, Le Sanctuaire des Brumes</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+
+<div class="wrap">
+  <div class="timer" id="timer">Chargement du chrono...</div>
+
+  <div class="eyebrow">Étape 2 sur 12</div>
+  <h1>Bureau des soignants</h1>
+  <div class="witness-name">Témoin : la collègue soigneuse</div>
+
+  <div class="card">
+    <!-- Remplacer la source ci-dessous par la vraie vidéo une fois tournée et hébergée -->
+    <video controls poster="">
+      <source src="" type="video/mp4">
+      Votre navigateur ne supporte pas la vidéo.
+    </video>
+    <p class="muted">Facetime avec la collègue soigneuse : dernier échange avec Isabelle, départ par la porte du fond avec son trousseau de clés.</p>
+  </div>
+
+  <div class="card">
+    <p>Direction les caméras de surveillance de la salle de séminaire, pour vérifier le chemin qu'a pris Isabelle.</p>
+    <a href="salle-de-seminaire.html" class="btn">Étape suivante</a>
+  </div>
+</div>
+
+<footer>Le Sanctuaire des Brumes</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../assets/js/supabase-client.js"></script>
+<script src="../assets/js/game.js"></script>
+<script>
+  const session = requireActiveSession();
+  if (session) {
+    startCountdown("timer");
+    logScan("Bureau des soignants");
+  }
+</script>
+
+</body>
+</html>
