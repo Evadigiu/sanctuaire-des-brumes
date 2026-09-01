@@ -126,12 +126,12 @@ La vérification est rejouable à tout moment : coller `verification_base.sql` d
 ✅ Schéma Supabase posé et peuplé (12 bornes, 3 codes de test)
 ⚠️ RLS activé sur les 5 tables, mais **4 défauts confirmés** (voir section 10), et 2 tables sans aucune policy
 ✅ Page de départ (`index.html`) : consignes, saisie du code, activation réelle
-✅ Deux pages d'étape : `jardin-des-pivoines.html` (étape 1, Jerry, texte provisoire à valider) et `bureau-soignants.html` (étape 2, testée avec succès)
+✅ **Les 12 pages d'étape existent et s'enchaînent**, de la borne 1 à la borne 12. Mécanique fonctionnelle partout : chrono, enregistrement du passage, lien vers la suite. Seule `bureau-soignants.html` (étape 2) a été testée en conditions réelles. Les textes sont vides, sauf l'étape 1 dont le texte est provisoire.
 ✅ Site en ligne sur GitHub Pages, chemins relatifs corrigés
 ✅ Dashboard de suivi en direct et page de statistiques, fonctionnels
 ✅ Palette de couleurs finalisée (voir section 10)
 
-⬜ **10 pages d'étape restantes** à créer sur le modèle de `bureau-soignants.html` (Salle de séminaire, Enclos des loups, La passante, Enclos des lynx, Le vétérinaire, Greg, Bill, Bureau de Greg, Jardin des Iris, La serre) — prochaine tâche demandée
+⬜ **Les textes des 12 étapes** — la structure est posée, les emplacements sont marqués `A REMPLIR` dans chaque fichier. Décision préalable nécessaire sur les indices et sur le code IRIS (voir section 12).
 ⬜ Étape finale (quiz noté + champ "vos conclusions" + appel à une IA qui juge la réponse + écran "photo finish" récapitulatif) — non commencée
 ⬜ Vraies vidéos (actuellement des balises `<video>` vides dans le modèle) — dépend du tournage
 ⬜ Génération en masse des vrais codes de production (environ 2000+, actuellement seulement 3 codes de test)
@@ -174,7 +174,12 @@ Typographie choisie séparément : **Cinzel** pour les titres, **Times New Roman
 
 ## 12. Prochaines étapes, dans l'ordre suggéré
 
-1. Dupliquer `etapes/bureau-soignants.html` pour créer les 10 pages restantes.
+1. Écrire les textes des 12 étapes (chercher `A REMPLIR` dans les fichiers de `etapes/`).
+
+   **Trois décisions préalables, elles conditionnent la structure des pages :**
+   - *Les 4 indices (R, I, S, I) s'affichent-ils à l'écran, ou le joueur les trouve-t-il dans le décor ?* La section 5 dit qu'ils sont physiques (chapeau de l'épouvantail, etc.). Un encadré `.indice` est prévu sur les 4 bornes concernées, à supprimer s'il fait doublon avec le décor.
+   - *Le code IRIS se tape-t-il sur le site, ou sur un cadenas physique à la serre ?* Aucune saisie n'a été construite dans le doute. Si elle doit exister, c'est une mécanique à ajouter.
+   - *Que se passe-t-il après la borne 12 ?* Le bouton de `la-serre.html` est inactif tant que l'étape finale n'est pas construite.
 2. Appliquer la nouvelle palette de couleurs (section 11) à `assets/css/style.css`.
    *Point ouvert : la palette validée ne définit aucune couleur de texte secondaire, or `.muted` est utilisé partout dans le site. Il en faut une, sinon du gris bleuté de l'ancienne palette subsistera.*
 3. **Sécuriser la base** (fonction `security definer`, voir section 10). Referme les 4 défauts d'un coup, dont celui qui bloque l'étape finale. **Doit être terminé avant l'étape 5.**

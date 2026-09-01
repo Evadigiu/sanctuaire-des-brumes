@@ -147,6 +147,15 @@ button:hover:not(:disabled), .btn:hover { background: var(--gold-bright); }
   letter-spacing: 1px;
 }
 
+/* Encadré d'indice, sur les bornes qui en délivrent un.
+   Utilise uniquement les variables de la palette, il suivra donc
+   automatiquement le changement de couleurs à venir. */
+.card.indice {
+  border-color: var(--gold);
+  background: linear-gradient(var(--panel2), var(--panel));
+}
+.card.indice .eyebrow { margin-bottom: 10px; }
+
 .witness-name {
   color: var(--pink);
   font-style: italic;

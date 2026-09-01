@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La serre, Le Sanctuaire des Brumes</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+
+<div class="wrap">
+  <div class="timer" id="timer">Chargement du chrono...</div>
+
+  <div class="eyebrow">Étape 12 sur 12</div>
+  <h1>La serre</h1>
+  <div class="witness-name">Témoin : le botaniste</div>
+
+  <div class="card">
+    <!-- Remplacer la source ci-dessous par la vraie vidéo une fois tournée et hébergée -->
+    <video controls poster="">
+      <source src="" type="video/mp4">
+      Votre navigateur ne supporte pas la vidéo.
+    </video>
+    <!-- ===== A REMPLIR : légende sous la vidéo, une phrase ===== -->
+    <p class="muted"></p>
+  </div>
+
+  <div class="card">
+    <!-- =================================================================
+         A REMPLIR : le texte de cette étape.
+         Ajouter autant de <p>...</p> que nécessaire.
+         Pour un passage en gris, secondaire : <p class="muted">...</p>
+         ================================================================= -->
+    <p></p>
+  </div>
+
+
+  <div class="card">
+    <!-- =================================================================
+         DERNIÈRE BORNE DU PARCOURS.
+
+         L'étape finale (quiz noté, champ "vos conclusions", verdict IA,
+         écran récapitulatif) n'existe pas encore. Le bouton ci-dessous
+         est donc inactif : il ne mène nulle part tant qu'elle n'est pas
+         construite.
+
+         ATTENTION, BLOCAGE CONNU : les deux tables prévues pour cette
+         étape finale (quiz_responses et conclusions) n'ont aucune règle
+         d'accès dans Supabase. Elles sont donc fermées, y compris au
+         site lui-même. Les réponses des joueurs seraient rejetées en
+         silence, sans message d'erreur. À régler AVANT de construire
+         cette étape.
+         ================================================================= -->
+    <p></p>
+    <button disabled>Étape finale, à construire</button>
+  </div>
+</div>
+
+<footer>Le Sanctuaire des Brumes</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../assets/js/supabase-client.js"></script>
+<script src="../assets/js/game.js"></script>
+<script>
+  const session = requireActiveSession();
+  if (session) {
+    startCountdown("timer");
+    // Libellé strictement identique à celui de seed.sql. Ne pas retaper à la
+    // main : la moindre différence et le passage n'est pas enregistré, sans
+    // aucun message d'erreur à l'écran.
+    logScan("La serre");
+  }
+</script>
+
+</body>
+</html>

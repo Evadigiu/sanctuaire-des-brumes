@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bureau de Greg, Le Sanctuaire des Brumes</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+
+<div class="wrap">
+  <div class="timer" id="timer">Chargement du chrono...</div>
+
+  <div class="eyebrow">Étape 10 sur 12</div>
+  <h1>Bureau de Greg</h1>
+
+  <div class="card">
+    <!-- Remplacer la source ci-dessous par la vraie vidéo une fois tournée et hébergée -->
+    <video controls poster="">
+      <source src="" type="video/mp4">
+      Votre navigateur ne supporte pas la vidéo.
+    </video>
+    <!-- ===== A REMPLIR : légende sous la vidéo, une phrase ===== -->
+    <p class="muted"></p>
+  </div>
+
+  <div class="card">
+    <!-- =================================================================
+         A REMPLIR : le texte de cette étape.
+         Ajouter autant de <p>...</p> que nécessaire.
+         Pour un passage en gris, secondaire : <p class="muted">...</p>
+         ================================================================= -->
+    <p></p>
+  </div>
+
+  <div class="card indice">
+    <div class="eyebrow">Indice 4 sur 4</div>
+    <!-- =================================================================
+         A REMPLIR : comment le joueur récupère cet indice.
+
+         QUESTION EN SUSPENS, à trancher avant le tournage : la lettre
+         s'affiche-t-elle ici à l'écran, ou le joueur doit-il la trouver
+         lui-même dans le décor du parc ?
+         Le document de projet dit qu'elle est dans le décor. Dans ce cas
+         ce bloc sert seulement à inviter à observer, sans donner la
+         réponse. Supprimer ce bloc s'il ne sert à rien.
+         ================================================================= -->
+    <p></p>
+  </div>
+
+
+  <div class="card">
+    <!-- A REMPLIR : une phrase qui indique où se rendre ensuite -->
+    <p></p>
+    <a href="jardin-des-iris.html" class="btn">Étape suivante</a>
+  </div>
+</div>
+
+<footer>Le Sanctuaire des Brumes</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../assets/js/supabase-client.js"></script>
+<script src="../assets/js/game.js"></script>
+<script>
+  const session = requireActiveSession();
+  if (session) {
+    startCountdown("timer");
+    // Libellé strictement identique à celui de seed.sql. Ne pas retaper à la
+    // main : la moindre différence et le passage n'est pas enregistré, sans
+    // aucun message d'erreur à l'écran.
+    logScan("Bureau de Greg");
+  }
+</script>
+
+</body>
+</html>

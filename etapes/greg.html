@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Greg, Le Sanctuaire des Brumes</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+
+<div class="wrap">
+  <div class="timer" id="timer">Chargement du chrono...</div>
+
+  <div class="eyebrow">Étape 8 sur 12</div>
+  <h1>Greg</h1>
+  <div class="witness-name">Témoin : Greg</div>
+
+  <div class="card">
+    <!-- Remplacer la source ci-dessous par la vraie vidéo une fois tournée et hébergée -->
+    <video controls poster="">
+      <source src="" type="video/mp4">
+      Votre navigateur ne supporte pas la vidéo.
+    </video>
+    <!-- ===== A REMPLIR : légende sous la vidéo, une phrase ===== -->
+    <p class="muted"></p>
+  </div>
+
+  <div class="card">
+    <!-- =================================================================
+         A REMPLIR : le texte de cette étape.
+         Ajouter autant de <p>...</p> que nécessaire.
+         Pour un passage en gris, secondaire : <p class="muted">...</p>
+         ================================================================= -->
+    <p></p>
+  </div>
+
+
+  <div class="card">
+    <!-- A REMPLIR : une phrase qui indique où se rendre ensuite -->
+    <p></p>
+    <a href="bill.html" class="btn">Étape suivante</a>
+  </div>
+</div>
+
+<footer>Le Sanctuaire des Brumes</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../assets/js/supabase-client.js"></script>
+<script src="../assets/js/game.js"></script>
+<script>
+  const session = requireActiveSession();
+  if (session) {
+    startCountdown("timer");
+    // Libellé strictement identique à celui de seed.sql. Ne pas retaper à la
+    // main : la moindre différence et le passage n'est pas enregistré, sans
+    // aucun message d'erreur à l'écran.
+    logScan("Greg");
+  }
+</script>
+
+</body>
+</html>

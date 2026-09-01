@@ -25,7 +25,7 @@ Les deux sont déjà installés et fonctionnels. Il n'y a rien à mettre en rout
 | Fichier | À quoi il sert |
 |---|---|
 | `index.html` | Page d'accueil, saisie du code, démarrage de la partie |
-| `etapes/` | Une page par borne du parcours. **2 créées sur 12.** |
+| `etapes/` | Une page par borne du parcours. **Les 12 sont créées.** Textes à remplir. |
 | `assets/css/style.css` | Le style visuel de tout le site |
 | `assets/js/game.js` | La logique du jeu : activation, chrono, enregistrement des passages |
 | `assets/js/supabase-client.js` | Le branchement à la base (adresse + clé publique) |
@@ -59,18 +59,30 @@ reste de publier et de tester en ligne.
 - Base Supabase installée, 12 bornes et 3 codes de test enregistrés
 - Page d'accueil et activation d'un code, testées de bout en bout
 - Chrono de 3h et enregistrement des passages de bornes
-- 2 pages d'étape sur 12 : Jardin des pivoines (Jerry) et Bureau des soignants
+- Les 12 pages d'étape, enchaînées de la borne 1 à la borne 12. La mécanique
+  fonctionne partout (chrono, enregistrement du passage, passage à la suite).
+  **Les textes restent à écrire**, les emplacements sont marqués `A REMPLIR`
+  dans chaque fichier.
 - Tableaux de bord de suivi et de statistiques
 - Site en ligne sur GitHub Pages
 
 **À faire, dans l'ordre :**
-1. Les 10 pages d'étape restantes, sur le modèle de `bureau-soignants.html`
+1. Écrire les textes des 12 étapes (chercher `A REMPLIR` dans les fichiers)
 2. Appliquer la nouvelle palette de couleurs (voir `CONTEXTE_PROJET.md`, section 11)
 3. **Refermer les trous de sécurité** (voir plus bas). Impérativement avant l'étape 5.
 4. Construire l'étape finale : quiz, conclusions, verdict IA
 5. Générer les vrais codes de production
 6. Intégrer les vraies vidéos une fois tournées
 7. Repérage terrain : confirmer le sens B et la capacité réelle de flux
+
+**Trois décisions à prendre, elles bloquent l'écriture des textes :**
+- Les 4 indices (R, I, S, I) s'affichent-ils à l'écran, ou le joueur doit-il
+  les trouver dans le décor du parc ? Un encadré est prévu sur les 4 bornes
+  concernées, à supprimer si les indices sont uniquement physiques.
+- Le code IRIS du Jardin des Iris se tape-t-il sur le site, ou sur un cadenas
+  physique à la serre ? Aucune saisie n'a été construite, dans le doute.
+- Que se passe-t-il après la borne 12 ? Le bouton y est inactif tant que
+  l'étape finale n'existe pas.
 
 ---
 
