@@ -64,16 +64,19 @@ Les 4 indices (R, I, S, I) forment un anagramme d'IRIS, le nom du jardin où se 
 sanctuaire-des-brumes/
 ├── index.html              — page de départ, activation du code
 ├── README.md                — guide de mise en route (Supabase + GitHub Pages)
-├── schema_escape_game.sql   — tables : codes, qr_points, scans, quiz_responses, conclusions + vues live_dashboard, reconciliation_daily
+├── schema_escape_game.sql   — description fidèle de la base réelle, policies RLS incluses, + avertissements de sécurité
 ├── seed.sql                 — peuple les 12 bornes + 3 codes de test (TEST01, TEST02, TEST03)
 ├── stats.sql                 — vues ajoutées : scan_durations, avg_duration_by_point, code_progress, abandon_points, completion_summary
+├── correctifs.sql           — corrections en attente d'application dans Supabase
+├── verification_base.sql    — outil de contrôle : compare la base réelle à ce que disent ces fichiers
 ├── assets/
 │   ├── css/style.css        — thème visuel partagé
 │   └── js/
 │       ├── supabase-client.js  — config (URL + clé anon)
 │       └── game.js             — logique : activateCode(), requireActiveSession(), logScan(), startCountdown()
 ├── etapes/
-│   └── bureau-soignants.html — SEULE page d'étape construite à ce jour (modèle à dupliquer pour les 11 autres)
+│   ├── jardin-des-pivoines.html — étape 1, briefing de Jerry (texte provisoire, à valider)
+│   └── bureau-soignants.html    — étape 2, modèle de référence à dupliquer pour les 10 autres
 └── backoffice/
     ├── dashboard.html        — suivi en direct des groupes actifs (protégé par mot de passe FAIBLE, voir section 9)
     └── statistiques.html     — durées par étape, taux d'abandon, taux de complétion
@@ -91,14 +94,22 @@ sanctuaire-des-brumes/
 
 **Vues** : `live_dashboard` (groupes actifs en ce moment), `reconciliation_daily` (codes activés par jour, pour vérifier la cohérence avec les ventes SeeTickets), `scan_durations`, `avg_duration_by_point`, `code_progress`, `abandon_points`, `completion_summary` (statistiques historiques).
 
-**RLS (Row Level Security) activé**, avec ces policies déjà en place :
+**RLS (Row Level Security) activé** sur les 5 tables. Vérifié directement sur la base le 01/09/2026 : il y a **quatre** policies, et non cinq. Celle qui était listée ici pour la lecture des scans n'existe pas.
+
 ```sql
-create policy "Lecture publique des codes" on codes for select using (true);
-create policy "Activation d'un code non utilise" on codes for update using (status = 'unused') with check (status = 'active');
-create policy "Lecture publique des bornes" on qr_points for select using (true);
-create policy "Enregistrement des scans" on scans for insert with check (true);
-create policy "Lecture publique des scans" on scans for select using (true);
+create policy "Lecture publique des bornes" on qr_points for select to public using (true);
+create policy "Lecture publique des codes" on codes for select to public using (true);
+create policy "Activation d'un code non utilise" on codes for update to public
+  using (status = 'unused') with check (status = 'active');
+create policy "Enregistrement des scans" on scans for insert to public with check (true);
 ```
+
+Ce qui n'existe pas, et qu'il faut savoir :
+- **Aucune policy sur `quiz_responses` ni `conclusions`.** Ces deux tables sont donc entièrement fermées, y compris au site. L'étape finale ne pourra rien y écrire, et les insertions échoueront **en silence**. À régler avant de la construire.
+- **Aucune policy de lecture sur `scans`.** Les tableaux de bord fonctionnent quand même parce qu'une vue Postgres interroge les tables avec les droits de son propriétaire, pas ceux du visiteur. Conséquence : ces vues sont lisibles par n'importe qui, et elles tomberaient en panne si `security_invoker` était activé dessus un jour.
+- **Aucune policy de suppression.** Personne ne peut effacer de données depuis le site. C'est volontaire, ne pas en ajouter.
+
+La vérification est rejouable à tout moment : coller `verification_base.sql` dans le SQL Editor de Supabase.
 
 ## 8. Règles métier importantes
 
@@ -113,14 +124,14 @@ create policy "Lecture publique des scans" on scans for select using (true);
 ## 9. État d'avancement (ce qui marche, testé de bout en bout)
 
 ✅ Schéma Supabase posé et peuplé (12 bornes, 3 codes de test)
-✅ RLS configuré et fonctionnel
+⚠️ RLS activé sur les 5 tables, mais **4 défauts confirmés** (voir section 10), et 2 tables sans aucune policy
 ✅ Page de départ (`index.html`) : consignes, saisie du code, activation réelle
-✅ Une page d'étape modèle (`etapes/bureau-soignants.html`), testée avec succès (scan enregistré, chrono fonctionnel, redirection)
+✅ Deux pages d'étape : `jardin-des-pivoines.html` (étape 1, Jerry, texte provisoire à valider) et `bureau-soignants.html` (étape 2, testée avec succès)
 ✅ Site en ligne sur GitHub Pages, chemins relatifs corrigés
 ✅ Dashboard de suivi en direct et page de statistiques, fonctionnels
 ✅ Palette de couleurs finalisée (voir section 10)
 
-⬜ **11 pages d'étape restantes** à créer sur le modèle de `bureau-soignants.html` (Salle de séminaire, Enclos des loups, La passante, Enclos des lynx, Le vétérinaire, Greg, Bill, Bureau de Greg, Jardin des Iris, La serre) — prochaine tâche demandée
+⬜ **10 pages d'étape restantes** à créer sur le modèle de `bureau-soignants.html` (Salle de séminaire, Enclos des loups, La passante, Enclos des lynx, Le vétérinaire, Greg, Bill, Bureau de Greg, Jardin des Iris, La serre) — prochaine tâche demandée
 ⬜ Étape finale (quiz noté + champ "vos conclusions" + appel à une IA qui juge la réponse + écran "photo finish" récapitulatif) — non commencée
 ⬜ Vraies vidéos (actuellement des balises `<video>` vides dans le modèle) — dépend du tournage
 ⬜ Génération en masse des vrais codes de production (environ 2000+, actuellement seulement 3 codes de test)
@@ -130,7 +141,19 @@ create policy "Lecture publique des scans" on scans for select using (true);
 
 ## 10. Points de sécurité connus, à corriger avant le lancement du 17 octobre
 
-1. **L'activation d'un code se fait directement depuis le navigateur du joueur**, via une requête `update` sur la table `codes` protégée seulement par une policy RLS (`status = 'unused'`). C'est fonctionnel mais quelqu'un de curieux qui inspecte le code JS pourrait comprendre la mécanique et potentiellement l'exploiter. La correction prévue (pas encore faite) : déplacer cette logique dans une Supabase Edge Function, invisible et non modifiable côté client.
+*Section corrigée le 01/09/2026 après vérification directe sur la base. Les deux premiers points étaient sous-estimés, les deux derniers n'avaient pas été identifiés.*
+
+1. **N'importe qui peut lire la liste complète des codes.** La policy `Lecture publique des codes` autorise le `select` sans aucune condition. Avec la clé anon, qui est publique par construction, il suffit d'une requête pour récupérer les ~2000 codes de production, dont ceux non encore vendus. Il n'y a rien à « exploiter » : c'est l'usage prévu de l'API. C'est le trou au coût économique le plus direct, puisqu'il court-circuite la billetterie.
+
+2. **Une seule requête peut griller tous les codes non utilisés.** Le `with check` de la policy d'activation ne contraint que la colonne `status`. Il ne limite ni le nombre de lignes touchées, ni le contenu des autres colonnes. Donc `update codes set status='active', expires_at=now() where status='unused'` passe les deux conditions et rend **tous les tickets imprimés inutilisables**. La même faiblesse permet au joueur d'écrire son propre `expires_at` : le chrono de 3h n'est pas contraignable tant que le client écrit cette colonne.
+
+3. **N'importe qui peut inventer des passages de bornes.** La policy d'insertion sur `scans` accepte tout sans vérification. Les statistiques sur lesquelles repose l'ajustement du parcours sont donc falsifiables, sans possibilité de faire le tri après coup.
+
+4. **L'étape finale ne pourra rien enregistrer.** `quiz_responses` et `conclusions` sont protégées mais n'ont aucune policy. Les réponses des joueurs seront rejetées sans message d'erreur.
+
+**Rien de tout cela n'est urgent aujourd'hui** : la base contient 3 codes de test. Le point de bascule n'est pas une date, c'est la génération des vrais codes (étape 6 de la section 12). La réparation doit être terminée avant.
+
+**Correction retenue : une fonction `security definer` appelée en RPC, pas une Edge Function.** Le principe est le même (le joueur soumet son code, la base vérifie et écrit elle-même, le client ne touche plus jamais aux tables) mais elle se pose en collant du SQL dans le SQL Editor, sans outillage Deno ni CLI à installer. On supprime alors les deux policies sur `codes`, ce qui referme les points 1 et 2 d'un coup, et le chrono devient réellement calculé côté serveur.
 2. **Le backoffice (`dashboard.html`, `statistiques.html`) est protégé par un mot de passe codé en dur dans le HTML** (`brumes2026`), visible par quiconque regarde le code source. Ce n'est qu'un frein visuel, pas une vraie sécurité — les données sous-jacentes restent lisibles via la clé anon publique de toute façon (RLS ouvert en lecture sur codes/scans/qr_points). À remplacer par une vraie authentification (Supabase Auth) avant le lancement.
 
 ## 11. Palette de couleurs (nouvelle version, validée, à appliquer au CSS existant)
@@ -151,11 +174,18 @@ Typographie choisie séparément : **Cinzel** pour les titres, **Times New Roman
 
 ## 12. Prochaines étapes, dans l'ordre suggéré
 
-1. Dupliquer `etapes/bureau-soignants.html` pour créer les 11 pages restantes.
+1. Dupliquer `etapes/bureau-soignants.html` pour créer les 10 pages restantes.
 2. Appliquer la nouvelle palette de couleurs (section 11) à `assets/css/style.css`.
-3. Construire l'étape finale (quiz + conclusions + verdict IA + écran de résolution).
-4. Sécuriser l'activation des codes via une Edge Function.
-5. Mettre une vraie authentification sur le backoffice.
-6. Générer les vrais codes de production une fois le volume final confirmé.
+   *Point ouvert : la palette validée ne définit aucune couleur de texte secondaire, or `.muted` est utilisé partout dans le site. Il en faut une, sinon du gris bleuté de l'ancienne palette subsistera.*
+3. **Sécuriser la base** (fonction `security definer`, voir section 10). Referme les 4 défauts d'un coup, dont celui qui bloque l'étape finale. **Doit être terminé avant l'étape 5.**
+4. Construire l'étape finale (quiz + conclusions + verdict IA + écran de résolution).
+5. Générer les vrais codes de production une fois le volume final confirmé.
+6. Mettre une vraie authentification sur le backoffice.
 7. Intégrer les vraies vidéos une fois tournées.
 8. Repérage terrain pour confirmer (ou infirmer) le sens B et la capacité réelle de flux à 24 groupes/heure.
+
+**Dettes techniques mineures, notées pour ne pas les oublier :**
+- Le site retrouve chaque borne par son **libellé écrit en toutes lettres** (`logScan()` dans `game.js`). Une faute de frappe ou d'accent dans une page et le passage n'est pas enregistré, sans aucun message d'erreur. Sur 10 pages à écrire, ça arrivera. Les libellés de référence sont dans `seed.sql`, à copier-coller.
+- Un joueur qui recharge une page crée un **passage en double**, ce qui fausse les durées avec des valeurs à zéro.
+- La colonne `type` de `qr_points` n'est utilisée nulle part, et « Jardin des pivoines » y est classé `final` alors que c'est le départ. Sans conséquence tant que personne ne s'en sert.
+- Le champ « nom d'enquêteur » de l'accueil est saisi mais **jamais envoyé en base**. Volontaire pour l'écran final, ou oubli ?

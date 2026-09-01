@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jardin des pivoines, Le Sanctuaire des Brumes</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+
+<div class="wrap">
+  <div class="timer" id="timer">Chargement du chrono...</div>
+
+  <div class="eyebrow">Étape 1 sur 12</div>
+  <h1>Jardin des pivoines</h1>
+  <div class="witness-name">Témoin : Jerry</div>
+
+  <div class="card">
+    <!-- Remplacer la source ci-dessous par la vraie vidéo une fois tournée et hébergée -->
+    <video controls poster="">
+      <source src="" type="video/mp4">
+      Votre navigateur ne supporte pas la vidéo.
+    </video>
+    <p class="muted">Jerry vous accueille, vous confie l'enquête et vous donne les règles du parc.</p>
+  </div>
+
+  <!-- ===================================================================
+       TEXTE PROVISOIRE, A VALIDER PAR EVA.
+       Ce texte est une proposition écrite à partir du synopsis, en
+       attendant le vrai script de Jerry. À remplacer par ses mots à lui
+       une fois le tournage calé.
+       =================================================================== -->
+  <div class="card">
+    <p>Hier soir, la pleine lune a provoqué d'étranges phénomènes dans le parc. Isabelle, soigneuse animalière, a disparu après avoir été appelée près de l'enclos des loups. Personne ne l'a revue depuis.</p>
+    <p>À partir de maintenant, vous êtes l'enquêteur·rice. Vous avez jusqu'à trois heures, mais rien ne vous oblige à les utiliser.</p>
+  </div>
+
+  <div class="card">
+    <p><strong>Trois règles, et on vous laisse tranquille.</strong></p>
+    <p class="muted">Restez sur les chemins du parc et respectez la signalisation du zoo.</p>
+    <p class="muted">Ne touchez pas aux décors, d'autres enquêteurs passeront après vous.</p>
+    <p class="muted">Les animaux ne font pas partie de l'enquête. Merci de ne pas les déranger.</p>
+  </div>
+
+  <div class="card">
+    <p>Votre premier témoin vous attend au bureau des soignants. C'est la dernière personne à avoir parlé à Isabelle.</p>
+    <a href="bureau-soignants.html" class="btn">Étape suivante</a>
+  </div>
+</div>
+
+<footer>Le Sanctuaire des Brumes</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../assets/js/supabase-client.js"></script>
+<script src="../assets/js/game.js"></script>
+<script>
+  const session = requireActiveSession();
+  if (session) {
+    startCountdown("timer");
+    // Libellé strictement identique à celui de seed.sql, ne pas retaper à la main.
+    logScan("Jardin des pivoines");
+  }
+</script>
+
+</body>
+</html>
