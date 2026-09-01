@@ -67,7 +67,7 @@ sanctuaire-des-brumes/
 ├── schema_escape_game.sql   — description fidèle de la base réelle, policies RLS incluses, + avertissements de sécurité
 ├── seed.sql                 — peuple les 12 bornes + 3 codes de test (TEST01, TEST02, TEST03)
 ├── stats.sql                 — vues ajoutées : scan_durations, avg_duration_by_point, code_progress, abandon_points, completion_summary
-├── correctifs.sql           — corrections en attente d'application dans Supabase
+├── correctifs.sql           — journal des corrections appliquées à la base (rien en attente)
 ├── verification_base.sql    — outil de contrôle : compare la base réelle à ce que disent ces fichiers
 ├── assets/
 │   ├── css/style.css        — thème visuel partagé

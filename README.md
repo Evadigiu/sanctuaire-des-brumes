@@ -34,7 +34,7 @@ Les deux sont déjà installés et fonctionnels. Il n'y a rien à mettre en rout
 | `schema_escape_game.sql` | Description de la base telle qu'elle est réellement. **Contient les avertissements de sécurité.** |
 | `seed.sql` | Le contenu de départ : les 12 bornes et les codes de test |
 | `stats.sql` | Les calculs statistiques |
-| `correctifs.sql` | Corrections en attente, à coller dans Supabase |
+| `correctifs.sql` | Journal des corrections appliquées à la base. Rien en attente. |
 | `verification_base.sql` | Outil de contrôle : vérifie que la base correspond bien aux fichiers |
 
 ## Modifier le site

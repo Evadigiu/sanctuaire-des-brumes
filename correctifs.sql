@@ -1,17 +1,22 @@
 -- ============================================================
--- CORRECTIFS A APPLIQUER — Le Sanctuaire des Brumes
+-- CORRECTIFS BASE DE DONNEES — Le Sanctuaire des Brumes
 --
--- Mode d'emploi :
---   Supabase > SQL Editor > New query > coller tout ce fichier > Run
+-- Journal des correctifs appliques a la base de production.
+-- Chaque correctif reste ici une fois applique, pour garder la trace de ce
+-- qui a ete change et quand.
 --
--- Ce fichier ne touche a AUCUNE donnee. Il ne fait que redefinir une vue
--- (un simple affichage). Rien ne peut etre perdu.
--- A lancer une seule fois. Le relancer ne cause aucun probleme.
+-- Mode d'emploi pour un nouveau correctif :
+--   Supabase > SQL Editor > New query > coller > Run
+--   Message attendu : "Success. No rows returned"
+--
+-- ============================================================
+--            ETAT : TOUT EST APPLIQUE, RIEN A FAIRE
 -- ============================================================
 
 
 -- ------------------------------------------------------------
--- CORRECTIF 1 — Le tableau de bord affiche des groupes fantomes
+-- CORRECTIF 1 — Le tableau de bord affichait des groupes fantomes
+-- >>> APPLIQUE EN PRODUCTION LE 01/09/2026 <<<
 --
 -- Le probleme : le suivi en direct liste les groupes dont le code est
 -- "active". Or rien, nulle part, ne fait jamais repasser un code de "active"
