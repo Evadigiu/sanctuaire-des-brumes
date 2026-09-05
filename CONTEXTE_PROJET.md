@@ -30,24 +30,52 @@ Grégoire (Greg), l'agent technique, a voulu faire une farce d'Halloween à Isab
 | Sabri & Arez | Acteurs | Animent le quiz sonore, 3 vidéos du facile au difficile |
 | Le Botaniste | Acteur | Découvre la scène finale, panique, déclenche la révélation |
 
-## 5. Le parcours, sens A (12 bornes, confirmé)
+## 5. Le parcours, les deux sens (validés le 05/09/2026)
 
-1. Jardin des pivoines — Jerry (briefing) — consignes + synopsis
-2. Bureau des soignants — Collègue soigneuse — Facetime, dernier échange avec Isabelle
-3. Salle de séminaire — (vidéosurveillance) — Isabelle part tout droit au lieu d'aller aux loups
-4. Enclos des loups — (observation) — Indice 1 : lettre R (chapeau de l'épouvantail)
-5. La passante — Passante — témoignage du cri strident
-6. Enclos des lynx — Sabri & Arez — quiz sonore, Indice 2 : lettre I
-7. Le vétérinaire — Vétérinaire — démystifie la piste des loups, Indice 3 : S
-8. Greg — Greg — témoignage évasif, renvoie vers Bill (fausse piste)
-9. Bill — Bill — digresse sur les oiseaux, donne un alibi
-10. Bureau de Greg — (observation) — découverte de l'épouvantail, Indice 4 : lettre I
-11. Jardin des Iris — (énigme) — alphabet à valeur numérique, IRIS devient le code de la serre
-12. La serre — Le Botaniste — panique, bascule vers l'étape de résolution finale
+Les deux sens partagent un **départ commun** (Jerry) et une **fin commune** (Jardin des Iris, puis le botaniste à la serre). Entre les deux, ils permutent deux blocs : le bloc de la collègue soigneuse et le bloc de Greg.
 
-Les 4 indices (R, I, S, I) forment un anagramme d'IRIS, le nom du jardin où se trouve le code final (probablement volontaire).
+Le témoin **Greg est le seul personnage dédoublé** : son témoignage arrive en toute fin de parcours en sens A, mais en deuxième position en sens B, quand le joueur ne sait encore rien. Il lui faut donc deux versions. Tous les autres témoins fonctionnent dans les deux ordres, y compris le vétérinaire, qui passe après l'enclos des loups dans les deux sens.
 
-**Sens B (antihoraire) : NON CONFIRMÉ.** Une hypothèse de structure a été discutée (inverser l'ordre au sein des paires géographiques : Bureau des soigneurs/Passante au sud, Greg/Vétérinaire à l'est) mais jamais validée sur le terrain. Ne pas construire le contenu du sens B sans repérage physique préalable du zoo (largeur des chemins, embranchements réels au départ).
+### Sens A (horaire)
+
+| # | Étape | Type | Indice |
+|---|---|---|---|
+| 1 | Jerry, les consignes | témoin | |
+| 2 | La collègue soigneuse | témoin | |
+| 3 | Les caméras de surveillance | indice | |
+| 4 | Le plan des déplacements | épreuve | |
+| 5 | Les jumelles, la carcasse | indice | |
+| 6 | Le chapeau de l'épouvantail | épreuve | **R** |
+| 7 | La passante | témoin | |
+| 8 | Quizz sonore, Sabri & Arez | épreuve | **I** |
+| 9 | Le vétérinaire | témoin | |
+| 10 | Le panneau d'empreinte | indice | **S** |
+| 11 | Greg, version sens A | témoin | |
+| 12 | Bill | témoin | |
+| 13 | Le bureau de Greg | indice | **I** |
+| 14 | Épreuve botanique, la tulipe | épreuve | |
+| 15 | Jardin des Iris, le code de la serre | énigme | |
+| 16 | Le botaniste, à la serre | témoin | |
+| 17 | La résolution finale | final | |
+
+### Sens B (antihoraire)
+
+Même liste, dans cet ordre : Jerry, **Greg B**, Bill, l'épreuve de la tulipe, le bureau de Greg (**I**), la collègue soigneuse, les caméras, le plan, les jumelles, le chapeau de l'épouvantail (**R**), la passante, le quizz sonore (**I**), le vétérinaire, le panneau d'empreinte (**S**), le Jardin des Iris, le botaniste, la résolution.
+
+### ⚠️ Déséquilibre repéré, à trancher
+
+Les quatre lettres ne sont pas ramassées dans le même ordre selon le sens :
+
+- **Sens A** : R, I, S, I. Le joueur doit chercher l'anagramme.
+- **Sens B** : I, R, I, S. **Le mot est déjà écrit.** L'énigme du Jardin des Iris se résout sans réfléchir.
+
+Un groupe sur deux a donc une fin nettement plus facile, et l'écart se retrouvera dans les statistiques de durée sans explication apparente. Se corrige en permutant deux lettres entre les bornes, mais la décision doit être prise **avant** le tournage et la fabrication des décors.
+
+### Écarts entre ce schéma et la base de données
+
+La base ne connaît que 12 bornes. Le schéma en décrit 17. Quatre étapes n'existent nulle part en base : **le plan des déplacements**, **les jumelles et la carcasse**, **le panneau d'empreinte**, et **l'épreuve botanique de la tulipe** (jardin des tulipes, ajoutée le 05/09/2026).
+
+Avant de les ajouter, une question reste ouverte : chacune est-elle une borne QR à part entière dans le parc, ou un écran supplémentaire à l'intérieur d'une borne existante ? La réponse conditionne le nombre de QR codes à fabriquer et à installer. Elle est posée dans le cahier de contenu, onglet Parcours, colonne « Borne QR ? ».
 
 ## 6. Architecture technique
 

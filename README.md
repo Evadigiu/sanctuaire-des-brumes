@@ -25,7 +25,8 @@ Les deux sont déjà installés et fonctionnels. Il n'y a rien à mettre en rout
 | Fichier | À quoi il sert |
 |---|---|
 | `index.html` | Page d'accueil, saisie du code, démarrage de la partie |
-| `etapes/` | Une page par borne du parcours. **Les 12 sont créées.** Textes à remplir. |
+| `etapes/` | Une page par borne. **12 créées, à refaire** pour la mécanique en 4 écrans et les deux sens. |
+| `contenu/` | Le cahier de contenu : tous les textes du jeu. Les pages en sont fabriquées. |
 | `assets/css/style.css` | Le style visuel de tout le site |
 | `assets/js/game.js` | La logique du jeu : activation, chrono, enregistrement des passages |
 | `assets/js/supabase-client.js` | Le branchement à la base (adresse + clé publique) |
@@ -66,8 +67,19 @@ reste de publier et de tester en ligne.
 - Tableaux de bord de suivi et de statistiques
 - Site en ligne sur GitHub Pages
 
+**Changements décidés le 5 septembre 2026, pas encore construits :**
+- **Le sens B est validé.** Les deux sens partagent le départ et la fin, et permutent
+  deux blocs au milieu. Greg est le seul témoin dédoublé.
+- **Une étape en plus** : l'épreuve botanique de la tulipe, au jardin des tulipes.
+- **Une nouvelle mécanique commune à toutes les bornes** : scan, puis un écran
+  d'accueil avec un bouton « démarrer l'interrogatoire », puis le contenu
+  multimédia, puis le texte ou l'épreuve, puis l'écran qui oriente vers la suite.
+  Les pages actuelles n'ont qu'un seul écran, elles sont donc toutes à refaire.
+- **Les textes s'écrivent désormais dans le cahier de contenu**, un tableur, et les
+  pages sont fabriquées automatiquement à partir de lui. Voir `contenu/`.
+
 **À faire, dans l'ordre :**
-1. Écrire les textes des 12 étapes (chercher `A REMPLIR` dans les fichiers)
+1. Remplir le cahier de contenu (tableur), d'où les pages seront fabriquées
 2. Appliquer la nouvelle palette de couleurs (voir `CONTEXTE_PROJET.md`, section 11)
 3. **Refermer les trous de sécurité** (voir plus bas). Impérativement avant l'étape 5.
 4. Construire l'étape finale : quiz, conclusions, verdict IA
