@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La serre — Le Sanctuaire des Brumes</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<!-- PAGE FABRIQUÉE AUTOMATIQUEMENT depuis contenu/sanctuaire-cahier-de-contenu.xlsx
+     Toute correction faite ici sera perdue à la prochaine fabrication.
+     Corriger le cahier, puis relancer contenu/fabriquer-les-pages.py -->
+<body data-borne="La serre">
+
+<div class="wrap">
+  <div class="timer" id="timer">Chargement du chrono...</div>
+  <div class="eyebrow" id="position" data-A="Étape 15 sur 15" data-B="Étape 15 sur 15"></div>
+  <h1>La serre</h1>
+<section class="ecran card" hidden>
+  <div class="ecran-titre">1. Accueil apres le scan</div>
+  <p>Félicitations, vous êtes à deux doigts d&#x27;élucider le mystère de la disparition d&#x27;Isabelle. Une scène se joue sous vos yeux, prenez le temps d&#x27;observer ce qu&#x27;il s&#x27;y passe et appuyez sur suivant</p>
+  <button data-suivant>Suivant</button>
+  <button class="btn-secondary" data-retour>Revenir en arrière</button>
+</section>
+<section class="ecran card" hidden>
+  <div class="ecran-titre">3. Texte ou epreuve</div>
+  <p>Veuillez nous donner les conclusions de votr enquête. Qu&#x27;est arrivé à Isabelle ?</p>
+  <!-- A CONSTRUIRE : Le champ de conclusions jugé par une IA reste à construire. Il ne peut pas fonctionner tant que les tables quiz_responses et conclusions n'ont aucune règle d'accès dans Supabase : les réponses seraient rejetées en silence. -->
+  <p class="a-construire">Le champ de conclusions jugé par une IA reste à construire. Il ne peut pas fonctionner tant que les tables quiz_responses et conclusions n&#x27;ont aucune règle d&#x27;accès dans Supabase : les réponses seraient rejetées en silence.</p>
+  <!-- Note du cahier de contenu : Champ IA pour donner ses conclusions -->
+  <button data-suivant>Suivant</button>
+  <button class="btn-secondary" data-retour>Revenir en arrière</button>
+</section>
+<section class="ecran card" hidden>
+  <div class="ecran-titre">4. Vidéo point of view</div>
+  <!-- Remplacer la source par la vraie vidéo une fois tournée -->
+  <video controls playsinline poster=""><source src="" type="video/mp4">
+  Votre navigateur ne supporte pas la vidéo.</video>
+  <!-- Note du cahier de contenu : point of view de la soirée d'Isabelle -->
+  <button data-suivant>Suivant</button>
+  <button class="btn-secondary" data-retour>Revenir en arrière</button>
+</section>
+<section class="ecran card" hidden>
+  <div class="ecran-titre">5. Finish</div>
+  <!-- Note du cahier de contenu : 3 messages de félicitations (parfait - presque - dommage) -->
+  <p class="muted">Fin du parcours.</p>
+</section>
+</div>
+
+<footer>Le Sanctuaire des Brumes</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../assets/js/supabase-client.js"></script>
+<script src="../assets/js/game.js"></script>
+<script src="../assets/js/etape.js"></script>
+<script>
+  demarrerEtape();
+</script>
+
+</body>
+</html>

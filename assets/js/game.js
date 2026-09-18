@@ -16,7 +16,13 @@ const BASE_PATH = window.location.pathname.includes("/etapes/") ? "../" : "";
  * Tente d'activer un code au point de départ.
  * Retourne { ok: true, session } ou { ok: false, message }
  */
-async function activateCode(code, participantName) {
+// Le nombre reel de joueurs declare au depart n'est pas encore enregistre en
+// base : la colonne n'existe pas. Passer ce drapeau a true UNIQUEMENT apres
+// avoir lance le correctif qui la cree, sinon l'activation echouerait et
+// personne ne pourrait demarrer.
+const ENREGISTRER_NB_JOUEURS = false;
+
+async function activateCode(code, participantName, nbJoueurs) {
   const cleanCode = code.trim().toUpperCase();
 
   const { data: existing, error: fetchError } = await supabaseClient
@@ -37,7 +43,7 @@ async function activateCode(code, participantName) {
   if (existing.status === "active") {
     // Code déjà activé : on relance la session existante plutôt que de refuser,
     // utile si le joueur recharge la page ou change de téléphone dans le groupe.
-    const session = buildSession(existing, participantName);
+    const session = buildSession(existing, participantName, nbJoueurs);
     saveSession(session);
     return { ok: true, session };
   }
@@ -46,9 +52,12 @@ async function activateCode(code, participantName) {
   const activatedAt = new Date();
   const expiresAt = new Date(activatedAt.getTime() + 3 * 60 * 60 * 1000); // +3h
 
+  const maj = { status: "active", activated_at: activatedAt.toISOString(), expires_at: expiresAt.toISOString() };
+  if (ENREGISTRER_NB_JOUEURS && nbJoueurs) maj.participants_reels = nbJoueurs;
+
   const { data: updated, error: updateError } = await supabaseClient
     .from("codes")
-    .update({ status: "active", activated_at: activatedAt.toISOString(), expires_at: expiresAt.toISOString() })
+    .update(maj)
     .eq("id", existing.id)
     .eq("status", "unused") // garde-fou anti double-activation simultanée
     .select()
@@ -58,18 +67,19 @@ async function activateCode(code, participantName) {
     return { ok: false, message: "Ce code vient d'être activé ailleurs. Réessaie ou demande un nouveau code." };
   }
 
-  const session = buildSession(updated, participantName);
+  const session = buildSession(updated, participantName, nbJoueurs);
   saveSession(session);
   return { ok: true, session };
 }
 
-function buildSession(codeRow, participantName) {
+function buildSession(codeRow, participantName, nbJoueurs) {
   return {
     codeId: codeRow.id,
     code: codeRow.code,
     direction: codeRow.direction,
     expiresAt: codeRow.expires_at,
     participantName: participantName || "",
+    nbJoueurs: nbJoueurs || null,
   };
 }
 

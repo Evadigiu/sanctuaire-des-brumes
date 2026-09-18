@@ -10,7 +10,7 @@
 --   Message attendu : "Success. No rows returned"
 --
 -- ============================================================
---            ETAT : TOUT EST APPLIQUE, RIEN A FAIRE
+--        ETAT : UN CORRECTIF EN ATTENTE (le n°2 ci-dessous)
 -- ============================================================
 
 
@@ -63,3 +63,25 @@ where c.status = 'active'
 -- C'est un chantier a part, a mener imperativement AVANT de generer les vrais
 -- codes de production. Voir la section SECURITE de schema_escape_game.sql.
 -- ============================================================
+
+
+-- ------------------------------------------------------------
+-- CORRECTIF 2 — Enregistrer le nombre reel de joueurs
+-- >>> PAS ENCORE APPLIQUE <<<
+--
+-- L'ecran de depart demande desormais le nombre de joueurs. Aujourd'hui
+-- cette reponse ne quitte pas le telephone : la colonne n'existe pas.
+--
+-- La table connait deja max_participants, mais c'est la capacite prevue a la
+-- generation du code, pas le nombre de personnes reellement venues. Les deux
+-- ensemble permettent de recouper avec la billetterie SeeTickets, ce qui
+-- n'etait possible d'aucune autre facon jusqu'ici.
+--
+-- APRES avoir lance cette requete, passer ENREGISTRER_NB_JOUEURS a true en
+-- haut de assets/js/game.js. Dans cet ordre, jamais l'inverse : le code
+-- ecrirait dans une colonne inexistante et plus personne ne pourrait demarrer.
+-- ------------------------------------------------------------
+
+alter table codes
+  add column if not exists participants_reels int
+  check (participants_reels between 2 and 6);

@@ -42,3 +42,21 @@ celles sur fond rose sont des questions ouvertes.
 été écrit dedans.** Il ne sert qu'à faire évoluer la structure du cahier (une
 colonne en plus, une étape ajoutée), jamais après le début de la rédaction,
 sauf à récupérer d'abord le contenu déjà saisi.
+
+## Les trois outils
+
+Toujours dans cet ordre, après chaque modification du cahier :
+
+```
+python3 contenu/verifier-le-cahier.py     # le cahier se tient-il debout ?
+python3 contenu/fabriquer-les-pages.py    # fabrique etapes/ et bornes.sql
+python3 contenu/verifier-les-pages.py     # parcourt les deux sens comme un joueur
+```
+
+Le premier refuse de laisser passer un parcours où le joueur se retrouverait
+sans porte de sortie. Le dernier suit les deux sens de bout en bout et vérifie
+que chaque libellé de borne envoyé à la base existe bien dedans.
+
+`bornes.sql` est fabriqué en même temps que les pages, depuis la même source.
+C'est ce qui garantit que les libellés ne peuvent pas diverger. À coller dans
+Supabase quand le parcours change.

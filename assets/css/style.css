@@ -182,3 +182,48 @@ footer {
   font-size: 0.75rem;
   letter-spacing: 1px;
 }
+
+/* ============================================================
+   ÉCRANS D'UNE ÉTAPE
+   Chaque borne enchaîne plusieurs écrans dans une même page.
+   Un seul est visible à la fois, la navigation est dans etape.js.
+   ============================================================ */
+.ecran-titre {
+  font-size: 0.7rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--fog);
+  margin-bottom: 12px;
+}
+.ecran .card.indice { margin-top: 18px; margin-bottom: 0; }
+.ecran p:last-of-type { margin-bottom: 0; }
+
+/* La lettre trouvée, seul moment où le jeu crie quelque chose */
+.lettre {
+  font-size: 3.5rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--gold-bright);
+  letter-spacing: 6px;
+  margin: 8px 0 0;
+}
+
+/* Appel entrant : le son ne part qu'au clic */
+.btn-appel {
+  background: var(--green);
+  color: #10140f;
+}
+.btn-appel:hover:not(:disabled) { background: #93c795; }
+
+/* Signale au joueur, et surtout à l'équipe, ce qui n'existe pas encore */
+.a-construire {
+  border: 1px dashed var(--gold);
+  border-radius: 6px;
+  padding: 12px 14px;
+  color: var(--fog);
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+/* Le bouton de retour reste discret, il ne doit pas concurrencer Suivant */
+.ecran .btn-secondary { margin-top: 10px; font-size: 0.9rem; padding: 10px 18px; }

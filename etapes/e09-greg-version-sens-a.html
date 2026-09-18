@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Greg, version sens A — Le Sanctuaire des Brumes</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<!-- PAGE FABRIQUÉE AUTOMATIQUEMENT depuis contenu/sanctuaire-cahier-de-contenu.xlsx
+     Toute correction faite ici sera perdue à la prochaine fabrication.
+     Corriger le cahier, puis relancer contenu/fabriquer-les-pages.py -->
+<body data-borne="Greg, version sens A">
+
+<div class="wrap">
+  <div class="timer" id="timer">Chargement du chrono...</div>
+  <div class="eyebrow" id="position" data-A="Étape 9 sur 15" data-B=""></div>
+  <h1>Greg, version sens A</h1>
+<section class="ecran card" hidden>
+  <div class="ecran-titre">1. Vidéo de Greg</div>
+  <!-- Remplacer la source par la vraie vidéo une fois tournée -->
+  <video controls playsinline poster=""><source src="" type="video/mp4">
+  Votre navigateur ne supporte pas la vidéo.</video>
+  <button data-suivant>Suivant</button>
+  <button class="btn-secondary" data-retour>Revenir en arrière</button>
+</section>
+<section class="ecran card" hidden>
+  <div class="ecran-titre">2. Legende du media</div>
+  <p>Greg, pas très rassurant</p>
+  <button data-suivant>Suivant</button>
+  <button class="btn-secondary" data-retour>Revenir en arrière</button>
+</section>
+<section class="ecran card" data-sens="A" hidden>
+  <div class="ecran-titre">4. Ou aller ensuite</div>
+  <p>Rendez-vous dans la grande volière pour intérroger Bill.</p>
+  <!-- A AJOUTER : la photo qui montre où aller.
+       <img src="../assets/img/XXX.jpg" alt="Le chemin à prendre"> -->
+  <a href="e10-bill.html" class="btn">Continuer l'enquête</a>
+</section>
+<section class="ecran card" data-sens="B" hidden>
+  <div class="ecran-titre">Ce n'est pas votre borne</div>
+  <p>Cette borne appartient à l'autre parcours. La vôtre vous attend ailleurs, reprenez le chemin indiqué à l'étape précédente.</p>
+  <p class="muted">Votre temps continue de tourner, mais rien n'est perdu : ce détour ne compte pas dans votre enquête.</p>
+</section>
+</div>
+
+<footer>Le Sanctuaire des Brumes</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../assets/js/supabase-client.js"></script>
+<script src="../assets/js/game.js"></script>
+<script src="../assets/js/etape.js"></script>
+<script>
+  demarrerEtape();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VÉTÉRINAIRE — Le Sanctuaire des Brumes</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<!-- PAGE FABRIQUÉE AUTOMATIQUEMENT depuis contenu/sanctuaire-cahier-de-contenu.xlsx
+     Toute correction faite ici sera perdue à la prochaine fabrication.
+     Corriger le cahier, puis relancer contenu/fabriquer-les-pages.py -->
+<body data-borne="VÉTÉRINAIRE">
+
+<div class="wrap">
+  <div class="timer" id="timer">Chargement du chrono...</div>
+  <div class="eyebrow" id="position" data-A="Étape 7 sur 15" data-B="Étape 12 sur 15"></div>
+  <h1>VÉTÉRINAIRE</h1>
+<section class="ecran card" hidden>
+  <div class="ecran-titre">1. Vidéo de Sandra</div>
+  <!-- Remplacer la source par la vraie vidéo une fois tournée -->
+  <video controls playsinline poster=""><source src="" type="video/mp4">
+  Votre navigateur ne supporte pas la vidéo.</video>
+  <button data-suivant>Suivant</button>
+  <button class="btn-secondary" data-retour>Revenir en arrière</button>
+</section>
+<section class="ecran card" hidden>
+  <div class="ecran-titre">2. Legende du media</div>
+  <p>Sandra, Vétérinaire au Parc Zoologique et Botanique de Mulhouse</p>
+  <button data-suivant>Suivant</button>
+  <button class="btn-secondary" data-retour>Revenir en arrière</button>
+</section>
+<section class="ecran card" data-sens="A" hidden>
+  <div class="ecran-titre">4. Ou aller ensuite</div>
+  <p>Tableau des empreintes</p>
+  <!-- A AJOUTER : la photo qui montre où aller.
+       <img src="../assets/img/XXX.jpg" alt="Le chemin à prendre"> -->
+  <a href="e08-indice-le-panneau-d-empreinte.html" class="btn">Continuer l'enquête</a>
+</section>
+<section class="ecran card" data-sens="B" hidden>
+  <div class="ecran-titre">4. Ou aller ensuite</div>
+  <p>Tableau des empreintes</p>
+  <!-- A AJOUTER : la photo qui montre où aller.
+       <img src="../assets/img/XXX.jpg" alt="Le chemin à prendre"> -->
+  <a href="e08-indice-le-panneau-d-empreinte.html" class="btn">Continuer l'enquête</a>
+</section>
+</div>
+
+<footer>Le Sanctuaire des Brumes</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../assets/js/supabase-client.js"></script>
+<script src="../assets/js/game.js"></script>
+<script src="../assets/js/etape.js"></script>
+<script>
+  demarrerEtape();
+</script>
+
+</body>
+</html>
