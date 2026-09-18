@@ -166,13 +166,11 @@ create policy "Enregistrement des scans"
 
 -- Groupes actuellement en jeu, avec leur derniere borne scannee.
 --
--- >>> ECART CONNU AVEC LA PROD, au 01/09/2026 <<<
--- La ligne "and c.expires_at > now()" ci-dessous est un CORRECTIF qui n'est
--- pas encore applique dans Supabase. Sans lui, le tableau de bord affiche
--- indefiniment les groupes des jours precedents, parce que rien ne fait
--- jamais repasser un code de 'active' a 'expired'.
--- Pour aligner la base : lancer correctifs.sql (une seule requete, sans risque).
--- Une fois fait, supprimer ce bloc d'avertissement.
+-- Le filtre "and c.expires_at > now()" evite d'afficher indefiniment les
+-- groupes des jours precedents : rien ne fait jamais repasser un code de
+-- 'active' a 'expired' une fois les 3h ecoulees.
+-- Correctif applique sur la base de production le 01/09/2026.
+-- Ce fichier est de nouveau aligne avec la prod.
 create or replace view live_dashboard as
 select
   c.code,

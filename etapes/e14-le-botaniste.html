@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LE BOTANISTE — Le Sanctuaire des Brumes</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<!-- PAGE FABRIQUÉE AUTOMATIQUEMENT depuis contenu/sanctuaire-cahier-de-contenu.xlsx
+     Toute correction faite ici sera perdue à la prochaine fabrication.
+     Corriger le cahier, puis relancer contenu/fabriquer-les-pages.py -->
+<body data-borne="LE BOTANISTE">
+
+<div class="wrap">
+  <div class="timer" id="timer">Chargement du chrono...</div>
+  <div class="eyebrow" id="position" data-A="Étape 14 sur 15" data-B="Étape 14 sur 15"></div>
+  <h1>LE BOTANISTE</h1>
+<section class="ecran card" hidden>
+  <div class="ecran-titre">1. Vidéo du botaniste</div>
+  <!-- Remplacer la source par la vraie vidéo une fois tournée -->
+  <video controls playsinline poster=""><source src="" type="video/mp4">
+  Votre navigateur ne supporte pas la vidéo.</video>
+  <button data-suivant>Suivant</button>
+  <button class="btn-secondary" data-retour>Revenir en arrière</button>
+</section>
+<section class="ecran card" hidden>
+  <div class="ecran-titre">2. Legende du media</div>
+  <p>&quot;…&quot;, botaniste au Parc Zoologique et Botanique de Mulhouse</p>
+  <button data-suivant>Suivant</button>
+  <button class="btn-secondary" data-retour>Revenir en arrière</button>
+</section>
+<section class="ecran card" hidden>
+  <div class="ecran-titre">3. Texte ou epreuve</div>
+  <p>Pour pénetrer dans la serre vous aurez besoin de transformer vos 4 lettres en chiffres</p>
+  <!-- A CONSTRUIRE : L'épreuve de conversion des 4 lettres en chiffres reste à construire. -->
+  <p class="a-construire">L&#x27;épreuve de conversion des 4 lettres en chiffres reste à construire.</p>
+  <!-- Note du cahier de contenu : on créera cette épreuve sur une seule page plus tard, probablement avec un visuel. -->
+  <button data-suivant>Suivant</button>
+  <button class="btn-secondary" data-retour>Revenir en arrière</button>
+</section>
+<section class="ecran card" data-sens="A" hidden>
+  <div class="ecran-titre">4. Ou aller ensuite</div>
+  <p>Pénétrez dans la serre</p>
+  <!-- A AJOUTER : la photo qui montre où aller.
+       <img src="../assets/img/XXX.jpg" alt="Le chemin à prendre"> -->
+  <a href="e15-la-serre.html" class="btn">Continuer l'enquête</a>
+</section>
+<section class="ecran card" data-sens="B" hidden>
+  <div class="ecran-titre">4. Ou aller ensuite</div>
+  <p>Pénétrez dans la serre</p>
+  <!-- A AJOUTER : la photo qui montre où aller.
+       <img src="../assets/img/XXX.jpg" alt="Le chemin à prendre"> -->
+  <a href="e15-la-serre.html" class="btn">Continuer l'enquête</a>
+</section>
+</div>
+
+<footer>Le Sanctuaire des Brumes</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../assets/js/supabase-client.js"></script>
+<script src="../assets/js/game.js"></script>
+<script src="../assets/js/etape.js"></script>
+<script>
+  demarrerEtape();
+</script>
+
+</body>
+</html>

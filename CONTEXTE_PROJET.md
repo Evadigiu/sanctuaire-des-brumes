@@ -18,36 +18,60 @@ Grégoire (Greg), l'agent technique, a voulu faire une farce d'Halloween à Isab
 
 ## 4. Les personnages
 
-| Personnage | Interprète | Fonction |
-|---|---|---|
-| Jerry | Acteur | Briefe le joueur au démarrage, pose le synopsis et les consignes |
-| Isabelle | Cameo | La disparue, apparition muette et endormie à la toute fin |
-| Collègue soigneuse | Un·e vrai·e membre du personnel du zoo (pas un acteur classique) | Premier témoin, raconte le départ d'Isabelle la veille |
-| Vétérinaire | Acteur | Démystifie la piste des loups, guide vers l'indice empreinte |
-| Greg (Grégoire) | Acteur | Agent technique, auteur involontaire du canular, témoignage évasif |
-| Bill | Acteur | Collègue de Greg, spécialisé oiseaux (pas reptiles), fausse piste, donne un alibi |
-| La passante | Acteur | Témoin extérieur, a entendu le cri strident |
-| Sabri & Arez | Acteurs | Animent le quiz sonore, 3 vidéos du facile au difficile |
-| Le Botaniste | Acteur | Découvre la scène finale, panique, déclenche la révélation |
+Noms fixés dans le cahier de contenu du 18/09/2026. **Jerry n'existe plus**, il est remplacé par le commissaire Jean, qui intervient deux fois : au briefing, puis par un appel téléphonique en cours de partie.
 
-## 5. Le parcours, sens A (12 bornes, confirmé)
+| Personnage | Rôle dans l'enquête |
+|---|---|
+| **Commissaire Jean** | Briefe le joueur au départ, puis le rappelle en cours de route |
+| **Isabelle** | La disparue, apparition muette à la toute fin |
+| **Mathilde** | Collègue soigneuse, premier témoin en sens A |
+| **Sophie** | Cheffe de la sécurité, montre les caméras de surveillance |
+| **Marina** | La passante, a entendu le cri |
+| **Sabri & Arez** | Animent le quiz animalier |
+| **Sandra** | Vétérinaire |
+| **Greg** | Agent technique, auteur involontaire du canular. **Seul personnage dédoublé** : une version pour chaque sens |
+| **Bill** | Collègue de Greg, spécialiste oiseaux, fausse piste et alibi |
+| **Le botaniste** | Découvre la scène finale. **Nom encore à choisir.** |
 
-1. Jardin des pivoines — Jerry (briefing) — consignes + synopsis
-2. Bureau des soignants — Collègue soigneuse — Facetime, dernier échange avec Isabelle
-3. Salle de séminaire — (vidéosurveillance) — Isabelle part tout droit au lieu d'aller aux loups
-4. Enclos des loups — (observation) — Indice 1 : lettre R (chapeau de l'épouvantail)
-5. La passante — Passante — témoignage du cri strident
-6. Enclos des lynx — Sabri & Arez — quiz sonore, Indice 2 : lettre I
-7. Le vétérinaire — Vétérinaire — démystifie la piste des loups, Indice 3 : S
-8. Greg — Greg — témoignage évasif, renvoie vers Bill (fausse piste)
-9. Bill — Bill — digresse sur les oiseaux, donne un alibi
-10. Bureau de Greg — (observation) — découverte de l'épouvantail, Indice 4 : lettre I
-11. Jardin des Iris — (énigme) — alphabet à valeur numérique, IRIS devient le code de la serre
-12. La serre — Le Botaniste — panique, bascule vers l'étape de résolution finale
+## 5. Le parcours (cahier de contenu du 18/09/2026)
 
-Les 4 indices (R, I, S, I) forment un anagramme d'IRIS, le nom du jardin où se trouve le code final (probablement volontaire).
+17 étapes. Les deux sens partagent le départ (commissaire Jean) et la fin (le botaniste, puis la serre), et permutent deux blocs au milieu.
 
-**Sens B (antihoraire) : NON CONFIRMÉ.** Une hypothèse de structure a été discutée (inverser l'ordre au sein des paires géographiques : Bureau des soigneurs/Passante au sud, Greg/Vétérinaire à l'est) mais jamais validée sur le terrain. Ne pas construire le contenu du sens B sans repérage physique préalable du zoo (largeur des chemins, embranchements réels au départ).
+| Code | Étape | Lieu | Lettre | Sens A | Sens B |
+|---|---|---|---|---|---|
+| E00 | Départ de l'enquête | Accueil (ticket papier, pas de QR) | | 0 | 0 |
+| E01 | Le commissaire Jean | Jardin des pivoines | | 1 | 1 |
+| E02 | Mathilde, collègue soigneuse | Bureau des soignants | | 2 | 8 |
+| E03 | Sophie, les caméras de surveillance | Salle de séminaire | | 3 | 7 |
+| E04 | Les jumelles, la carcasse | Enclos des loups | **R** | 4 | 9 |
+| E05 | Marina, la passante | Au-dessus de l'enclos des loups | | 5 | 10 |
+| E06 | Quiz animalier, Sabri & Arez | Panthère de l'Amour | **I** | 6 | 11 |
+| E07 | Sandra, vétérinaire | Forêt | | 7 | 12 |
+| E08 | Le panneau d'empreintes | Après le vétérinaire | **S** | 8 | 13 |
+| E09 | Greg, version sens A | Sentier des plantes sauvages | | 9 | — |
+| E16 | Greg, version sens B | *lieu à préciser* | | — | 2 |
+| E10 | Bill | Grande volière | | 10 | 3 |
+| E11 | Le sac du botaniste | Jardin des tulipes | | 11 | 4 |
+| E12 | L'appel du commissaire | Statues | | 12 | 5 |
+| E13 | Le bureau de Greg | Zone de pique-nique | **I** | 13 | 6 |
+| E14 | Le botaniste | Jardin des Iris | | 14 | 14 |
+| E15 | La serre, résolution finale | La serre | | 15 | 15 |
+
+### Les mécaniques demandées, pas encore construites
+
+- **Écran de départ** : saisie du nom d'enquêteur **et du nombre de personnes** (donnée neuve, utile pour recouper avec la billetterie).
+- **E08, panneau d'empreintes** : champ de saisie libre, la bonne réponse est `11`, et elle seule débloque la lettre S.
+- **E12, appel du commissaire** : une sonnerie, puis un bouton « décrocher » qui lance l'audio.
+- **E14** : convertir les 4 lettres en chiffres pour obtenir le code de la serre.
+- **E15** : champ libre de conclusions jugé par une IA, une vidéo de résolution, puis trois fins possibles (parfait, presque, dommage). Correspond aux valeurs `proche` / `partiel` / `eloigne` déjà prévues en base.
+- **E06, quiz animalier** : contenu à écrire pendant le tournage.
+
+### ⚠️ Le déséquilibre des lettres n'est toujours pas tranché
+
+- **Sens A** : R, I, S, I. Le joueur doit reconstituer le mot avant de le convertir en chiffres.
+- **Sens B** : I, R, I, S. **Le mot est déjà écrit dans l'ordre.** L'étape de reconstitution disparaît.
+
+Signalé le 5 septembre, toujours ouvert. Se corrige en permutant deux lettres entre les bornes, décision à prendre avant le tournage et la fabrication des décors.
 
 ## 6. Architecture technique
 
@@ -67,7 +91,7 @@ sanctuaire-des-brumes/
 ├── schema_escape_game.sql   — description fidèle de la base réelle, policies RLS incluses, + avertissements de sécurité
 ├── seed.sql                 — peuple les 12 bornes + 3 codes de test (TEST01, TEST02, TEST03)
 ├── stats.sql                 — vues ajoutées : scan_durations, avg_duration_by_point, code_progress, abandon_points, completion_summary
-├── correctifs.sql           — corrections en attente d'application dans Supabase
+├── correctifs.sql           — journal des corrections appliquées à la base (rien en attente)
 ├── verification_base.sql    — outil de contrôle : compare la base réelle à ce que disent ces fichiers
 ├── assets/
 │   ├── css/style.css        — thème visuel partagé
@@ -126,12 +150,12 @@ La vérification est rejouable à tout moment : coller `verification_base.sql` d
 ✅ Schéma Supabase posé et peuplé (12 bornes, 3 codes de test)
 ⚠️ RLS activé sur les 5 tables, mais **4 défauts confirmés** (voir section 10), et 2 tables sans aucune policy
 ✅ Page de départ (`index.html`) : consignes, saisie du code, activation réelle
-✅ Deux pages d'étape : `jardin-des-pivoines.html` (étape 1, Jerry, texte provisoire à valider) et `bureau-soignants.html` (étape 2, testée avec succès)
+✅ **Les 12 pages d'étape existent et s'enchaînent**, de la borne 1 à la borne 12. Mécanique fonctionnelle partout : chrono, enregistrement du passage, lien vers la suite. Seule `bureau-soignants.html` (étape 2) a été testée en conditions réelles. Les textes sont vides, sauf l'étape 1 dont le texte est provisoire.
 ✅ Site en ligne sur GitHub Pages, chemins relatifs corrigés
 ✅ Dashboard de suivi en direct et page de statistiques, fonctionnels
 ✅ Palette de couleurs finalisée (voir section 10)
 
-⬜ **10 pages d'étape restantes** à créer sur le modèle de `bureau-soignants.html` (Salle de séminaire, Enclos des loups, La passante, Enclos des lynx, Le vétérinaire, Greg, Bill, Bureau de Greg, Jardin des Iris, La serre) — prochaine tâche demandée
+⬜ **Les textes des 12 étapes** — la structure est posée, les emplacements sont marqués `A REMPLIR` dans chaque fichier. Décision préalable nécessaire sur les indices et sur le code IRIS (voir section 12).
 ⬜ Étape finale (quiz noté + champ "vos conclusions" + appel à une IA qui juge la réponse + écran "photo finish" récapitulatif) — non commencée
 ⬜ Vraies vidéos (actuellement des balises `<video>` vides dans le modèle) — dépend du tournage
 ⬜ Génération en masse des vrais codes de production (environ 2000+, actuellement seulement 3 codes de test)
@@ -174,7 +198,12 @@ Typographie choisie séparément : **Cinzel** pour les titres, **Times New Roman
 
 ## 12. Prochaines étapes, dans l'ordre suggéré
 
-1. Dupliquer `etapes/bureau-soignants.html` pour créer les 10 pages restantes.
+1. Écrire les textes des 12 étapes (chercher `A REMPLIR` dans les fichiers de `etapes/`).
+
+   **Trois décisions préalables, elles conditionnent la structure des pages :**
+   - *Les 4 indices (R, I, S, I) s'affichent-ils à l'écran, ou le joueur les trouve-t-il dans le décor ?* La section 5 dit qu'ils sont physiques (chapeau de l'épouvantail, etc.). Un encadré `.indice` est prévu sur les 4 bornes concernées, à supprimer s'il fait doublon avec le décor.
+   - *Le code IRIS se tape-t-il sur le site, ou sur un cadenas physique à la serre ?* Aucune saisie n'a été construite dans le doute. Si elle doit exister, c'est une mécanique à ajouter.
+   - *Que se passe-t-il après la borne 12 ?* Le bouton de `la-serre.html` est inactif tant que l'étape finale n'est pas construite.
 2. Appliquer la nouvelle palette de couleurs (section 11) à `assets/css/style.css`.
    *Point ouvert : la palette validée ne définit aucune couleur de texte secondaire, or `.muted` est utilisé partout dans le site. Il en faut une, sinon du gris bleuté de l'ancienne palette subsistera.*
 3. **Sécuriser la base** (fonction `security definer`, voir section 10). Referme les 4 défauts d'un coup, dont celui qui bloque l'étape finale. **Doit être terminé avant l'étape 5.**

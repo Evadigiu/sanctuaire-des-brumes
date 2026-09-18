@@ -13,14 +13,24 @@
   <h1>Vous êtes l'enquêteur·rice</h1>
   <p class="muted">Zoo de Mulhouse, édition Toussaint 2026</p>
 
-  <div class="card">
-    <p>Hier soir, la pleine lune a provoqué d'étranges phénomènes dans le parc zoologique. Isabelle, soigneuse animalière, a disparu après avoir été appelée près de l'enclos des loups. Vous avez jusqu'à trois heures pour découvrir ce qu'il lui est arrivé, à votre rythme : certains groupes bouclent l'enquête en une heure, d'autres prennent tout leur temps.</p>
-    <p class="muted">Les témoins et les épreuves sont matérialisés par des bornes QR code à scanner dans le parc. Chaque fin d'étape vous indique où vous rendre ensuite. Merci de ne pas toucher aux décors.</p>
-  </div>
+  <!-- Écran 1 : l'accueil. Texte issu du cahier de contenu, étape E00. -->
+  <section class="ecran card" id="ecranAccueil">
+    <p>Bienvenue au Parc Zoologique et Botanique de Mulhouse. Vous êtes sur le point de prendre part à une expérience unique en son genre : une enquête de police grandeur nature.</p>
+    <p>Armez-vous de bon sens et observez bien ce qu'il se passe autour de vous. Suivez les consignes qui vous sont données et respectez le sens des énigmes qui vous est proposé.</p>
+    <p>Vous avez 3 heures à partir de maintenant pour terminer l'enquête.</p>
+    <p class="muted">Merci de ne pas toucher aux décors : d'autres enquêteurs passeront après vous.</p>
+    <button id="versSaisie">Suivant</button>
+  </section>
 
-  <div class="card">
-    <label for="participantName">Votre nom d'enquêteur (optionnel)</label>
-    <input type="text" id="participantName" placeholder="Ex. Inspecteur Dupont">
+  <!-- Écran 2 : le code, l'équipe, le nombre de joueurs. -->
+  <section class="ecran card" id="ecranSaisie" hidden>
+    <p>Saisissez le nom de votre équipe ainsi que le nombre de joueurs :</p>
+
+    <label for="participantName">Nom de votre équipe</label>
+    <input type="text" id="participantName" placeholder="Ex. Les Limiers du Dimanche">
+
+    <label for="nbJoueurs">Nombre de joueurs</label>
+    <input type="number" id="nbJoueurs" min="2" max="6" step="1" placeholder="Entre 2 et 6">
 
     <label for="codeInput">Code secret remis à l'accueil</label>
     <input type="text" id="codeInput" placeholder="Ex. AB12CD" autocapitalize="characters">
@@ -35,7 +45,17 @@
     <div class="error-box" id="errorBox"></div>
 
     <button id="startBtn" disabled>Démarrer l'enquête</button>
-  </div>
+    <button class="btn-secondary" id="retourAccueil">Revenir en arrière</button>
+  </section>
+
+  <!-- Écran 3 : où aller. Le chrono tourne déjà. -->
+  <section class="ecran card" id="ecranDepart" hidden>
+    <div class="ecran-titre">Votre enquête commence</div>
+    <p>Entrez dans le jardin des pivoines, sur votre droite après l'accueil du zoo, pour recevoir les instructions de votre commissaire.</p>
+    <!-- A AJOUTER : la photo qui montre le chemin.
+         <img src="assets/img/depart.jpg" alt="Le jardin des pivoines"> -->
+    <a href="etapes/e01-le-commissaire-jean.html" class="btn">Rejoindre le commissaire</a>
+  </section>
 </div>
 
 <footer>Pomelo Événementiel &times; Zoo de Mulhouse</footer>
@@ -44,24 +64,39 @@
 <script src="assets/js/supabase-client.js"></script>
 <script src="assets/js/game.js"></script>
 <script>
+  const accueil  = document.getElementById("ecranAccueil");
+  const saisie   = document.getElementById("ecranSaisie");
+  const depart   = document.getElementById("ecranDepart");
   const acceptBox = document.getElementById("acceptRules");
   const codeInput = document.getElementById("codeInput");
-  const startBtn = document.getElementById("startBtn");
-  const errorBox = document.getElementById("errorBox");
+  const nbJoueurs = document.getElementById("nbJoueurs");
+  const startBtn  = document.getElementById("startBtn");
+  const errorBox  = document.getElementById("errorBox");
+
+  document.getElementById("versSaisie").addEventListener("click", () => {
+    accueil.hidden = true; saisie.hidden = false; window.scrollTo(0, 0);
+  });
+  document.getElementById("retourAccueil").addEventListener("click", () => {
+    saisie.hidden = true; accueil.hidden = false; window.scrollTo(0, 0);
+  });
 
   function refreshButtonState() {
-    startBtn.disabled = !(acceptBox.checked && codeInput.value.trim().length > 0);
+    const n = parseInt(nbJoueurs.value, 10);
+    startBtn.disabled = !(acceptBox.checked
+                          && codeInput.value.trim().length > 0
+                          && n >= 2 && n <= 6);
   }
   acceptBox.addEventListener("change", refreshButtonState);
   codeInput.addEventListener("input", refreshButtonState);
+  nbJoueurs.addEventListener("input", refreshButtonState);
 
   // Message d'erreur venant d'une redirection (session expirée, etc.)
   const params = new URLSearchParams(window.location.search);
-  if (params.get("error") === "expired") {
-    errorBox.textContent = "Votre session de jeu est terminée (3h écoulées).";
-    errorBox.classList.add("visible");
-  } else if (params.get("error") === "no_session") {
-    errorBox.textContent = "Merci de démarrer l'enquête depuis cette page avec votre code.";
+  if (params.get("error") === "expired" || params.get("error") === "no_session") {
+    accueil.hidden = true; saisie.hidden = false;
+    errorBox.textContent = params.get("error") === "expired"
+      ? "Votre session de jeu est terminée (3h écoulées)."
+      : "Merci de démarrer l'enquête depuis cette page avec votre code.";
     errorBox.classList.add("visible");
   }
 
@@ -70,7 +105,11 @@
     startBtn.textContent = "Vérification...";
     errorBox.classList.remove("visible");
 
-    const result = await activateCode(codeInput.value, document.getElementById("participantName").value);
+    const result = await activateCode(
+      codeInput.value,
+      document.getElementById("participantName").value,
+      parseInt(nbJoueurs.value, 10)
+    );
 
     if (!result.ok) {
       errorBox.textContent = result.message;
@@ -80,11 +119,8 @@
       return;
     }
 
-    // Redirection vers la 1ère étape du sens attribué.
-    // Le sens B n'étant pas encore confirmé sur le terrain, les deux
-    // sens pointent pour l'instant vers le même contenu (sens A).
-    // À corriger dans etapes/ une fois le repérage terrain fait.
-    window.location.href = "etapes/jardin-des-pivoines.html";
+    // Le chrono part d'ici. On affiche l'écran qui envoie vers la 1re borne.
+    saisie.hidden = true; depart.hidden = false; window.scrollTo(0, 0);
   });
 </script>
 
