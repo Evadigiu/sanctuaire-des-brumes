@@ -18,64 +18,60 @@ Grégoire (Greg), l'agent technique, a voulu faire une farce d'Halloween à Isab
 
 ## 4. Les personnages
 
-| Personnage | Interprète | Fonction |
-|---|---|---|
-| Jerry | Acteur | Briefe le joueur au démarrage, pose le synopsis et les consignes |
-| Isabelle | Cameo | La disparue, apparition muette et endormie à la toute fin |
-| Collègue soigneuse | Un·e vrai·e membre du personnel du zoo (pas un acteur classique) | Premier témoin, raconte le départ d'Isabelle la veille |
-| Vétérinaire | Acteur | Démystifie la piste des loups, guide vers l'indice empreinte |
-| Greg (Grégoire) | Acteur | Agent technique, auteur involontaire du canular, témoignage évasif |
-| Bill | Acteur | Collègue de Greg, spécialisé oiseaux (pas reptiles), fausse piste, donne un alibi |
-| La passante | Acteur | Témoin extérieur, a entendu le cri strident |
-| Sabri & Arez | Acteurs | Animent le quiz sonore, 3 vidéos du facile au difficile |
-| Le Botaniste | Acteur | Découvre la scène finale, panique, déclenche la révélation |
+Noms fixés dans le cahier de contenu du 18/09/2026. **Jerry n'existe plus**, il est remplacé par le commissaire Jean, qui intervient deux fois : au briefing, puis par un appel téléphonique en cours de partie.
 
-## 5. Le parcours, les deux sens (validés le 05/09/2026)
+| Personnage | Rôle dans l'enquête |
+|---|---|
+| **Commissaire Jean** | Briefe le joueur au départ, puis le rappelle en cours de route |
+| **Isabelle** | La disparue, apparition muette à la toute fin |
+| **Mathilde** | Collègue soigneuse, premier témoin en sens A |
+| **Sophie** | Cheffe de la sécurité, montre les caméras de surveillance |
+| **Marina** | La passante, a entendu le cri |
+| **Sabri & Arez** | Animent le quiz animalier |
+| **Sandra** | Vétérinaire |
+| **Greg** | Agent technique, auteur involontaire du canular. **Seul personnage dédoublé** : une version pour chaque sens |
+| **Bill** | Collègue de Greg, spécialiste oiseaux, fausse piste et alibi |
+| **Le botaniste** | Découvre la scène finale. **Nom encore à choisir.** |
 
-Les deux sens partagent un **départ commun** (Jerry) et une **fin commune** (Jardin des Iris, puis le botaniste à la serre). Entre les deux, ils permutent deux blocs : le bloc de la collègue soigneuse et le bloc de Greg.
+## 5. Le parcours (cahier de contenu du 18/09/2026)
 
-Le témoin **Greg est le seul personnage dédoublé** : son témoignage arrive en toute fin de parcours en sens A, mais en deuxième position en sens B, quand le joueur ne sait encore rien. Il lui faut donc deux versions. Tous les autres témoins fonctionnent dans les deux ordres, y compris le vétérinaire, qui passe après l'enclos des loups dans les deux sens.
+17 étapes. Les deux sens partagent le départ (commissaire Jean) et la fin (le botaniste, puis la serre), et permutent deux blocs au milieu.
 
-### Sens A (horaire)
+| Code | Étape | Lieu | Lettre | Sens A | Sens B |
+|---|---|---|---|---|---|
+| E00 | Départ de l'enquête | Accueil (ticket papier, pas de QR) | | 0 | 0 |
+| E01 | Le commissaire Jean | Jardin des pivoines | | 1 | 1 |
+| E02 | Mathilde, collègue soigneuse | Bureau des soignants | | 2 | 8 |
+| E03 | Sophie, les caméras de surveillance | Salle de séminaire | | 3 | 7 |
+| E04 | Les jumelles, la carcasse | Enclos des loups | **R** | 4 | 9 |
+| E05 | Marina, la passante | Au-dessus de l'enclos des loups | | 5 | 10 |
+| E06 | Quiz animalier, Sabri & Arez | Panthère de l'Amour | **I** | 6 | 11 |
+| E07 | Sandra, vétérinaire | Forêt | | 7 | 12 |
+| E08 | Le panneau d'empreintes | Après le vétérinaire | **S** | 8 | 13 |
+| E09 | Greg, version sens A | Sentier des plantes sauvages | | 9 | — |
+| E16 | Greg, version sens B | *lieu à préciser* | | — | 2 |
+| E10 | Bill | Grande volière | | 10 | 3 |
+| E11 | Le sac du botaniste | Jardin des tulipes | | 11 | 4 |
+| E12 | L'appel du commissaire | Statues | | 12 | 5 |
+| E13 | Le bureau de Greg | Zone de pique-nique | **I** | 13 | 6 |
+| E14 | Le botaniste | Jardin des Iris | | 14 | 14 |
+| E15 | La serre, résolution finale | La serre | | 15 | 15 |
 
-| # | Étape | Type | Indice |
-|---|---|---|---|
-| 1 | Jerry, les consignes | témoin | |
-| 2 | La collègue soigneuse | témoin | |
-| 3 | Les caméras de surveillance | indice | |
-| 4 | Le plan des déplacements | épreuve | |
-| 5 | Les jumelles, la carcasse | indice | |
-| 6 | Le chapeau de l'épouvantail | épreuve | **R** |
-| 7 | La passante | témoin | |
-| 8 | Quizz sonore, Sabri & Arez | épreuve | **I** |
-| 9 | Le vétérinaire | témoin | |
-| 10 | Le panneau d'empreinte | indice | **S** |
-| 11 | Greg, version sens A | témoin | |
-| 12 | Bill | témoin | |
-| 13 | Le bureau de Greg | indice | **I** |
-| 14 | Épreuve botanique, la tulipe | épreuve | |
-| 15 | Jardin des Iris, le code de la serre | énigme | |
-| 16 | Le botaniste, à la serre | témoin | |
-| 17 | La résolution finale | final | |
+### Les mécaniques demandées, pas encore construites
 
-### Sens B (antihoraire)
+- **Écran de départ** : saisie du nom d'enquêteur **et du nombre de personnes** (donnée neuve, utile pour recouper avec la billetterie).
+- **E08, panneau d'empreintes** : champ de saisie libre, la bonne réponse est `11`, et elle seule débloque la lettre S.
+- **E12, appel du commissaire** : une sonnerie, puis un bouton « décrocher » qui lance l'audio.
+- **E14** : convertir les 4 lettres en chiffres pour obtenir le code de la serre.
+- **E15** : champ libre de conclusions jugé par une IA, une vidéo de résolution, puis trois fins possibles (parfait, presque, dommage). Correspond aux valeurs `proche` / `partiel` / `eloigne` déjà prévues en base.
+- **E06, quiz animalier** : contenu à écrire pendant le tournage.
 
-Même liste, dans cet ordre : Jerry, **Greg B**, Bill, l'épreuve de la tulipe, le bureau de Greg (**I**), la collègue soigneuse, les caméras, le plan, les jumelles, le chapeau de l'épouvantail (**R**), la passante, le quizz sonore (**I**), le vétérinaire, le panneau d'empreinte (**S**), le Jardin des Iris, le botaniste, la résolution.
+### ⚠️ Le déséquilibre des lettres n'est toujours pas tranché
 
-### ⚠️ Déséquilibre repéré, à trancher
+- **Sens A** : R, I, S, I. Le joueur doit reconstituer le mot avant de le convertir en chiffres.
+- **Sens B** : I, R, I, S. **Le mot est déjà écrit dans l'ordre.** L'étape de reconstitution disparaît.
 
-Les quatre lettres ne sont pas ramassées dans le même ordre selon le sens :
-
-- **Sens A** : R, I, S, I. Le joueur doit chercher l'anagramme.
-- **Sens B** : I, R, I, S. **Le mot est déjà écrit.** L'énigme du Jardin des Iris se résout sans réfléchir.
-
-Un groupe sur deux a donc une fin nettement plus facile, et l'écart se retrouvera dans les statistiques de durée sans explication apparente. Se corrige en permutant deux lettres entre les bornes, mais la décision doit être prise **avant** le tournage et la fabrication des décors.
-
-### Écarts entre ce schéma et la base de données
-
-La base ne connaît que 12 bornes. Le schéma en décrit 17. Quatre étapes n'existent nulle part en base : **le plan des déplacements**, **les jumelles et la carcasse**, **le panneau d'empreinte**, et **l'épreuve botanique de la tulipe** (jardin des tulipes, ajoutée le 05/09/2026).
-
-Avant de les ajouter, une question reste ouverte : chacune est-elle une borne QR à part entière dans le parc, ou un écran supplémentaire à l'intérieur d'une borne existante ? La réponse conditionne le nombre de QR codes à fabriquer et à installer. Elle est posée dans le cahier de contenu, onglet Parcours, colonne « Borne QR ? ».
+Signalé le 5 septembre, toujours ouvert. Se corrige en permutant deux lettres entre les bornes, décision à prendre avant le tournage et la fabrication des décors.
 
 ## 6. Architecture technique
 
