@@ -19,6 +19,66 @@
   .stat-card .num { font-size: 1.8rem; color: var(--gold-bright); font-weight: 700; }
   .stat-card .label { color: var(--fog); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
   #gate { max-width: 360px; margin: 100px auto; text-align: center; }
+
+  /* ============================================================
+     LE CRÉNEAU EN COURS
+     Des chiffres lus en coup d'oeil sur un stand, pas une page de
+     lecture : chiffres en sans-serif, qui restent lisibles petits et
+     de loin, là où le Georgia du site joueur devient pâteux.
+     ============================================================ */
+  .creneau {
+    background: var(--panel);
+    border: 1px solid var(--hair);
+    border-radius: 8px;
+    padding: 20px 22px;
+    margin-bottom: 24px;
+  }
+  .creneau-tete { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .creneau h2 { margin: 0; font-size: 1.05rem; color: var(--gold-bright); font-family: Georgia, serif; }
+  .creneau .fenetre { color: var(--fog); font-size: 0.8rem; }
+
+  /* Le chiffre que l'accueil surveille. Un seul par écran. */
+  .hero {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 3.4rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--ink);
+    margin: 14px 0 2px;
+  }
+  .hero-unite { color: var(--fog); font-size: 0.85rem; letter-spacing: 1px; text-transform: uppercase; }
+
+  /* Jauge : le remplissage porte l'état, la piste en est une version
+     assourdie, pour que l'état se lise sur toute la largeur. */
+  .jauge { margin: 16px 0 6px; }
+  .jauge-piste {
+    height: 10px; border-radius: 5px; overflow: hidden;
+    background: color-mix(in srgb, var(--etat, var(--green)) 20%, var(--panel2));
+  }
+  .jauge-remplissage {
+    height: 100%; border-radius: 5px;
+    background: var(--etat, var(--green));
+    transition: width .4s ease;
+  }
+  .jauge-legende { display: flex; justify-content: space-between; color: var(--fog); font-size: 0.78rem; margin-top: 6px; }
+
+  /* L'état ne se lit jamais à la couleur seule : icône + mot. */
+  .etat { display: inline-flex; align-items: center; gap: 8px; color: var(--etat, var(--green)); font-size: 0.9rem; font-weight: 700; }
+  .etat .pastille { width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex: none; }
+
+  .creneau-chiffres { display: flex; gap: 28px; flex-wrap: wrap; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--hair); }
+  .chiffre .valeur {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 1.7rem; font-weight: 700; color: var(--ink); line-height: 1.1;
+  }
+  .chiffre .etiquette { color: var(--fog); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
+  .reserve { color: var(--fog); font-size: 0.8rem; font-style: italic; margin-top: 14px; }
+
+  /* Les compteurs existants, alignés sur la même logique de lisibilité */
+  .stat-card .num {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  td.nombre { font-variant-numeric: tabular-nums; }
 </style>
 </head>
 <body>
@@ -37,6 +97,29 @@
   <p class="muted"><a href="statistiques.html" style="color:var(--gold);">Voir les statistiques →</a></p>
   <p class="muted">Groupes ayant activé leur code et actuellement en jeu. Ne montre pas les réservations SeeTickets, seulement les codes activés sur le terrain. Actualisation automatique toutes les 15 secondes.</p>
 
+  <div class="creneau" id="creneau">
+    <div class="creneau-tete">
+      <h2>Créneau en cours</h2>
+      <span class="fenetre" id="creneauFenetre">30 dernières minutes</span>
+    </div>
+    <div class="hero" id="creneauPersonnes">—</div>
+    <div class="hero-unite">personnes parties</div>
+
+    <div class="jauge">
+      <div class="jauge-piste"><div class="jauge-remplissage" id="creneauJauge" style="width:0%"></div></div>
+      <div class="jauge-legende"><span id="creneauEtat" class="etat"></span><span id="creneauPlafond"></span></div>
+    </div>
+
+    <div class="creneau-chiffres">
+      <div class="chiffre"><div class="valeur" id="creneauGroupes">—</div><div class="etiquette">Groupes partis</div></div>
+      <div class="chiffre"><div class="valeur" id="creneauTaille">—</div><div class="etiquette">Personnes par groupe</div></div>
+      <div class="chiffre"><div class="valeur" id="creneauSens">—</div><div class="etiquette">Horaire / antihoraire</div></div>
+    </div>
+
+    <div class="reserve" id="creneauReserve"></div>
+  </div>
+
+
   <div class="stat-row" id="statRow"></div>
 
   <h2 style="font-family:Georgia,serif; color:var(--gold-bright); font-size:1.1rem; margin-top:24px;">Groupes actifs</h2>
@@ -45,6 +128,12 @@
       <tr><th>Code</th><th>Pers.</th><th>Sens</th><th>Dernière borne</th><th>Depuis</th></tr>
     </thead>
     <tbody id="liveBody"><tr><td colspan="5" class="loading">Chargement...</td></tr></tbody>
+  </table>
+
+<h2 style="font-family:Georgia,serif; color:var(--gold-bright); font-size:1.1rem; margin-top:32px;">Trois dernières heures, par demi-heure</h2>
+  <table id="histoTable">
+    <thead><tr><th>Demi-heure</th><th>Personnes</th><th>Groupes</th><th>Pers./groupe</th></tr></thead>
+    <tbody id="histoBody"><tr><td colspan="4" class="loading">Chargement...</td></tr></tbody>
   </table>
 
   <h2 style="font-family:Georgia,serif; color:var(--gold-bright); font-size:1.1rem; margin-top:32px;">Réconciliation par jour</h2>
@@ -78,6 +167,127 @@
     }
   });
 
+  // ============================================================
+  // LE CRÉNEAU EN COURS
+  //
+  // Règle d'exploitation : 72 personnes maximum par tranche de 30 minutes.
+  // Ce bloc ne bloque rien, il compte. Son intérêt est de rendre visible ce
+  // que la billetterie ne dit pas : le nombre de GROUPES effectivement
+  // partis. C'est lui qui charge le parcours, pas le nombre de personnes,
+  // et il ne se connaît qu'au moment où l'accueil distribue les codes.
+  // ============================================================
+  const PLAFOND_PERSONNES = 72;
+  const FENETRE_MIN = 30;
+
+  // Vert tant qu'on est sous le plafond, or à l'approche, rouge au-delà.
+  // La couleur ne porte jamais l'information seule : un mot l'accompagne.
+  function etatCreneau(personnes) {
+    if (personnes > PLAFOND_PERSONNES) return { couleur: "var(--red)", mot: "Plafond dépassé" };
+    if (personnes === PLAFOND_PERSONNES) return { couleur: "var(--gold-bright)", mot: "Plafond atteint" };
+    if (personnes >= PLAFOND_PERSONNES * 0.85) return { couleur: "var(--gold-bright)", mot: "Plafond presque atteint" };
+    return { couleur: "var(--green)", mot: "Sous le plafond" };
+  }
+
+  // Un code sans nombre de joueurs déclaré ne doit pas compter pour zéro :
+  // le total mentirait par défaut. On retient la capacité prévue du code
+  // comme estimation, et on dit combien de groupes sont dans ce cas.
+  function compter(lignes) {
+    let personnes = 0, estimes = 0;
+    const sens = { horaire: 0, antihoraire: 0 };
+    lignes.forEach(c => {
+      if (c.participants_reels) personnes += c.participants_reels;
+      else { personnes += (c.max_participants || 0); estimes++; }
+      if (sens[c.direction] !== undefined) sens[c.direction]++;
+    });
+    return { personnes, groupes: lignes.length, estimes, sens };
+  }
+
+  function majCreneau(lignes) {
+    const c = compter(lignes);
+    const etat = etatCreneau(c.personnes);
+    const bloc = document.getElementById("creneau");
+    bloc.style.setProperty("--etat", etat.couleur);
+
+    document.getElementById("creneauPersonnes").textContent = c.personnes;
+    document.getElementById("creneauGroupes").textContent = c.groupes;
+    document.getElementById("creneauTaille").textContent =
+      c.groupes ? (c.personnes / c.groupes).toFixed(1) : "—";
+    document.getElementById("creneauSens").textContent = c.sens.horaire + " / " + c.sens.antihoraire;
+    document.getElementById("creneauJauge").style.width =
+      Math.min(100, Math.round(c.personnes / PLAFOND_PERSONNES * 100)) + "%";
+    document.getElementById("creneauEtat").innerHTML =
+      '<span class="pastille"></span>' + etat.mot;
+    document.getElementById("creneauPlafond").textContent =
+      c.personnes + " sur " + PLAFOND_PERSONNES;
+
+    let note = "";
+    if (c.groupes === 0) {
+      note = "Aucun départ sur la période.";
+    } else {
+      note = "Un groupe de " + (c.personnes / c.groupes).toFixed(1) + " personnes en moyenne. "
+           + "À cette taille, un créneau plein à " + PLAFOND_PERSONNES + " personnes lâcherait "
+           + Math.round(PLAFOND_PERSONNES / (c.personnes / c.groupes)) + " groupes sur le parcours.";
+      if (c.estimes) {
+        note += " " + c.estimes + " groupe(s) n'ont pas déclaré leur nombre de joueurs : "
+              + "leur capacité prévue a été comptée à la place, le total est donc approximatif.";
+      }
+    }
+    document.getElementById("creneauReserve").textContent = note;
+  }
+
+  function majHistorique(lignes) {
+    // Six tranches de 30 minutes, de la plus récente à la plus ancienne.
+    const maintenant = Date.now();
+    const tranches = [];
+    for (let i = 0; i < 6; i++) {
+      const fin = maintenant - i * FENETRE_MIN * 60000;
+      const debut = fin - FENETRE_MIN * 60000;
+      const dedans = lignes.filter(c => {
+        const t = new Date(c.activated_at).getTime();
+        return t >= debut && t < fin;
+      });
+      const c = compter(dedans);
+      tranches.push({
+        libelle: new Date(debut).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
+                 + " – " + new Date(fin).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+        ...c
+      });
+    }
+    const corps = document.getElementById("histoBody");
+    if (tranches.every(t => t.groupes === 0)) {
+      corps.innerHTML = '<tr><td colspan="4" class="muted">Aucun départ ces trois dernières heures.</td></tr>';
+      return;
+    }
+    corps.innerHTML = tranches.map(t => {
+      const depasse = t.personnes > PLAFOND_PERSONNES;
+      return '<tr' + (depasse ? ' class="stale"' : '') + '>'
+        + '<td>' + t.libelle + '</td>'
+        + '<td class="nombre">' + t.personnes + (depasse ? ' (au-dessus de ' + PLAFOND_PERSONNES + ')' : '') + '</td>'
+        + '<td class="nombre">' + t.groupes + '</td>'
+        + '<td class="nombre">' + (t.groupes ? (t.personnes / t.groupes).toFixed(1) : "—") + '</td>'
+        + '</tr>';
+    }).join("");
+  }
+
+  async function chargerCreneau() {
+    const depuis = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
+    const { data, error } = await supabaseClient
+      .from("codes")
+      .select("activated_at, participants_reels, max_participants, direction")
+      .not("activated_at", "is", null)
+      .gte("activated_at", depuis);
+
+    if (error) {
+      document.getElementById("creneauReserve").textContent =
+        "Impossible de lire les départs : " + error.message;
+      return;
+    }
+    const lignes = data || [];
+    const limite = Date.now() - FENETRE_MIN * 60000;
+    majCreneau(lignes.filter(c => new Date(c.activated_at).getTime() >= limite));
+    majHistorique(lignes);
+  }
+
   function timeAgo(dateStr) {
     const diffSec = Math.floor((new Date() - new Date(dateStr)) / 1000);
     if (diffSec < 60) return `${diffSec}s`;
@@ -88,6 +298,8 @@
   }
 
   async function loadData() {
+    chargerCreneau();
+
     // Groupes actifs
     const { data: live, error: liveError } = await supabaseClient
       .from("live_dashboard")
