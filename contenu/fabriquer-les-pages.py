@@ -246,19 +246,37 @@ sql = ["-- ============================================================",
        "-- envoient a logScan() : les deux sortent du meme fichier.",
        "--",
        "-- A coller dans Supabase : SQL Editor > New query > Run.",
-       "-- Remplace entierement la liste des bornes.",
+       "-- ============================================================",
+       "--",
+       "--  /!\\  CETTE REQUETE EFFACE TOUT L'HISTORIQUE DES PASSAGES  /!\\",
+       "--",
+       "--  Sans danger aujourd'hui : la base ne contient que des passages de",
+       "--  test. Apres le lancement du 17 octobre, ce serait la perte de toutes",
+       "--  les donnees du jeu, sans retour possible.",
+       "--",
+       "--  Avant de lancer, verifier ce qu'on s'apprete a perdre :",
+       "--      select count(*) from scans;",
+       "--  Si le chiffre n'est pas proche de zero, NE PAS CONTINUER.",
        "-- ============================================================",
        "",
-       "delete from scans;              -- efface les passages de test",
+       "delete from scans;              -- les passages, d'abord",
        "delete from qr_points;          -- puis les anciennes bornes",
        "",
        "insert into qr_points (label, type) values"]
 vals = []
 for c in PAGES:
     t = TYPE_SQL.get(etapes[c]["type"].lower(), "side_quest")
-    vals.append("  ('%s', '%s')  -- %s, %s" % (
-        etapes[c]["nom"].replace("'", "''"), t, c, etapes[c]["lieu"] or "lieu a preciser"))
-sql.append(",\n".join(vals) + ";")
+    # La virgule de separation se colle au tuple, JAMAIS apres le commentaire :
+    # sinon elle se retrouve dans le commentaire et le SQL devient invalide.
+    vals.append(("  ('%s', '%s')" % (etapes[c]["nom"].replace("'", "''"), t),
+                 "%s, %s" % (c, etapes[c]["lieu"] or "lieu a preciser")))
+larg = max(len(v[0]) for v in vals)
+for i, (tuple_sql, commentaire) in enumerate(vals):
+    fin = ";" if i == len(vals) - 1 else ","
+    sql.append("%-*s%s  -- %s" % (larg, tuple_sql, fin, commentaire))
+sql.append("")
+sql.append("-- Controle : doit renvoyer %d." % len(vals))
+sql.append("select count(*) as bornes_enregistrees from qr_points;")
 open(os.path.join(ICI, "bornes.sql"), "w", encoding="utf-8").write("\n".join(sql) + "\n")
 
 print("\n%d pages fabriquees dans etapes/" % len(PAGES))

@@ -29,11 +29,12 @@ create table qr_points (
 );
 
 -- Les codes de depart (1 code = 1 groupe).
--- max_participants : 2 a 6 personnes. Le solo n'est pas autorise (decision metier).
+-- max_participants : 1 a 6 personnes. Le jeu en solo est autorise (decision du 20/09/2026,
+-- qui revient sur la regle precedente interdisant le solo).
 create table codes (
   id                uuid primary key default gen_random_uuid(),
   code              text not null unique,        -- code remis a l'accueil du zoo
-  max_participants  int not null check (max_participants between 2 and 6),
+  max_participants  int not null check (max_participants between 1 and 6),
   direction         text not null check (direction in ('horaire', 'antihoraire')),
   slot_time         timestamptz not null,        -- creneau de depart prevu
   status            text not null default 'unused' check (status in ('unused', 'active', 'expired')),
