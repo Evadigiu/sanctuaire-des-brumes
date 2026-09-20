@@ -79,6 +79,44 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
   td.nombre { font-variant-numeric: tabular-nums; }
+
+  /* ============================================================
+     SIGNALEMENTS DU TERRAIN
+     Ce bloc doit se voir depuis l'autre bout de la pièce quand il
+     y a quelque chose, et se faire oublier quand il n'y a rien.
+     ============================================================ */
+  .alerte {
+    border: 1px solid var(--red);
+    background: rgba(232, 96, 76, 0.10);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .alerte .compte {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 2rem; font-weight: 700; color: var(--red); line-height: 1;
+  }
+  .alerte .quoi { color: #ffb3a3; font-weight: 700; }
+  .alerte .ou { color: var(--fog); font-size: 0.85rem; }
+
+  .signalement { border-bottom: 1px solid var(--hair); padding: 12px 0; display: flex; gap: 14px; align-items: flex-start; }
+  .signalement:last-child { border-bottom: none; }
+  .signalement .corps { flex: 1; }
+  .signalement .tete { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .signalement .cat {
+    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px;
+    padding: 2px 8px; border-radius: 10px; background: var(--panel2); color: var(--gold);
+  }
+  .signalement .cat.qr { background: rgba(232,96,76,0.18); color: #ffb3a3; }
+  .signalement .quand { color: var(--fog); font-size: 0.8rem; }
+  .signalement .borne { color: var(--ink); font-weight: 700; }
+  .signalement .mot { color: var(--fog); font-size: 0.9rem; margin-top: 4px; }
+  .signalement button { width: auto; margin: 0; padding: 8px 16px; font-size: 0.82rem; flex: none; }
+  .signalement.clos { opacity: 0.45; }
+  .signalement.clos .cat { background: var(--panel2); color: var(--fog); }
 </style>
 </head>
 <body>
@@ -96,6 +134,8 @@
   <h1>Suivi en direct</h1>
   <p class="muted"><a href="statistiques.html" style="color:var(--gold);">Voir les statistiques →</a></p>
   <p class="muted">Groupes ayant activé leur code et actuellement en jeu. Ne montre pas les réservations SeeTickets, seulement les codes activés sur le terrain. Actualisation automatique toutes les 15 secondes.</p>
+
+  <div id="zoneAlerte"></div>
 
   <div class="creneau" id="creneau">
     <div class="creneau-tete">
@@ -121,6 +161,9 @@
 
 
   <div class="stat-row" id="statRow"></div>
+
+  <h2 style="font-family:Georgia,serif; color:var(--gold-bright); font-size:1.1rem; margin-top:24px;">Signalements du terrain</h2>
+  <div class="card" id="signalements"><p class="loading">Chargement...</p></div>
 
   <h2 style="font-family:Georgia,serif; color:var(--gold-bright); font-size:1.1rem; margin-top:24px;">Groupes actifs</h2>
   <table id="liveTable">
@@ -297,8 +340,105 @@
     return `${h}h ${min % 60}min`;
   }
 
+  // ============================================================
+  // SIGNALEMENTS DU TERRAIN
+  //
+  // Un QR décollé à l'enclos des lynx doit se savoir dans la minute, pas
+  // dans le bilan. Les signalements non traités remontent en haut, avec le
+  // compte dans le titre de l'onglet : l'équipe voit qu'il se passe quelque
+  // chose sans avoir la page sous les yeux.
+  // ============================================================
+  const LIBELLE_CATEGORIE = {
+    qr: "QR code", decor: "Décor", bug: "Site", autre: "Autre",
+  };
+
+  function heure(d) {
+    return new Date(d).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  }
+
+  async function traiter(id, bouton) {
+    bouton.disabled = true;
+    bouton.textContent = "...";
+    // On ne touche pas à la table : on passe par le guichet, une fonction
+    // qui vérifie et écrit elle-même. La table reste fermée en écriture.
+    const { data, error } = await supabaseClient.rpc("marquer_signalement_traite", { p_id: id });
+    if (error || !data) {
+      bouton.disabled = false;
+      bouton.textContent = "Réessayer";
+      return;
+    }
+    chargerSignalements();
+  }
+
+  async function chargerSignalements() {
+    const zone = document.getElementById("signalements");
+    const alerte = document.getElementById("zoneAlerte");
+
+    const { data, error } = await supabaseClient
+      .from("signalements_recents")
+      .select("*")
+      .limit(50);
+
+    if (error) {
+      zone.innerHTML = '<p class="muted">Lecture impossible : ' + error.message
+        + '. Le correctif 5 a-t-il été appliqué dans Supabase ?</p>';
+      alerte.innerHTML = "";
+      document.title = "Suivi en direct, Le Sanctuaire des Brumes";
+      return;
+    }
+
+    const tous = data || [];
+    const ouverts = tous.filter(x => !x.traite_le);
+    const clos = tous.filter(x => x.traite_le).slice(0, 5);
+
+    // Le titre de l'onglet porte le compte : visible sans regarder la page.
+    document.title = (ouverts.length ? "(" + ouverts.length + ") " : "")
+                   + "Suivi en direct, Le Sanctuaire des Brumes";
+
+    if (ouverts.length) {
+      const lieux = [...new Set(ouverts.map(x => x.borne).filter(Boolean))];
+      alerte.innerHTML =
+        '<div class="alerte"><div class="compte">' + ouverts.length + '</div><div>'
+        + '<div class="quoi">' + (ouverts.length > 1 ? "problèmes signalés" : "problème signalé")
+        + ' sur le terrain</div>'
+        + '<div class="ou">' + (lieux.length ? lieux.slice(0, 3).join(" · ")
+            + (lieux.length > 3 ? " et " + (lieux.length - 3) + " autre(s)" : "")
+            : "depuis la page d'accueil") + '</div></div></div>';
+    } else {
+      alerte.innerHTML = "";
+    }
+
+    if (!tous.length) {
+      zone.innerHTML = '<p class="muted">Aucun signalement. C\'est bon signe.</p>';
+      return;
+    }
+
+    const rendre = (x, estClos) =>
+      '<div class="signalement' + (estClos ? ' clos' : '') + '">'
+      + '<div class="corps"><div class="tete">'
+      + '<span class="cat ' + x.categorie + '">' + (LIBELLE_CATEGORIE[x.categorie] || x.categorie) + '</span>'
+      + '<span class="borne">' + (x.borne || "Accueil") + '</span>'
+      + '<span class="quand">' + heure(x.signale_le)
+      + (x.code ? " · groupe " + x.code : "") + '</span>'
+      + '</div>'
+      + (x.message ? '<div class="mot">' + x.message + '</div>' : '')
+      + '</div>'
+      + (estClos ? '<span class="quand">traité à ' + heure(x.traite_le) + '</span>'
+                 : '<button data-traiter="' + x.id + '">Traité</button>')
+      + '</div>';
+
+    zone.innerHTML = ouverts.map(x => rendre(x, false)).join("")
+      + (clos.length ? '<p class="muted" style="margin:14px 0 4px; font-size:0.8rem;">Derniers problèmes réglés</p>'
+                     + clos.map(x => rendre(x, true)).join("") : "");
+
+    zone.querySelectorAll("[data-traiter]").forEach(b => {
+      b.addEventListener("click", () => traiter(b.getAttribute("data-traiter"), b));
+    });
+  }
+
   async function loadData() {
     chargerCreneau();
+    chargerSignalements();
 
     // Groupes actifs
     const { data: live, error: liveError } = await supabaseClient

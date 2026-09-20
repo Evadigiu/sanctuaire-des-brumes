@@ -21,19 +21,29 @@ srv = socketserver.TCPServer(("127.0.0.1", 0), functools.partial(Muet, directory
 PORT = srv.server_address[1]
 threading.Thread(target=srv.serve_forever, daemon=True).start()
 
-def stub(codes):
+def stub(codes, signalements=None):
     return """
     window.__codes = %s;
-    window.supabase = { createClient: () => ({ from: (t) => {
-      const rep = { data: t === "codes" ? window.__codes : [], error: null };
+    window.__sign = %s;
+    window.__rpc = [];
+    window.supabase = { createClient: () => ({
+      rpc: async (nom, args) => { window.__rpc.push([nom, args]);
+        const s = window.__sign.find(x => x.id === args.p_id);
+        if (s) s.traite_le = new Date().toISOString();
+        return { data: s ? s.traite_le : null, error: null }; },
+      from: (t) => {
+      const donnees = t === "codes" ? window.__codes
+                    : t === "signalements_recents" ? window.__sign : [];
+      const rep = { data: donnees, error: null };
       const q = {
         select: () => q, order: () => Promise.resolve(rep), eq: () => q,
-        not: () => q, gte: () => Promise.resolve(rep),
+        not: () => q, limit: () => Promise.resolve(rep),
+        gte: () => Promise.resolve(rep),
         maybeSingle: () => Promise.resolve({ data: null }),
         then: (f) => Promise.resolve(rep).then(f),
       };
       return q; } }) };
-    """ % json.dumps(codes)
+    """ % (json.dumps(codes), json.dumps(signalements or [], ensure_ascii=False))
 
 def codes(nb_groupes, par_groupe, minutes=5, declare=True):
     from datetime import datetime, timedelta, timezone
@@ -43,6 +53,21 @@ def codes(nb_groupes, par_groupe, minutes=5, declare=True):
              "max_participants": par_groupe,
              "direction": "horaire" if i % 2 == 0 else "antihoraire"}
             for i in range(nb_groupes)]
+
+def signalements(ouverts=0, clos=0):
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(timezone.utc)
+    out = []
+    for i in range(ouverts):
+        out.append({"id": "o%d" % i, "signale_le": (now - timedelta(minutes=5 + i)).isoformat(),
+                    "categorie": ["qr", "decor", "bug"][i % 3],
+                    "borne": ["QUIZ ANIMALIER", "Bureau de Greg", "LA PASSANTE"][i % 3],
+                    "message": "Constat numero %d" % i, "traite_le": None, "code": "TEST0%d" % (i % 3 + 1)})
+    for i in range(clos):
+        out.append({"id": "c%d" % i, "signale_le": (now - timedelta(hours=2)).isoformat(),
+                    "categorie": "autre", "borne": "Bill", "message": "Regle",
+                    "traite_le": (now - timedelta(hours=1)).isoformat(), "code": "TEST01"})
+    return out
 
 echecs = []
 def v(nom, cond, detail=""):
@@ -75,6 +100,39 @@ with sync_playwright() as pw:
         note = page.text_content("#creneauReserve")
         print("      note : " + note[:150])
         page.close()
+
+    print("\nSignalements du terrain")
+    for libelle, jeu, attendu in [
+        ("aucun signalement", [], {"alerte": False, "titre": False}),
+        ("trois problemes ouverts", signalements(3), {"alerte": True, "titre": True}),
+        ("tout est regle", signalements(0, 2), {"alerte": False, "titre": False}),
+    ]:
+        page = nav.new_page()
+        page.add_init_script(stub(codes(2, 3), jeu))
+        page.goto("http://127.0.0.1:%d/backoffice/dashboard.html" % PORT)
+        page.fill("#pwd", "brumes2026"); page.click("#enterBtn"); page.wait_for_timeout(400)
+        a_alerte = page.eval_on_selector_all(".alerte", "e=>e.length") > 0
+        titre = page.title().startswith("(")
+        print("   %s" % libelle)
+        v("   bandeau d'alerte %s" % ("present" if attendu["alerte"] else "absent"),
+          a_alerte == attendu["alerte"])
+        v("   compte dans l'onglet %s" % ("present" if attendu["titre"] else "absent"),
+          titre == attendu["titre"], page.title())
+        page.close()
+
+    print("\nClore un signalement")
+    page = nav.new_page()
+    page.add_init_script(stub(codes(2, 3), signalements(2)))
+    page.goto("http://127.0.0.1:%d/backoffice/dashboard.html" % PORT)
+    page.fill("#pwd", "brumes2026"); page.click("#enterBtn"); page.wait_for_timeout(400)
+    v("deux boutons Traite", page.eval_on_selector_all("[data-traiter]", "e=>e.length") == 2)
+    page.query_selector("[data-traiter]").click(); page.wait_for_timeout(400)
+    appels = page.evaluate("window.__rpc")
+    v("passe par le guichet, pas par la table",
+      len(appels) == 1 and appels[0][0] == "marquer_signalement_traite", str(appels))
+    v("il n'en reste qu'un ouvert",
+      page.eval_on_selector_all("[data-traiter]", "e=>e.length") == 1)
+    page.close()
 
     # Groupes sans declaration : le total ne doit pas mentir en silence
     page = nav.new_page()

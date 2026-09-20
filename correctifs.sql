@@ -10,8 +10,8 @@
 --   Message attendu : "Success. No rows returned"
 --
 -- ============================================================
---   ETAT : le correctif 4 est EN ATTENTE. Voir aussi la remise a zero des
---          codes de test, a relancer avant chaque essai.
+--   ETAT : les correctifs 4 et 5 sont EN ATTENTE. Voir aussi la remise a
+--          zero des codes de test, a relancer avant chaque essai.
 -- ============================================================
 
 
@@ -209,3 +209,57 @@ order by s.signale_le desc;
 
 -- Controle : doit renvoyer 0 sans erreur.
 select count(*) as signalements from signalements_recents;
+
+
+-- ------------------------------------------------------------
+-- CORRECTIF 5 — Suivre et clore les signalements
+-- >>> PAS ENCORE APPLIQUE <<<
+--
+-- Le bouton "j'ai un probleme" enregistre, mais rien ne permet de dire
+-- qu'un probleme a ete traite. Sans cela, au troisieme jour, l'equipe a
+-- quarante signalements a l'ecran et ne sait plus lesquels sont neufs.
+--
+-- Point de methode : on aurait pu ouvrir la table en ecriture au public,
+-- comme l'est aujourd'hui l'activation des codes. On ne le fait pas,
+-- justement : c'est ce defaut-la qui permet a une seule requete de griller
+-- tous les codes. On passe donc par une fonction, un guichet : le site
+-- demande "marque ce signalement comme traite", la base verifie et ecrit
+-- elle-meme. Personne ne touche jamais a la table.
+--
+-- C'est le meme mecanisme qu'il faudra pour l'activation des codes, en
+-- plus gros. Celui-ci sert de banc d'essai.
+-- ------------------------------------------------------------
+
+alter table signalements
+  add column if not exists traite_le timestamptz;
+
+create or replace function marquer_signalement_traite(p_id uuid)
+returns timestamptz
+language plpgsql
+security definer          -- s'execute avec les droits du proprietaire
+set search_path = public
+as $$
+declare
+  quand timestamptz;
+begin
+  update signalements
+     set traite_le = now()
+   where id = p_id
+     and traite_le is null      -- on ne reouvre jamais un signalement clos
+  returning traite_le into quand;
+  return quand;                 -- null si l'id n'existe pas ou est deja traite
+end;
+$$;
+
+-- Le guichet est ouvert a tous ; la table, elle, reste fermee en ecriture.
+grant execute on function marquer_signalement_traite(uuid) to anon, authenticated;
+
+create or replace view signalements_recents as
+select s.id, s.signale_le, s.categorie, s.borne, s.message, s.traite_le, c.code
+from signalements s
+left join codes c on c.id = s.code_id
+order by s.signale_le desc;
+
+-- Controle : doit s'executer sans erreur et renvoyer 0.
+select count(*) filter (where traite_le is null) as en_attente
+from signalements_recents;
