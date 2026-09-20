@@ -93,3 +93,19 @@ python3 contenu/tester-le-verrouillage.py
 Il simule un groupe ayant scanné telle ou telle borne et vérifie qu'il ne peut
 pas sauter d'étapes, que le code à quatre chiffres ouvre la bonne borne, et
 qu'aucun de ces codes ne se déduit d'un autre par une seule faute de frappe.
+
+Enfin, les QR codes se fabriquent et se relisent :
+
+```
+python3 contenu/fabriquer-les-qr.py     # les images + la planche de pose
+python3 contenu/verifier-les-qr.py      # relit chaque image avec un lecteur
+```
+
+La relecture n'est pas une formalité : on imprime seize affichettes qu'on ira
+coller dans un parc, et une erreur ne se verrait qu'une fois sur place.
+
+**Les PNG ne portent aucun texte, volontairement.** Le nom de la borne ne doit
+jamais figurer sur une affichette : « Indice : les jumelles, la carcasse »
+raconterait l'énigme à quiconque passe devant. Sur l'affichette, le QR et le
+nombre à quatre chiffres, rien d'autre. La planche de pose, elle, est réservée
+à l'équipe.

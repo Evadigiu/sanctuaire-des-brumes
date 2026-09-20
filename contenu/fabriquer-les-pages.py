@@ -400,7 +400,7 @@ open(os.path.join(RACINE, "assets", "js", "parcours.js"), "w", encoding="utf-8")
 # d'adresse, tous les QR deja imprimes deviennent caducs, donc ce choix
 # doit etre arrete AVANT la fabrication des affichettes.
 # ------------------------------------------------------------
-DOMAINE = "https://evadigiu.github.io/sanctuaire-des-brumes"
+DOMAINE = "https://enquete.pomelolab.fr"
 
 lignes_url = [
  "# Adresses des bornes a encoder dans les QR codes",
