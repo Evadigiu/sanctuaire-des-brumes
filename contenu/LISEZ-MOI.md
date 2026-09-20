@@ -72,3 +72,14 @@ Il clique réellement dans les pages et vérifie ce que voit un joueur : les
 écrans s'enchaînent, ceux de l'autre sens ont disparu, le passage est
 enregistré une seule fois, la lettre ne sort qu'à la bonne réponse, et un
 groupe d'une seule personne peut démarrer.
+
+Et un cinquième vérifie le compteur de créneau du tableau de bord :
+
+```
+python3 contenu/tester-le-tableau-de-bord.py
+```
+
+Il injecte de faux départs et contrôle ce que l'accueil lira. Les deux cas qui
+comptent : 12 groupes de 6 et 36 groupes de 2 font tous deux 72 personnes, mais
+trois fois plus de groupes sur le parcours dans le second cas. C'est ce que le
+compteur doit rendre visible.
