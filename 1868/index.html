@@ -3,43 +3,57 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Indice : les jumelles, la carcasse — Le Sanctuaire des Brumes</title>
+<title>Appel du commissaire — Le Sanctuaire des Brumes</title>
 <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <!-- PAGE FABRIQUÉE AUTOMATIQUEMENT depuis contenu/sanctuaire-cahier-de-contenu.xlsx
      Toute correction faite ici sera perdue à la prochaine fabrication.
      Corriger le cahier, puis relancer contenu/fabriquer-les-pages.py -->
-<body data-borne="Indice : les jumelles, la carcasse" data-etape="E04">
+<body data-borne="Appel du commissaire" data-etape="E12" data-racine="../">
 
 <div class="wrap">
   <div class="timer" id="timer">Chargement du chrono...</div>
-  <div class="eyebrow" id="position" data-A="Étape 4 sur 15" data-B="Étape 9 sur 15"></div>
-  <h1>Indice : les jumelles, la carcasse</h1>
+  <div class="eyebrow" id="position" data-A="Étape 12 sur 15" data-B="Étape 5 sur 15"></div>
+  <h1>Appel du commissaire</h1>
 <section class="ecran card" hidden>
   <div class="ecran-titre">1. Accueil apres le scan</div>
-  <p>Observez l&#x27;enclos à l&#x27;aide des jumelles à la recherche d&#x27;un objet qui n&#x27;est pas à sa place.</p>
-  <div class="card indice">
-    <div class="eyebrow">Vous avez trouvé une lettre</div>
-    <p class="lettre">R</p>
+  <button id="decrocher" class="btn-appel">Décrocher</button>
+  <div id="blocAppel" hidden>
+    <!-- Remplacer la source par le vrai fichier audio -->
+    <audio id="audioAppel" controls><source src="" type="audio/mpeg"></audio>
   </div>
+  <p>Vous avez un appel entrant du Commissaire Jean</p>
+  <!-- Note du cahier de contenu : sonnerie émise, il faudrait que les gens puisse toucher le bouton "décrocher pour déclencher l'audio" -->
+  <button data-suivant>Suivant</button>
+  <button class="btn-secondary" data-retour>Revenir en arrière</button>
+</section>
+<section class="ecran card" hidden>
+  <div class="ecran-titre">2. Legende du media</div>
+  <p>Commissaire Jean, dubitatif</p>
+  <button data-suivant>Suivant</button>
+  <button class="btn-secondary" data-retour>Revenir en arrière</button>
+</section>
+<section class="ecran card" hidden>
+  <div class="ecran-titre">3. Texte ou epreuve</div>
+  <!-- Note du cahier de contenu : Fichier audio -->
   <button data-suivant>Suivant</button>
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
 </section>
 <section class="ecran card" data-sens="A" hidden>
   <div class="ecran-titre">4. Ou aller ensuite</div>
-  <p>Rendez-vous au dessus de l&#x27;enclos des loups pour intéroger votre prochain témoin</p>
+  <p>Poursuivez jusqu&#x27;au bureau de Greg</p>
   <!-- A AJOUTER : la photo qui montre où aller.
        <img src="../assets/img/XXX.jpg" alt="Le chemin à prendre"> -->
   <p class="consigne-scan">Rendez-vous sur place, puis scannez le QR code de la borne.</p>
-  <a href="e05-la-passante.html" class="btn btn-test" data-lien-test hidden>Raccourci de test</a>
+  <a href="../3182/" class="btn btn-test" data-lien-test hidden>Raccourci de test</a>
 </section>
 <section class="ecran card" data-sens="B" hidden>
   <div class="ecran-titre">4. Ou aller ensuite</div>
-  <p>Rendez-vous au dessus de l&#x27;enclos des loups pour intéroger votre prochain témoin</p>
+  <p>Poursuivez jusqu&#x27;au bureau de Greg</p>
   <!-- A AJOUTER : la photo qui montre où aller.
        <img src="../assets/img/XXX.jpg" alt="Le chemin à prendre"> -->
   <p class="consigne-scan">Rendez-vous sur place, puis scannez le QR code de la borne.</p>
-  <a href="e05-la-passante.html" class="btn btn-test" data-lien-test hidden>Raccourci de test</a>
+  <a href="../3182/" class="btn btn-test" data-lien-test hidden>Raccourci de test</a>
 </section>
 </div>
 
@@ -83,6 +97,7 @@
 <script src="../assets/js/etape.js"></script>
 <script>
   demarrerEtape();
+  appelEntrant("decrocher", "audioAppel", "blocAppel");
 </script>
 
 </body>

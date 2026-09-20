@@ -3,52 +3,47 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Indice : le panneau d&#x27;empreinte — Le Sanctuaire des Brumes</title>
+<title>Bill — Le Sanctuaire des Brumes</title>
 <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <!-- PAGE FABRIQUÉE AUTOMATIQUEMENT depuis contenu/sanctuaire-cahier-de-contenu.xlsx
      Toute correction faite ici sera perdue à la prochaine fabrication.
      Corriger le cahier, puis relancer contenu/fabriquer-les-pages.py -->
-<body data-borne="Indice : le panneau d&#x27;empreinte" data-etape="E08">
+<body data-borne="Bill" data-etape="E10" data-racine="../">
 
 <div class="wrap">
   <div class="timer" id="timer">Chargement du chrono...</div>
-  <div class="eyebrow" id="position" data-A="Étape 8 sur 15" data-B="Étape 13 sur 15"></div>
-  <h1>Indice : le panneau d&#x27;empreinte</h1>
+  <div class="eyebrow" id="position" data-A="Étape 10 sur 15" data-B="Étape 3 sur 15"></div>
+  <h1>Bill</h1>
 <section class="ecran card" hidden>
-  <div class="ecran-titre">1. Accueil apres le scan</div>
-  <p>Vous l&#x27;aurez compris, un animal a semé la zizanie dans le parc hier soir. Saurez-vous l&#x27;identifier sur ce panneau ?</p>
+  <div class="ecran-titre">1. Vidéo de Bill</div>
+  <!-- Remplacer la source par la vraie vidéo une fois tournée -->
+  <video controls playsinline poster=""><source src="" type="video/mp4">
+  Votre navigateur ne supporte pas la vidéo.</video>
   <button data-suivant>Suivant</button>
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
 </section>
 <section class="ecran card" hidden>
-  <div class="ecran-titre">3. Texte ou epreuve</div>
-  <p>Quel est le numéro de l&#x27;animal qui était présent dans le zoo hier soir ?</p>
-  <input type="text" id="reponse" inputmode="numeric" placeholder="Votre réponse">
-  <button id="valider">Valider</button>
-  <div id="resultat" class="card indice" hidden>
-    <div class="eyebrow">Vous avez trouvé une lettre</div>
-    <p class="lettre">S</p>
-  </div>
-  <!-- Note du cahier de contenu : créer un champ libre, bonne réponse = 11. SI 11, donner l'indice "S" -->
+  <div class="ecran-titre">2. Legende du media</div>
+  <p>Bill, passionné d&#x27;oiseaux</p>
   <button data-suivant>Suivant</button>
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
 </section>
 <section class="ecran card" data-sens="A" hidden>
   <div class="ecran-titre">4. Ou aller ensuite</div>
-  <p>Rendez-vous au point GPS pour intérroger votre prochain témoin.</p>
+  <p>Avant d&#x27;aller vérifier le bureau de Greg, rendez-vous au point GPS</p>
   <!-- A AJOUTER : la photo qui montre où aller.
        <img src="../assets/img/XXX.jpg" alt="Le chemin à prendre"> -->
   <p class="consigne-scan">Rendez-vous sur place, puis scannez le QR code de la borne.</p>
-  <a href="e09-greg-version-sens-a.html" class="btn btn-test" data-lien-test hidden>Raccourci de test</a>
+  <a href="../1871/" class="btn btn-test" data-lien-test hidden>Raccourci de test</a>
 </section>
 <section class="ecran card" data-sens="B" hidden>
   <div class="ecran-titre">4. Ou aller ensuite</div>
-  <p>Vous avez désormais intérrogé tous les témoins officiels. Analysez les 4 lettres que vous avez trouvé pour continuer votre enquête.</p>
+  <p>Avant d&#x27;aller vérifier le bureau de Greg, rendez-vous au point GPS</p>
   <!-- A AJOUTER : la photo qui montre où aller.
        <img src="../assets/img/XXX.jpg" alt="Le chemin à prendre"> -->
   <p class="consigne-scan">Rendez-vous sur place, puis scannez le QR code de la borne.</p>
-  <a href="e14-le-botaniste.html" class="btn btn-test" data-lien-test hidden>Raccourci de test</a>
+  <a href="../1871/" class="btn btn-test" data-lien-test hidden>Raccourci de test</a>
 </section>
 </div>
 
@@ -92,7 +87,6 @@
 <script src="../assets/js/etape.js"></script>
 <script>
   demarrerEtape();
-  epreuveReponse("reponse", "valider", "11", "resultat");
 </script>
 
 </body>

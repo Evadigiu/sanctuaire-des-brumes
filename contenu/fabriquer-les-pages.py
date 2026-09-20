@@ -17,7 +17,7 @@ from openpyxl import load_workbook
 ICI    = os.path.dirname(os.path.abspath(__file__))
 RACINE = os.path.dirname(ICI)
 CAHIER = os.path.join(ICI, "sanctuaire-cahier-de-contenu.xlsx")
-SORTIE = os.path.join(RACINE, "etapes")
+SORTIE = RACINE   # chaque borne a son dossier numerique a la racine
 
 def propre(v): return "" if v is None else str(v).strip()
 
@@ -66,9 +66,50 @@ for r in tex.iter_rows(min_row=3, values_only=True):
 # E00 est le ticket papier remis a l'accueil, pas une page du site.
 PAGES = [c for c in etapes if c != "E00"]
 PAGES.sort(key=lambda c: ordre["A"].get(c, ordre["B"].get(c, 99)))
-FICHIER = {c: "%s-%s.html" % (c.lower(), slug(etapes[c]["nom"])) for c in PAGES}
+# Le nom du dossier EST le code de secours : une seule reference pour le QR
+# et pour la saisie manuelle. Et surtout, une adresse qui ne raconte rien.
+# "/1868/" ne dit ni ce qu'on va trouver, ni combien d'etapes il reste ;
+# "/etapes/e04-indice-les-jumelles-la-carcasse.html" disait les deux, dans la
+# barre d'adresse, avant meme que la page s'affiche.
 
 TOTAL = {s: len([c for c in ordre[s] if c != "E00"]) for s in ("A", "B")}
+
+def code_secours(cle, sel=0):
+    h = 5381
+    for ch in ("brumes-%d-%s" % (sel, cle)):
+        h = ((h * 33) ^ ord(ch)) & 0xFFFFFFFF
+    return 1000 + (h % 9000)
+
+def trop_proche(n, deja):
+    """Deux codes ne doivent jamais differer d'un seul chiffre : sinon une
+    faute de frappe mene a une autre borne valide au lieu d'une erreur, et
+    le joueur atterrit ailleurs sans comprendre."""
+    a = "%04d" % n
+    for m in deja:
+        b = "%04d" % m
+        if sum(1 for x, y in zip(a, b) if x != y) < 2:
+            return True
+    return False
+
+secours, decales = {}, []
+for c in PAGES:
+    n = code_secours(c)
+    if trop_proche(n, secours.values()):
+        decales.append(c)
+        sel = 1
+        # On retire un nouveau code au hasard plutot que de decaler celui-ci :
+        # un decalage regulier finirait par tasser tous les codes dans la meme
+        # tranche, et des nombres qui se ressemblent se confondent sur une
+        # affichette lue a la lumiere du jour.
+        while trop_proche(n, secours.values()):
+            n = code_secours(c, sel); sel += 1
+    secours[c] = n
+if decales:
+    print("  (codes de secours ecartes pour eviter une confusion de frappe : %s)"
+          % ", ".join(decales))
+
+FICHIER = {c: "%d/" % secours[c] for c in PAGES}
+
 
 # ============================================================
 # Mecaniques particulieres, declarees explicitement plutot que
@@ -162,7 +203,7 @@ GABARIT = """<!DOCTYPE html>
 <!-- PAGE FABRIQUÉE AUTOMATIQUEMENT depuis contenu/sanctuaire-cahier-de-contenu.xlsx
      Toute correction faite ici sera perdue à la prochaine fabrication.
      Corriger le cahier, puis relancer contenu/fabriquer-les-pages.py -->
-<body data-borne="{borne}" data-etape="{code}">
+<body data-borne="{borne}" data-etape="{code}" data-racine="../">
 
 <div class="wrap">
   <div class="timer" id="timer">Chargement du chrono...</div>
@@ -217,11 +258,13 @@ GABARIT = """<!DOCTYPE html>
 </html>
 """
 
-if os.path.isdir(SORTIE):
-    for f in os.listdir(SORTIE):
-        if f.endswith(".html"): os.remove(os.path.join(SORTIE, f))
-else:
-    os.makedirs(SORTIE)
+# On efface les anciens dossiers de bornes (repertoires purement numeriques)
+# et l'ancien dossier etapes/, pour qu'aucune adresse perimee ne subsiste.
+import shutil
+for nom in os.listdir(SORTIE):
+    chemin = os.path.join(SORTIE, nom)
+    if os.path.isdir(chemin) and (nom.isdigit() or nom == "etapes"):
+        shutil.rmtree(chemin)
 
 for c in PAGES:
     et = etapes[c]
@@ -236,7 +279,7 @@ for c in PAGES:
     for s in ("A", "B"):
         for x in sorties[s]:
             suite = et["suite" + s]
-            x = dict(x, lien=FICHIER.get(suite) if suite else None)
+            x = dict(x, lien=("../" + FICHIER[suite]) if suite else None)
             blocs.append(bloc_ecran(et, x, True, s))
 
     # Garde-fou terrain : les bornes sont physiques et un groupe peut tomber
@@ -269,9 +312,12 @@ for c in PAGES:
     page = GABARIT.format(titre=e(et["nom"]), borne=e(et["nom"]), code=c,
                           posA=e(posA), posB=e(posB),
                           ecrans="\n".join(blocs), extra=extra)
-    open(os.path.join(SORTIE, FICHIER[c]), "w", encoding="utf-8").write(page)
-    print("  %-38s %-3s A:%-3s B:%-3s %d écran(s)" % (
-        FICHIER[c], c, ordre["A"].get(c, "-"), ordre["B"].get(c, "-"), len(blocs)))
+    dossier = os.path.join(SORTIE, str(secours[c]))
+    os.makedirs(dossier, exist_ok=True)
+    open(os.path.join(dossier, "index.html"), "w", encoding="utf-8").write(page)
+    print("  /%-6s %-5s %-34s A:%-3s B:%-3s %d écran(s)" % (
+        FICHIER[c], c, etapes[c]["nom"][:34], ordre["A"].get(c, "-"),
+        ordre["B"].get(c, "-"), len(blocs)))
 
 # ------------------------------------------------------------
 # Le SQL des bornes, fabrique depuis la meme source que les pages.
@@ -332,40 +378,6 @@ open(os.path.join(ICI, "bornes.sql"), "w", encoding="utf-8").write("\n".join(sql
 # sinon il suffirait de lire une affichette pour deviner toutes les autres
 # et sauter la moitie du parcours.
 # ------------------------------------------------------------
-def code_secours(cle, sel=0):
-    h = 5381
-    for ch in ("brumes-%d-%s" % (sel, cle)):
-        h = ((h * 33) ^ ord(ch)) & 0xFFFFFFFF
-    return 1000 + (h % 9000)
-
-def trop_proche(n, deja):
-    """Deux codes ne doivent jamais differer d'un seul chiffre : sinon une
-    faute de frappe mene a une autre borne valide au lieu d'une erreur, et
-    le joueur atterrit ailleurs sans comprendre."""
-    a = "%04d" % n
-    for m in deja:
-        b = "%04d" % m
-        if sum(1 for x, y in zip(a, b) if x != y) < 2:
-            return True
-    return False
-
-secours, decales = {}, []
-for c in PAGES:
-    n = code_secours(c)
-    if trop_proche(n, secours.values()):
-        decales.append(c)
-        sel = 1
-        # On retire un nouveau code au hasard plutot que de decaler celui-ci :
-        # un decalage regulier finirait par tasser tous les codes dans la meme
-        # tranche, et des nombres qui se ressemblent se confondent sur une
-        # affichette lue a la lumiere du jour.
-        while trop_proche(n, secours.values()):
-            n = code_secours(c, sel); sel += 1
-    secours[c] = n
-if decales:
-    print("  (codes de secours ecartes pour eviter une confusion de frappe : %s)"
-          % ", ".join(decales))
-
 plan = {
     "pages":   {c: FICHIER[c] for c in PAGES},
     "noms":    {c: etapes[c]["nom"] for c in PAGES},
@@ -411,11 +423,18 @@ lignes_url = [
 ]
 for c in PAGES:
     et = etapes[c]
-    lignes_url.append("| %s | %s | %s | %s | %s | **%d** | `%s/etapes/%s` |" % (
+    lignes_url.append("| %s | %s | %s | %s | %s | **%d** | `%s/%s` |" % (
         c, et["nom"], et["lieu"] or "*a preciser*",
         ordre["A"].get(c, "—"), ordre["B"].get(c, "—"), secours[c], DOMAINE, FICHIER[c]))
 lignes_url += ["", "## Page d'accueil (remise du ticket)", "",
-               "`%s/index.html`" % DOMAINE, ""]
+               "`%s/` — le joueur y arrive avec le code imprime sur son ticket." % DOMAINE,
+               "", "## Pourquoi des adresses en chiffres", "",
+               "L'adresse s'affiche dans la barre du navigateur avant meme que la",
+               "page se charge. `/etapes/e04-indice-les-jumelles-la-carcasse.html`",
+               "annoncait l'enigme et le nombre d'etapes ; `/3208/` ne dit rien.",
+               "",
+               "Le nombre est aussi celui a saisir si le QR refuse de se lire : une",
+               "seule reference a imprimer sur l'affichette, pour les deux usages.", ""]
 open(os.path.join(ICI, "adresses-des-bornes.md"), "w", encoding="utf-8").write("\n".join(lignes_url) + "\n")
 
 print("\n%d pages fabriquees dans etapes/" % len(PAGES))

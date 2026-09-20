@@ -5,22 +5,22 @@
 // ============================================================
 const PARCOURS = {
   "pages": {
-    "E01": "e01-le-commissaire-jean.html",
-    "E02": "e02-la-collegue-soigneuse.html",
-    "E16": "e16-greg-version-sens-b.html",
-    "E03": "e03-indice-les-cameras-de-surveillance.html",
-    "E04": "e04-indice-les-jumelles-la-carcasse.html",
-    "E05": "e05-la-passante.html",
-    "E06": "e06-quiz-animalier.html",
-    "E07": "e07-veterinaire.html",
-    "E08": "e08-indice-le-panneau-d-empreinte.html",
-    "E09": "e09-greg-version-sens-a.html",
-    "E10": "e10-bill.html",
-    "E11": "e11-indice-le-sac-du-botaniste.html",
-    "E12": "e12-appel-du-commissaire.html",
-    "E13": "e13-bureau-de-greg.html",
-    "E14": "e14-le-botaniste.html",
-    "E15": "e15-la-serre.html"
+    "E01": "8055/",
+    "E02": "1965/",
+    "E16": "8017/",
+    "E03": "3215/",
+    "E04": "3208/",
+    "E05": "6120/",
+    "E06": "8048/",
+    "E07": "7157/",
+    "E08": "1959/",
+    "E09": "6116/",
+    "E10": "8023/",
+    "E11": "1871/",
+    "E12": "1868/",
+    "E13": "3182/",
+    "E14": "3177/",
+    "E15": "6025/"
   },
   "noms": {
     "E01": "LE COMMISSAIRE JEAN",

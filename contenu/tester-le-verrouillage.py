@@ -64,7 +64,7 @@ with sync_playwright() as pw:
     for code, faits, attendu, libelle in cas:
         page = nav.new_page()
         page.add_init_script(init("horaire", faits))
-        page.goto("http://127.0.0.1:%d/etapes/%s" % (PORT, PARC["pages"][code]))
+        page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"][code]))
         page.wait_for_timeout(350)
         bloque = "pas la vôtre" in page.text_content(".wrap")
         v(libelle, bloque != attendu, "bloque=%s attendu_ouvert=%s" % (bloque, attendu))
@@ -74,7 +74,7 @@ with sync_playwright() as pw:
 
     print("\nLe code de secours a 4 chiffres")
     page = nav.new_page(); page.add_init_script(init("horaire", ["E01"]))
-    page.goto("http://127.0.0.1:%d/etapes/%s" % (PORT, PARC["pages"]["E02"]))
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E02"]))
     page.wait_for_timeout(300)
     page.click("#boutonSecours")
     page.fill("#champSecours", "0000"); page.click("#validerSecours")
@@ -83,7 +83,8 @@ with sync_playwright() as pw:
     bon = [n for n, c in PARC["secours"].items() if c == "E03"][0]
     page.fill("#champSecours", bon); page.click("#validerSecours")
     page.wait_for_timeout(400)
-    v("bon numero : ouvre la bonne borne", PARC["pages"]["E03"] in page.url, page.url)
+    attendu = "http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E03"])
+    v("bon numero : ouvre la bonne borne", page.url == attendu, "%s au lieu de %s" % (page.url, attendu))
     page.close()
 
     print("\nLes codes de secours ne se devinent pas")
@@ -95,7 +96,7 @@ with sync_playwright() as pw:
 
     print("\nLe bouton « j'ai un problème »")
     page = nav.new_page(); page.add_init_script(init("horaire", ["E01"]))
-    page.goto("http://127.0.0.1:%d/etapes/%s" % (PORT, PARC["pages"]["E02"]))
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E02"]))
     page.wait_for_timeout(300)
     page.click("#boutonProbleme")
     page.select_option("#categorieProbleme", "decor")

@@ -48,6 +48,10 @@ def init(sens):
       expiresAt: "2099-01-01T00:00:00Z", participantName: "Test", nbJoueurs: 1 }));
     """ % sens
 
+import json as _json
+PARC = _json.loads(open(os.path.join(RACINE, "assets/js/parcours.js")).read()
+                   .split("const PARCOURS =", 1)[1].rstrip().rstrip(";"))
+
 echecs = []
 def verifier(nom, condition, detail=""):
     print("   %-38s %s %s" % (nom, "OK " if condition else "ECHEC", "" if condition else detail))
@@ -57,17 +61,17 @@ with sync_playwright() as pw:
     nav = pw.chromium.launch(executable_path=CHROME, args=["--no-sandbox"])
 
     for fichier, sens, pos_attendue, libelle in [
-        ("e02-la-collegue-soigneuse.html", "horaire",     "Étape 2 sur 15", "sens A"),
-        ("e02-la-collegue-soigneuse.html", "antihoraire", "Étape 8 sur 15", "sens B"),
-        ("e09-greg-version-sens-a.html",   "antihoraire", "",               "borne de l'autre sens"),
+        (PARC["pages"]["E02"], "horaire",     "Étape 2 sur 15", "sens A"),
+        (PARC["pages"]["E02"], "antihoraire", "Étape 8 sur 15", "sens B"),
+        (PARC["pages"]["E09"], "antihoraire", "",               "borne de l'autre sens"),
     ]:
         page = nav.new_page()
         page.add_init_script(init(sens))
-        page.goto("http://127.0.0.1:%d/etapes/%s" % (PORT, fichier))
+        page.goto("http://127.0.0.1:%d/%s" % (PORT, fichier))
         page.wait_for_timeout(300)
         print("\n%s  [%s]" % (fichier, libelle))
 
-        verifier("pas de redirection", "/etapes/" in page.url, page.url)
+        verifier("pas de redirection", "/index.html" not in page.url, page.url)
         verifier("position affichee", page.text_content("#position").strip() == pos_attendue,
                  repr(page.text_content("#position")))
         scans = page.evaluate("window.__scans")
@@ -99,7 +103,7 @@ with sync_playwright() as pw:
     for code, attendu, libelle in [("TEST01", True, "code de test"), ("AB12CD", False, "vrai code")]:
         page = nav.new_page()
         page.add_init_script(init("horaire").replace('code: "TEST"', 'code: "%s"' % code))
-        page.goto("http://127.0.0.1:%d/etapes/e02-la-collegue-soigneuse.html" % PORT)
+        page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E02"]))
         page.wait_for_timeout(250)
         present = page.eval_on_selector_all("[data-lien-test]", "e=>e.length") > 0
         verifier("%s : raccourci %s" % (libelle, "present" if attendu else "absent"),
@@ -113,7 +117,7 @@ with sync_playwright() as pw:
     # L'epreuve a reponse verifiee
     print("\ne08 : l'epreuve du panneau d'empreintes")
     page = nav.new_page(); page.add_init_script(init("horaire"))
-    page.goto("http://127.0.0.1:%d/etapes/e08-indice-le-panneau-d-empreinte.html" % PORT)
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E08"]))
     page.wait_for_timeout(300)
     page.query_selector(".ecran:not([hidden]) [data-suivant]").click(); page.wait_for_timeout(60)
     page.fill("#reponse", "7"); page.click("#valider")

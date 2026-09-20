@@ -11,8 +11,8 @@ import os, re, sys, glob, io, html as H
 
 ICI    = os.path.dirname(os.path.abspath(__file__))
 RACINE = os.path.dirname(ICI)
-ETAPES = os.path.join(RACINE, "etapes")
-DEPART = "e01-le-commissaire-jean.html"
+ETAPES = RACINE
+DEPART = None   # calcule depuis le plan du parcours
 
 def lire(f): return io.open(f, encoding="utf-8").read()
 
@@ -24,7 +24,13 @@ def libelles_sql():
 
 def main():
     pb, av = [], []
-    pages = sorted(glob.glob(os.path.join(ETAPES, "*.html")))
+    import json
+    plan = json.loads(lire(os.path.join(RACINE, "assets", "js", "parcours.js"))
+                      .split("const PARCOURS =", 1)[1].rstrip().rstrip(";"))
+    pages = sorted(glob.glob(os.path.join(ETAPES, "[0-9]*", "index.html")))
+    global DEPART
+    DEPART = [c for c in plan["ordre"]["A"] if plan["ordre"]["A"][c] == 1][0]
+    DEPART = plan["pages"][DEPART]
     if not pages:
         print("Aucune page. Lancer d'abord fabriquer-les-pages.py."); return 1
 
@@ -36,12 +42,12 @@ def main():
         m = re.search(r'data-borne="([^"]+)"', lire(f))
         if not m:
             pb.append("%s : aucune borne declaree, le passage ne sera pas enregistre."
-                      % os.path.basename(f)); continue
+                      % os.path.basename(os.path.dirname(f))); continue
         lab = H.unescape(m.group(1))
         if lab not in bornes:
             pb.append("%s : la borne \"%s\" n'existe pas dans bornes.sql. Le passage du "
                       "groupe serait perdu sans aucun message d'erreur."
-                      % (os.path.basename(f), lab))
+                      % (os.path.basename(os.path.dirname(f)), lab))
 
     # 2. Les deux parcours, suivis de bout en bout
     attendu = len(pages) - 1          # une borne n'appartient qu'a un seul sens
@@ -49,7 +55,7 @@ def main():
     for sens in ("A", "B"):
         vus, cur, n = [], DEPART, 0
         while cur and n < 40:
-            p = os.path.join(ETAPES, cur)
+            p = os.path.join(ETAPES, cur.strip("/"), "index.html")
             if not os.path.exists(p):
                 pb.append("SENS %s : lien mort vers %s." % (sens, cur)); break
             h = lire(p)
@@ -64,7 +70,7 @@ def main():
                               % (sens, cur))
                 fins.setdefault(sens, cur)
                 break
-            m = re.search(r'href="([a-z0-9.-]+\.html)"', bloc.group(1))
+            m = re.search(r'href="\.\./([0-9]+/)"', bloc.group(1))
             if not m: fins.setdefault(sens, cur)
             cur = m.group(1) if m else None
             n += 1
@@ -87,7 +93,7 @@ def main():
         for sens in ("A", "B"):
             if 'data-sens="%s"' % sens not in h:
                 pb.append("%s : rien de prévu pour un joueur du sens %s qui scannerait "
-                          "cette borne par hasard." % (os.path.basename(f), sens))
+                          "cette borne par hasard." % (os.path.basename(os.path.dirname(f)), sens))
 
     # 4. Balises equilibrees
     for f in pages:
@@ -96,7 +102,7 @@ def main():
             o = len(re.findall(r"<%s[ >]" % tag, h)); c = len(re.findall(r"</%s>" % tag, h))
             if o != c:
                 pb.append("%s : balise <%s> déséquilibrée (%d ouvertes, %d fermées)."
-                          % (os.path.basename(f), tag, o, c))
+                          % (os.path.basename(os.path.dirname(f)), tag, o, c))
 
     # 5. bornes.sql est-il du SQL valide ?
     #    Un insert multi-lignes ou une virgule tombe dans un commentaire est
@@ -123,9 +129,9 @@ def main():
     for f in pages:
         h = lire(f)
         n = h.count("A CONSTRUIRE") + h.count("a-construire")
-        if n: av.append("%s : contient une mécanique encore à construire." % os.path.basename(f))
+        if n: av.append("%s : contient une mécanique encore à construire." % os.path.basename(os.path.dirname(f)))
         if '<source src=""' in h:
-            av.append("%s : média non encore intégré (vidéo ou audio vide)." % os.path.basename(f))
+            av.append("%s : média non encore intégré (vidéo ou audio vide)." % os.path.basename(os.path.dirname(f)))
 
     print("\n" + "=" * 78)
     print("BLOQUANT (%d)" % len(pb)); print("-" * 78)

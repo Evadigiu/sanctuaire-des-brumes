@@ -6,11 +6,11 @@
 
 const SESSION_KEY = "sdb_session";
 
-// Calcule le chemin vers la racine du site, que ce fichier soit appelé
-// depuis index.html (racine) ou depuis une page dans /etapes/.
-// Évite d'avoir à coder en dur l'adresse du site (github.io/nom-du-depot/,
-// puis plus tard un nom de domaine personnalisé).
-const BASE_PATH = window.location.pathname.includes("/etapes/") ? "../" : "";
+// Chemin vers la racine du site. Chaque page de borne le déclare elle-même
+// (data-racine sur <body>), parce qu'il ne se devine plus depuis l'adresse :
+// les bornes vivent dans des dossiers numériques (/1868/) dont le nom ne suit
+// aucune règle reconnaissable. La page d'accueil, elle, est déjà à la racine.
+const BASE_PATH = document.body.getAttribute("data-racine") || "";
 
 /**
  * Tente d'activer un code au point de départ.

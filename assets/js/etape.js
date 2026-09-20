@@ -180,7 +180,9 @@ function ouvrirSecours() {
       err.hidden = false;
       return;
     }
-    window.location.href = PARCOURS.pages[cible];
+    // Les bornes sont des dossiers voisins, pas des sous-dossiers : il faut
+    // remonter à la racine, sinon on empile /1965/3215/ au lieu d'aller à /3215/.
+    window.location.href = BASE_PATH + PARCOURS.pages[cible];
   };
 }
 
