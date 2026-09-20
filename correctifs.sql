@@ -160,6 +160,10 @@ select code, status, expires_at from codes where code like 'TEST%' order by code
 -- que par le backoffice, a travers une vue.
 -- ------------------------------------------------------------
 
+-- Le "drop if exists" permet de relancer ce correctif sans erreur : une
+-- regle deja creee ferait echouer la requete entiere, avec un message peu
+-- parlant, et on ne saurait plus ce qui a ete applique ou non.
+drop policy if exists "Lecture publique des scans" on scans;
 create policy "Lecture publique des scans"
   on scans for select to public
   using (true);
@@ -175,6 +179,7 @@ create table if not exists signalements (
 
 alter table signalements enable row level security;
 
+drop policy if exists "Signalement depuis le terrain" on signalements;
 create policy "Signalement depuis le terrain"
   on signalements for insert to public
   with check (true);
