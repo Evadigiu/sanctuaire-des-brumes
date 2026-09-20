@@ -21,8 +21,10 @@ CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome"
 class Muet(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *a): pass
 
-srv = socketserver.TCPServer(("127.0.0.1", PORT),
+socketserver.TCPServer.allow_reuse_address = True   # relance immediate possible
+srv = socketserver.TCPServer(("127.0.0.1", 0),
         functools.partial(Muet, directory=RACINE))
+PORT = srv.server_address[1]                        # port libre choisi par l'OS
 threading.Thread(target=srv.serve_forever, daemon=True).start()
 
 # Remplace Supabase et pose une session valide, AVANT tout script de la page.
