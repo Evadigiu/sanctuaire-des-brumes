@@ -33,7 +33,16 @@ function demarrerEtape() {
   //    les bouchons dans le parc.
   logScan(document.body.getAttribute("data-borne"));
 
-  // 4. Défilement des écrans.
+  // 4. Le raccourci vers l'étape suivante n'existe que pour les codes de test.
+  //    Un vrai joueur doit trouver la borne et scanner son QR code : c'est le
+  //    jeu. L'équipe, elle, doit pouvoir répéter le parcours sans traverser
+  //    le parc seize fois.
+  const estTest = /^TEST/i.test(session.code || "");
+  document.querySelectorAll("[data-lien-test]").forEach(a => {
+    if (estTest) a.hidden = false; else a.remove();
+  });
+
+  // 5. Défilement des écrans.
   const ecrans = Array.from(document.querySelectorAll(".ecran"));
   const CLE = "sdb_ecran_" + window.location.pathname;
   let courant = parseInt(sessionStorage.getItem(CLE) || "0", 10);

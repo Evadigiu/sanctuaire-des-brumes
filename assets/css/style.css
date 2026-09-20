@@ -227,3 +227,23 @@ footer {
 
 /* Le bouton de retour reste discret, il ne doit pas concurrencer Suivant */
 .ecran .btn-secondary { margin-top: 10px; font-size: 0.9rem; padding: 10px 18px; }
+
+/* Consigne de fin d'étape : le joueur doit aller scanner, pas cliquer. */
+.consigne-scan {
+  border-top: 1px solid var(--hair);
+  margin-top: 16px;
+  padding-top: 16px;
+  color: var(--gold);
+  font-size: 0.9rem;
+  letter-spacing: 0.5px;
+}
+/* Raccourci visible uniquement avec un code de test, volontairement terne
+   pour qu'on ne le confonde jamais avec un élément du jeu. */
+.btn-test {
+  background: transparent;
+  border: 1px dashed var(--hair);
+  color: var(--fog);
+  font-size: 0.8rem;
+  padding: 8px 14px;
+}
+.btn-test:hover { background: transparent; border-color: var(--gold); }

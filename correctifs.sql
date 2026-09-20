@@ -10,7 +10,8 @@
 --   Message attendu : "Success. No rows returned"
 --
 -- ============================================================
---        ETAT : UN CORRECTIF EN ATTENTE (le n°3, tout en bas)
+--   ETAT : tout est applique. Voir la remise a zero des codes de test,
+--          tout en bas, a relancer avant chaque essai.
 -- ============================================================
 
 
@@ -114,3 +115,24 @@ select conname as regle, pg_get_constraintdef(oid) as definition
 from pg_constraint
 where conrelid = 'codes'::regclass
   and conname in ('codes_max_participants_check', 'codes_participants_reels_check');
+
+
+-- ------------------------------------------------------------
+-- REMISE A ZERO DES CODES DE TEST
+-- A relancer avant chaque nouvelle session d'essai.
+--
+-- Un code deja active garde sa date de fin : le rejouer ouvrirait une
+-- partie deja terminee. Cette requete leur rend leur etat neuf.
+--
+-- Ne touche QUE les codes commencant par TEST. Sans effet sur les vrais.
+-- ------------------------------------------------------------
+
+update codes
+   set status = 'unused',
+       activated_at = null,
+       expires_at = null,
+       participants_reels = null
+ where code like 'TEST%';
+
+-- Controle : les trois codes de test doivent etre a 'unused'.
+select code, status, expires_at from codes where code like 'TEST%' order by code;

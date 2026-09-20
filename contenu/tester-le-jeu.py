@@ -85,6 +85,22 @@ with sync_playwright() as pw:
             verifier("le dernier ecran mene ailleurs", sortie is not None)
         page.close()
 
+    # Le raccourci ne doit exister que pour les codes de test
+    print("\nLe raccourci vers l'etape suivante")
+    for code, attendu, libelle in [("TEST01", True, "code de test"), ("AB12CD", False, "vrai code")]:
+        page = nav.new_page()
+        page.add_init_script(init("horaire").replace('code: "TEST"', 'code: "%s"' % code))
+        page.goto("http://127.0.0.1:%d/etapes/e02-la-collegue-soigneuse.html" % PORT)
+        page.wait_for_timeout(250)
+        present = page.eval_on_selector_all("[data-lien-test]", "e=>e.length") > 0
+        verifier("%s : raccourci %s" % (libelle, "present" if attendu else "absent"),
+                 present == attendu)
+        # la consigne d'aller scanner est la dans les deux cas
+        page.eval_on_selector_all(".ecran", "e=>e.forEach(x=>x.hidden=false)")
+        verifier("%s : consigne de scan affichee" % libelle,
+                 "scannez le QR code" in page.text_content(".wrap"))
+        page.close()
+
     # L'epreuve a reponse verifiee
     print("\ne08 : l'epreuve du panneau d'empreintes")
     page = nav.new_page(); page.add_init_script(init("horaire"))

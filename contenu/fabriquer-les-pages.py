@@ -135,8 +135,16 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
         h.append('  <!-- Note du cahier de contenu : %s -->' % lg["rem"].replace("--", "—"))
 
     if dernier:
-        h.append('  <a href="%s" class="btn">Continuer l\'enquête</a>' % e(lg["lien"]) if lg.get("lien")
-                 else '  <p class="muted">Fin du parcours.</p>')
+        if lg.get("lien"):
+            # Le lien n'est PAS un bouton offert au joueur : l'enquete ne doit
+            # pas se derouler au clic depuis un canape. Seul le scan du QR code
+            # de la borne suivante ouvre la page. etape.js ne revele ce lien
+            # qu'aux codes de test, pour que l'equipe puisse repeter le
+            # parcours sans courir dans le parc.
+            h.append('  <p class="consigne-scan">Rendez-vous sur place, puis scannez le QR code de la borne.</p>')
+            h.append('  <a href="%s" class="btn btn-test" data-lien-test hidden>Raccourci de test</a>' % e(lg["lien"]))
+        else:
+            h.append('  <p class="muted">Fin du parcours.</p>')
     else:
         h.append('  <button data-suivant>Suivant</button>')
         h.append('  <button class="btn-secondary" data-retour>Revenir en arrière</button>')
@@ -279,5 +287,39 @@ sql.append("-- Controle : doit renvoyer %d." % len(vals))
 sql.append("select count(*) as bornes_enregistrees from qr_points;")
 open(os.path.join(ICI, "bornes.sql"), "w", encoding="utf-8").write("\n".join(sql) + "\n")
 
+# ------------------------------------------------------------
+# La liste des adresses a encoder dans les QR codes.
+# Le domaine est en tete, a un seul endroit : le jour ou le site change
+# d'adresse, tous les QR deja imprimes deviennent caducs, donc ce choix
+# doit etre arrete AVANT la fabrication des affichettes.
+# ------------------------------------------------------------
+DOMAINE = "https://evadigiu.github.io/sanctuaire-des-brumes"
+
+lignes_url = [
+ "# Adresses des bornes a encoder dans les QR codes",
+ "",
+ "Domaine utilise : `%s`" % DOMAINE,
+ "",
+ "> **A verifier avant toute impression.** Un QR code encode une adresse en dur.",
+ "> Si le site passe un jour sur un nom de domaine personnalise, toutes les",
+ "> affichettes deja posees dans le parc cessent de fonctionner. Ce choix doit",
+ "> etre arrete avant la fabrication, pas apres.",
+ "",
+ "Le depart (E00) n'a pas de QR dans le parc : le code est remis sur un ticket",
+ "papier a la caisse, et le joueur arrive sur la page d'accueil du site.",
+ "",
+ "| Code | Borne | Lieu | Sens A | Sens B | Adresse a encoder |",
+ "|---|---|---|---|---|---|",
+]
+for c in PAGES:
+    et = etapes[c]
+    lignes_url.append("| %s | %s | %s | %s | %s | `%s/etapes/%s` |" % (
+        c, et["nom"], et["lieu"] or "*a preciser*",
+        ordre["A"].get(c, "—"), ordre["B"].get(c, "—"), DOMAINE, FICHIER[c]))
+lignes_url += ["", "## Page d'accueil (remise du ticket)", "",
+               "`%s/index.html`" % DOMAINE, ""]
+open(os.path.join(ICI, "adresses-des-bornes.md"), "w", encoding="utf-8").write("\n".join(lignes_url) + "\n")
+
 print("\n%d pages fabriquees dans etapes/" % len(PAGES))
+print("Adresses des bornes ecrites dans contenu/adresses-des-bornes.md")
 print("SQL des %d bornes ecrit dans contenu/bornes.sql" % len(PAGES))

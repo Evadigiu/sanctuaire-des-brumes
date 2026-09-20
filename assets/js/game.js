@@ -35,8 +35,14 @@ async function activateCode(code, participantName, nbJoueurs) {
     return { ok: false, message: "Ce code a expiré. Adresse-toi à l'accueil du zoo." };
   }
   if (existing.status === "active") {
-    // Code déjà activé : on relance la session existante plutôt que de refuser,
-    // utile si le joueur recharge la page ou change de téléphone dans le groupe.
+    // Un code déjà activé dont les 3h sont écoulées ne doit pas rouvrir une
+    // partie : on laisserait le joueur entrer pour l'éjecter à l'écran
+    // suivant, sans qu'il comprenne pourquoi. On refuse ici, clairement.
+    if (existing.expires_at && new Date(existing.expires_at) <= new Date()) {
+      return { ok: false, message: "Ce code a déjà servi et sa partie est terminée. Adresse-toi à l'accueil du zoo." };
+    }
+    // Sinon on relance la partie en cours plutôt que de refuser : utile si le
+    // joueur recharge la page ou change de téléphone dans le groupe.
     const session = buildSession(existing, participantName, nbJoueurs);
     saveSession(session);
     return { ok: true, session };
