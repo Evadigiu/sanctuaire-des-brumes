@@ -127,6 +127,14 @@ where conrelid = 'codes'::regclass
 -- Ne touche QUE les codes commencant par TEST. Sans effet sur les vrais.
 -- ------------------------------------------------------------
 
+-- 1. Effacer les passages enregistres par ces codes.
+--    Indispensable depuis que le parcours est verrouille : sans cela, le jeu
+--    croit que le groupe a deja visite la moitie des bornes, et on ne teste
+--    plus rien du tout.
+delete from scans
+ where code_id in (select id from codes where code like 'TEST%');
+
+-- 2. Rendre aux codes leur etat neuf.
 update codes
    set status = 'unused',
        activated_at = null,
@@ -134,8 +142,13 @@ update codes
        participants_reels = null
  where code like 'TEST%';
 
--- Controle : les trois codes de test doivent etre a 'unused'.
-select code, status, expires_at from codes where code like 'TEST%' order by code;
+-- Controle : statut 'unused' partout, et 0 passage restant.
+select c.code, c.status, count(s.id) as passages_restants
+from codes c
+left join scans s on s.code_id = c.id
+where c.code like 'TEST%'
+group by c.code, c.status
+order by c.code;
 
 
 -- ------------------------------------------------------------
