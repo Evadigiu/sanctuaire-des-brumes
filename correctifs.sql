@@ -10,7 +10,7 @@
 --   Message attendu : "Success. No rows returned"
 --
 -- ============================================================
---        ETAT : UN CORRECTIF EN ATTENTE (le n°2 ci-dessous)
+--        ETAT : UN CORRECTIF EN ATTENTE (le n°3, tout en bas)
 -- ============================================================
 
 
@@ -67,7 +67,7 @@ where c.status = 'active'
 
 -- ------------------------------------------------------------
 -- CORRECTIF 2 — Enregistrer le nombre reel de joueurs
--- >>> PAS ENCORE APPLIQUE <<<
+-- >>> APPLIQUE EN PRODUCTION LE 20/09/2026 <<<
 --
 -- L'ecran de depart demande desormais le nombre de joueurs. Aujourd'hui
 -- cette reponse ne quitte pas le telephone : la colonne n'existe pas.
@@ -77,11 +77,40 @@ where c.status = 'active'
 -- ensemble permettent de recouper avec la billetterie SeeTickets, ce qui
 -- n'etait possible d'aucune autre facon jusqu'ici.
 --
--- APRES avoir lance cette requete, passer ENREGISTRER_NB_JOUEURS a true en
--- haut de assets/js/game.js. Dans cet ordre, jamais l'inverse : le code
--- ecrirait dans une colonne inexistante et plus personne ne pourrait demarrer.
+-- Le site n'a plus besoin d'etre prevenu : si la colonne venait a manquer,
+-- il reessaie sans elle plutot que de bloquer l'activation. Un groupe qui
+-- attend a la caisse ne doit jamais rester coince pour un champ de confort.
 -- ------------------------------------------------------------
 
 alter table codes
   add column if not exists participants_reels int
   check (participants_reels between 2 and 6);
+-- NOTE : ce minimum de 2 a ete ramene a 1 par le correctif 3, plus bas.
+-- La ligne ci-dessus est conservee telle qu'elle a ete lancee, c'est un journal.
+
+
+-- ------------------------------------------------------------
+-- CORRECTIF 3 — Autoriser le jeu en solo (1 a 6 personnes)
+-- >>> PAS ENCORE APPLIQUE <<<
+--
+-- Decision du 20/09/2026, qui revient sur la regle precedente interdisant
+-- le solo. Les deux colonnes qui comptent des personnes plafonnaient a un
+-- minimum de 2 : un code prevu pour une seule personne serait refuse par la
+-- base, et un joueur seul ne pourrait pas declarer qu'il est seul.
+--
+-- Ne touche a aucune donnee : on remplace deux regles de controle.
+-- ------------------------------------------------------------
+
+alter table codes drop constraint if exists codes_max_participants_check;
+alter table codes add  constraint codes_max_participants_check
+  check (max_participants between 1 and 6);
+
+alter table codes drop constraint if exists codes_participants_reels_check;
+alter table codes add  constraint codes_participants_reels_check
+  check (participants_reels between 1 and 6);
+
+-- Controle : les deux lignes doivent afficher "between 1 and 6".
+select conname as regle, pg_get_constraintdef(oid) as definition
+from pg_constraint
+where conrelid = 'codes'::regclass
+  and conname in ('codes_max_participants_check', 'codes_participants_reels_check');

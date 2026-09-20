@@ -16,12 +16,6 @@ const BASE_PATH = window.location.pathname.includes("/etapes/") ? "../" : "";
  * Tente d'activer un code au point de départ.
  * Retourne { ok: true, session } ou { ok: false, message }
  */
-// Le nombre reel de joueurs declare au depart n'est pas encore enregistre en
-// base : la colonne n'existe pas. Passer ce drapeau a true UNIQUEMENT apres
-// avoir lance le correctif qui la cree, sinon l'activation echouerait et
-// personne ne pourrait demarrer.
-const ENREGISTRER_NB_JOUEURS = false;
-
 async function activateCode(code, participantName, nbJoueurs) {
   const cleanCode = code.trim().toUpperCase();
 
@@ -52,16 +46,40 @@ async function activateCode(code, participantName, nbJoueurs) {
   const activatedAt = new Date();
   const expiresAt = new Date(activatedAt.getTime() + 3 * 60 * 60 * 1000); // +3h
 
-  const maj = { status: "active", activated_at: activatedAt.toISOString(), expires_at: expiresAt.toISOString() };
-  if (ENREGISTRER_NB_JOUEURS && nbJoueurs) maj.participants_reels = nbJoueurs;
+  const base = {
+    status: "active",
+    activated_at: activatedAt.toISOString(),
+    expires_at: expiresAt.toISOString(),
+  };
 
-  const { data: updated, error: updateError } = await supabaseClient
-    .from("codes")
-    .update(maj)
-    .eq("id", existing.id)
-    .eq("status", "unused") // garde-fou anti double-activation simultanée
-    .select()
-    .maybeSingle();
+  function activer(champs) {
+    return supabaseClient
+      .from("codes")
+      .update(champs)
+      .eq("id", existing.id)
+      .eq("status", "unused") // garde-fou anti double-activation simultanée
+      .select()
+      .maybeSingle();
+  }
+
+  // On tente d'enregistrer aussi le nombre réel de joueurs. Si la colonne
+  // n'existe pas encore dans cette base, la requête entière est refusée et
+  // rien n'est modifié : on réessaie alors sans ce champ.
+  //
+  // Le nombre de joueurs est un confort ; démarrer la partie ne l'est pas.
+  // Un groupe qui attend à la caisse ne doit jamais rester bloqué à cause
+  // d'une colonne manquante.
+  let updated = null, updateError = null;
+  if (nbJoueurs) {
+    ({ data: updated, error: updateError } =
+      await activer(Object.assign({ participants_reels: nbJoueurs }, base)));
+    if (updateError) {
+      console.warn("Nombre de joueurs non enregistré :", updateError.message);
+      ({ data: updated, error: updateError } = await activer(base));
+    }
+  } else {
+    ({ data: updated, error: updateError } = await activer(base));
+  }
 
   if (updateError || !updated) {
     return { ok: false, message: "Ce code vient d'être activé ailleurs. Réessaie ou demande un nouveau code." };

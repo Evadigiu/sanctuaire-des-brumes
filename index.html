@@ -30,7 +30,7 @@
     <input type="text" id="participantName" placeholder="Ex. Les Limiers du Dimanche">
 
     <label for="nbJoueurs">Nombre de joueurs</label>
-    <input type="number" id="nbJoueurs" min="2" max="6" step="1" placeholder="Entre 2 et 6">
+    <input type="number" id="nbJoueurs" min="1" max="6" step="1" placeholder="Entre 1 et 6">
 
     <label for="codeInput">Code secret remis à l'accueil</label>
     <input type="text" id="codeInput" placeholder="Ex. AB12CD" autocapitalize="characters">
@@ -84,7 +84,7 @@
     const n = parseInt(nbJoueurs.value, 10);
     startBtn.disabled = !(acceptBox.checked
                           && codeInput.value.trim().length > 0
-                          && n >= 2 && n <= 6);
+                          && n >= 1 && n <= 6);
   }
   acceptBox.addEventListener("change", refreshButtonState);
   codeInput.addEventListener("input", refreshButtonState);

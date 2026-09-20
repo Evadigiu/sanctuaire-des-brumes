@@ -60,3 +60,15 @@ que chaque libellé de borne envoyé à la base existe bien dedans.
 `bornes.sql` est fabriqué en même temps que les pages, depuis la même source.
 C'est ce qui garantit que les libellés ne peuvent pas diverger. À coller dans
 Supabase quand le parcours change.
+
+Un quatrième outil joue le parcours dans un vrai navigateur, sans toucher à la
+base :
+
+```
+python3 contenu/tester-le-jeu.py
+```
+
+Il clique réellement dans les pages et vérifie ce que voit un joueur : les
+écrans s'enchaînent, ceux de l'autre sens ont disparu, le passage est
+enregistré une seule fois, la lettre ne sort qu'à la bonne réponse, et un
+groupe d'une seule personne peut démarrer.

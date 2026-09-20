@@ -137,7 +137,8 @@ La vérification est rejouable à tout moment : coller `verification_base.sql` d
 
 ## 8. Règles métier importantes
 
-- **Groupes** : 2 à 6 personnes par code (pas de solo autorisé, décision explicite).
+- **Groupes** : **1 à 6 personnes** par code. Le jeu en solo est autorisé depuis le 20/09/2026, ce qui revient sur la décision précédente qui l'interdisait.
+  *Effet de bord à surveiller* : la capacité du parcours se compte en **groupes**, pas en personnes (12 groupes toutes les 30 minutes). Beaucoup de joueurs solo, c'est autant de groupes en plus sur le tracé pour le même nombre de visiteurs, donc un parcours plus chargé à recette égale.
 - **Chrono** : jusqu'à 3h maximum, pas une durée fixe. Le code ne bloque qu'après 3h révolues.
 - **Billetterie** : entièrement externe, via SeeTickets (système du zoo). La LP de prévente/vente est sur Wix (`pomelolab.fr` ou un nom dédié, pas encore tranché), qui redirige vers SeeTickets. **Pomelo n'a aucune visibilité directe sur les réservations SeeTickets** tant qu'un code n'a pas été activé sur le terrain — c'est une limite connue et acceptée, pas un bug.
 - **Remise du code** : à l'accueil du zoo, après vérification du billet SeeTickets, sous forme de ticket physique imprimé avec QR code.
