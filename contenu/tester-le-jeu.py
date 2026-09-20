@@ -29,11 +29,20 @@ threading.Thread(target=srv.serve_forever, daemon=True).start()
 
 # Remplace Supabase et pose une session valide, AVANT tout script de la page.
 def init(sens):
+    # Ce test ne porte pas sur le verrouillage du parcours (il a le sien) :
+    # on declare donc toutes les bornes comme deja visitees, pour que chaque
+    # page s'ouvre et qu'on puisse verifier ce qu'elle affiche.
+    import json as _j
+    txt = open(os.path.join(RACINE, "assets/js/parcours.js")).read()
+    noms = _j.loads(txt.split("const PARCOURS =", 1)[1].rstrip().rstrip(";"))["noms"]
+    tous = _j.dumps([{"qr_points": {"label": n}} for n in noms.values()], ensure_ascii=False)
     return """
     window.__scans = [];
     window.supabase = { createClient: () => ({ from: (t) => ({
-      select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: 'pt-1' } }) }) }),
-      insert: async (row) => { window.__scans.push(row); return {}; } }) }) };
+      select: () => ({ eq: (...a) => (t === "scans"
+                        ? Promise.resolve({ data: %s, error: null })
+                        : ({ maybeSingle: async () => ({ data: { id: 'pt-1' } }) })) }),
+      insert: async (row) => { window.__scans.push(row); return {}; } }) }) };""" % tous + """
     localStorage.setItem("sdb_session", JSON.stringify({
       codeId: "c1", code: "TEST", direction: "%s",
       expiresAt: "2099-01-01T00:00:00Z", participantName: "Test", nbJoueurs: 1 }));
