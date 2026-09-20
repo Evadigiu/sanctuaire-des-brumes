@@ -98,7 +98,28 @@ def main():
                 pb.append("%s : balise <%s> déséquilibrée (%d ouvertes, %d fermées)."
                           % (os.path.basename(f), tag, o, c))
 
-    # 5. Ce qui reste a faire, signale sans alarmer
+    # 5. bornes.sql est-il du SQL valide ?
+    #    Un insert multi-lignes ou une virgule tombe dans un commentaire est
+    #    rejete en bloc par Postgres. C'est arrive une fois, plus jamais.
+    sqltxt = lire(os.path.join(ICI, "bornes.sql"))
+    corps = sqltxt[sqltxt.index("values") + 6:] if "values" in sqltxt else ""
+    corps = corps.split("select count")[0]
+    tuples = 0
+    for ligne in corps.splitlines():
+        code = ligne.split("--")[0].rstrip()     # on jette le commentaire
+        if not code.strip(): continue
+        tuples += 1
+        dernier = tuples == len(bornes)
+        if dernier and not code.endswith(";"):
+            pb.append("bornes.sql : le dernier tuple ne finit pas par \";\". "
+                      "La requête serait incomplète.")
+        elif not dernier and not code.endswith(","):
+            pb.append("bornes.sql : virgule manquante après %s. Postgres rejetterait "
+                      "la requête entière." % code.strip()[:40])
+    if tuples != len(bornes):
+        pb.append("bornes.sql : %d lignes de valeurs pour %d bornes." % (tuples, len(bornes)))
+
+    # 6. Ce qui reste a faire, signale sans alarmer
     for f in pages:
         h = lire(f)
         n = h.count("A CONSTRUIRE") + h.count("a-construire")
