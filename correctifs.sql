@@ -254,7 +254,11 @@ $$;
 -- Le guichet est ouvert a tous ; la table, elle, reste fermee en ecriture.
 grant execute on function marquer_signalement_traite(uuid) to anon, authenticated;
 
-create or replace view signalements_recents as
+-- La vue gagne deux colonnes, dont une en tete. Postgres refuse ce genre de
+-- remaniement avec "create or replace" : il n'accepte que des colonnes
+-- ajoutees a la fin. On la supprime donc avant de la recreer.
+drop view if exists signalements_recents;
+create view signalements_recents as
 select s.id, s.signale_le, s.categorie, s.borne, s.message, s.traite_le, c.code
 from signalements s
 left join codes c on c.id = s.code_id
