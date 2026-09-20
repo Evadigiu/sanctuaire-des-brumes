@@ -29,15 +29,28 @@ threading.Thread(target=srv.serve_forever, daemon=True).start()
 
 # Remplace Supabase et pose une session valide, AVANT tout script de la page.
 def init(sens):
+    # Ce test ne porte pas sur le verrouillage du parcours (il a le sien) :
+    # on declare donc toutes les bornes comme deja visitees, pour que chaque
+    # page s'ouvre et qu'on puisse verifier ce qu'elle affiche.
+    import json as _j
+    txt = open(os.path.join(RACINE, "assets/js/parcours.js")).read()
+    noms = _j.loads(txt.split("const PARCOURS =", 1)[1].rstrip().rstrip(";"))["noms"]
+    tous = _j.dumps([{"qr_points": {"label": n}} for n in noms.values()], ensure_ascii=False)
     return """
     window.__scans = [];
     window.supabase = { createClient: () => ({ from: (t) => ({
-      select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: 'pt-1' } }) }) }),
-      insert: async (row) => { window.__scans.push(row); return {}; } }) }) };
+      select: () => ({ eq: (...a) => (t === "scans"
+                        ? Promise.resolve({ data: %s, error: null })
+                        : ({ maybeSingle: async () => ({ data: { id: 'pt-1' } }) })) }),
+      insert: async (row) => { window.__scans.push(row); return {}; } }) }) };""" % tous + """
     localStorage.setItem("sdb_session", JSON.stringify({
       codeId: "c1", code: "TEST", direction: "%s",
       expiresAt: "2099-01-01T00:00:00Z", participantName: "Test", nbJoueurs: 1 }));
     """ % sens
+
+import json as _json
+PARC = _json.loads(open(os.path.join(RACINE, "assets/js/parcours.js")).read()
+                   .split("const PARCOURS =", 1)[1].rstrip().rstrip(";"))
 
 echecs = []
 def verifier(nom, condition, detail=""):
@@ -48,17 +61,17 @@ with sync_playwright() as pw:
     nav = pw.chromium.launch(executable_path=CHROME, args=["--no-sandbox"])
 
     for fichier, sens, pos_attendue, libelle in [
-        ("e02-la-collegue-soigneuse.html", "horaire",     "Étape 2 sur 15", "sens A"),
-        ("e02-la-collegue-soigneuse.html", "antihoraire", "Étape 8 sur 15", "sens B"),
-        ("e09-greg-version-sens-a.html",   "antihoraire", "",               "borne de l'autre sens"),
+        (PARC["pages"]["E02"], "horaire",     "Étape 2 sur 15", "sens A"),
+        (PARC["pages"]["E02"], "antihoraire", "Étape 8 sur 15", "sens B"),
+        (PARC["pages"]["E09"], "antihoraire", "",               "borne de l'autre sens"),
     ]:
         page = nav.new_page()
         page.add_init_script(init(sens))
-        page.goto("http://127.0.0.1:%d/etapes/%s" % (PORT, fichier))
+        page.goto("http://127.0.0.1:%d/%s" % (PORT, fichier))
         page.wait_for_timeout(300)
         print("\n%s  [%s]" % (fichier, libelle))
 
-        verifier("pas de redirection", "/etapes/" in page.url, page.url)
+        verifier("pas de redirection", "/index.html" not in page.url, page.url)
         verifier("position affichee", page.text_content("#position").strip() == pos_attendue,
                  repr(page.text_content("#position")))
         scans = page.evaluate("window.__scans")
@@ -85,10 +98,26 @@ with sync_playwright() as pw:
             verifier("le dernier ecran mene ailleurs", sortie is not None)
         page.close()
 
+    # Le raccourci ne doit exister que pour les codes de test
+    print("\nLe raccourci vers l'etape suivante")
+    for code, attendu, libelle in [("TEST01", True, "code de test"), ("AB12CD", False, "vrai code")]:
+        page = nav.new_page()
+        page.add_init_script(init("horaire").replace('code: "TEST"', 'code: "%s"' % code))
+        page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E02"]))
+        page.wait_for_timeout(250)
+        present = page.eval_on_selector_all("[data-lien-test]", "e=>e.length") > 0
+        verifier("%s : raccourci %s" % (libelle, "present" if attendu else "absent"),
+                 present == attendu)
+        # la consigne d'aller scanner est la dans les deux cas
+        page.eval_on_selector_all(".ecran", "e=>e.forEach(x=>x.hidden=false)")
+        verifier("%s : consigne de scan affichee" % libelle,
+                 "scannez le QR code" in page.text_content(".wrap"))
+        page.close()
+
     # L'epreuve a reponse verifiee
     print("\ne08 : l'epreuve du panneau d'empreintes")
     page = nav.new_page(); page.add_init_script(init("horaire"))
-    page.goto("http://127.0.0.1:%d/etapes/e08-indice-le-panneau-d-empreinte.html" % PORT)
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E08"]))
     page.wait_for_timeout(300)
     page.query_selector(".ecran:not([hidden]) [data-suivant]").click(); page.wait_for_timeout(60)
     page.fill("#reponse", "7"); page.click("#valider")

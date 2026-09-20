@@ -227,3 +227,57 @@ footer {
 
 /* Le bouton de retour reste discret, il ne doit pas concurrencer Suivant */
 .ecran .btn-secondary { margin-top: 10px; font-size: 0.9rem; padding: 10px 18px; }
+
+/* Consigne de fin d'étape : le joueur doit aller scanner, pas cliquer. */
+.consigne-scan {
+  border-top: 1px solid var(--hair);
+  margin-top: 16px;
+  padding-top: 16px;
+  color: var(--gold);
+  font-size: 0.9rem;
+  letter-spacing: 0.5px;
+}
+/* Raccourci visible uniquement avec un code de test, volontairement terne
+   pour qu'on ne le confonde jamais avec un élément du jeu. */
+.btn-test {
+  background: transparent;
+  border: 1px dashed var(--hair);
+  color: var(--fog);
+  font-size: 0.8rem;
+  padding: 8px 14px;
+}
+.btn-test:hover { background: transparent; border-color: var(--gold); }
+
+/* ============================================================
+   LES SECOURS DU TERRAIN
+   Toujours là, jamais au premier plan : ils ne doivent pas
+   concurrencer le jeu, mais se trouver sans chercher.
+   ============================================================ */
+.secours-zone { padding-top: 0; padding-bottom: 20px; }
+.secours-boutons { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+.btn-lien {
+  background: none;
+  border: none;
+  color: var(--fog);
+  text-decoration: underline;
+  font-size: 0.82rem;
+  font-family: inherit;
+  padding: 6px 2px;
+  margin: 0;
+  width: auto;
+  cursor: pointer;
+}
+.btn-lien:hover:not(:disabled) { background: none; color: var(--gold); }
+
+select, textarea {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--panel2);
+  border: 1px solid var(--hair);
+  border-radius: 6px;
+  color: var(--ink);
+  font-size: 1rem;
+  font-family: inherit;
+}
+select:focus, textarea:focus { outline: none; border-color: var(--gold); }
+textarea { resize: vertical; }

@@ -17,7 +17,7 @@ from openpyxl import load_workbook
 ICI    = os.path.dirname(os.path.abspath(__file__))
 RACINE = os.path.dirname(ICI)
 CAHIER = os.path.join(ICI, "sanctuaire-cahier-de-contenu.xlsx")
-SORTIE = os.path.join(RACINE, "etapes")
+SORTIE = RACINE   # chaque borne a son dossier numerique a la racine
 
 def propre(v): return "" if v is None else str(v).strip()
 
@@ -66,9 +66,50 @@ for r in tex.iter_rows(min_row=3, values_only=True):
 # E00 est le ticket papier remis a l'accueil, pas une page du site.
 PAGES = [c for c in etapes if c != "E00"]
 PAGES.sort(key=lambda c: ordre["A"].get(c, ordre["B"].get(c, 99)))
-FICHIER = {c: "%s-%s.html" % (c.lower(), slug(etapes[c]["nom"])) for c in PAGES}
+# Le nom du dossier EST le code de secours : une seule reference pour le QR
+# et pour la saisie manuelle. Et surtout, une adresse qui ne raconte rien.
+# "/1868/" ne dit ni ce qu'on va trouver, ni combien d'etapes il reste ;
+# "/etapes/e04-indice-les-jumelles-la-carcasse.html" disait les deux, dans la
+# barre d'adresse, avant meme que la page s'affiche.
 
 TOTAL = {s: len([c for c in ordre[s] if c != "E00"]) for s in ("A", "B")}
+
+def code_secours(cle, sel=0):
+    h = 5381
+    for ch in ("brumes-%d-%s" % (sel, cle)):
+        h = ((h * 33) ^ ord(ch)) & 0xFFFFFFFF
+    return 1000 + (h % 9000)
+
+def trop_proche(n, deja):
+    """Deux codes ne doivent jamais differer d'un seul chiffre : sinon une
+    faute de frappe mene a une autre borne valide au lieu d'une erreur, et
+    le joueur atterrit ailleurs sans comprendre."""
+    a = "%04d" % n
+    for m in deja:
+        b = "%04d" % m
+        if sum(1 for x, y in zip(a, b) if x != y) < 2:
+            return True
+    return False
+
+secours, decales = {}, []
+for c in PAGES:
+    n = code_secours(c)
+    if trop_proche(n, secours.values()):
+        decales.append(c)
+        sel = 1
+        # On retire un nouveau code au hasard plutot que de decaler celui-ci :
+        # un decalage regulier finirait par tasser tous les codes dans la meme
+        # tranche, et des nombres qui se ressemblent se confondent sur une
+        # affichette lue a la lumiere du jour.
+        while trop_proche(n, secours.values()):
+            n = code_secours(c, sel); sel += 1
+    secours[c] = n
+if decales:
+    print("  (codes de secours ecartes pour eviter une confusion de frappe : %s)"
+          % ", ".join(decales))
+
+FICHIER = {c: "%d/" % secours[c] for c in PAGES}
+
 
 # ============================================================
 # Mecaniques particulieres, declarees explicitement plutot que
@@ -135,8 +176,16 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
         h.append('  <!-- Note du cahier de contenu : %s -->' % lg["rem"].replace("--", "—"))
 
     if dernier:
-        h.append('  <a href="%s" class="btn">Continuer l\'enquête</a>' % e(lg["lien"]) if lg.get("lien")
-                 else '  <p class="muted">Fin du parcours.</p>')
+        if lg.get("lien"):
+            # Le lien n'est PAS un bouton offert au joueur : l'enquete ne doit
+            # pas se derouler au clic depuis un canape. Seul le scan du QR code
+            # de la borne suivante ouvre la page. etape.js ne revele ce lien
+            # qu'aux codes de test, pour que l'equipe puisse repeter le
+            # parcours sans courir dans le parc.
+            h.append('  <p class="consigne-scan">Rendez-vous sur place, puis scannez le QR code de la borne.</p>')
+            h.append('  <a href="%s" class="btn btn-test" data-lien-test hidden>Raccourci de test</a>' % e(lg["lien"]))
+        else:
+            h.append('  <p class="muted">Fin du parcours.</p>')
     else:
         h.append('  <button data-suivant>Suivant</button>')
         h.append('  <button class="btn-secondary" data-retour>Revenir en arrière</button>')
@@ -154,7 +203,7 @@ GABARIT = """<!DOCTYPE html>
 <!-- PAGE FABRIQUÉE AUTOMATIQUEMENT depuis contenu/sanctuaire-cahier-de-contenu.xlsx
      Toute correction faite ici sera perdue à la prochaine fabrication.
      Corriger le cahier, puis relancer contenu/fabriquer-les-pages.py -->
-<body data-borne="{borne}">
+<body data-borne="{borne}" data-etape="{code}" data-racine="../">
 
 <div class="wrap">
   <div class="timer" id="timer">Chargement du chrono...</div>
@@ -163,10 +212,42 @@ GABARIT = """<!DOCTYPE html>
 {ecrans}
 </div>
 
+<div class="wrap secours-zone">
+  <div class="secours-boutons">
+    <button class="btn-lien" id="boutonSecours">Le QR code ne fonctionne pas</button>
+    <button class="btn-lien" id="boutonProbleme">J'ai un problème</button>
+  </div>
+
+  <div class="card" id="zoneSecours" hidden>
+    <p>Sur l'affichette, à côté du QR code, se trouve un nombre à quatre chiffres. Saisissez-le.</p>
+    <input type="text" id="champSecours" inputmode="numeric" maxlength="4" placeholder="Ex. 4172">
+    <div class="error-box visible" id="erreurSecours" hidden></div>
+    <button id="validerSecours">Ouvrir cette borne</button>
+  </div>
+
+  <div class="card" id="zoneProbleme" hidden>
+    <div id="formProbleme">
+      <p>Dites-nous ce qui ne va pas, l'équipe est prévenue tout de suite.</p>
+      <label for="categorieProbleme">De quoi s'agit-il ?</label>
+      <select id="categorieProbleme">
+        <option value="qr">Un QR code illisible ou décollé</option>
+        <option value="decor">Un décor abîmé ou manquant</option>
+        <option value="bug">Un problème sur le site</option>
+        <option value="autre">Autre chose</option>
+      </select>
+      <label for="messageProbleme">Quelques mots (facultatif)</label>
+      <textarea id="messageProbleme" rows="3" maxlength="500" placeholder="Ce que vous avez constaté"></textarea>
+      <button id="envoyerProbleme">Envoyer</button>
+    </div>
+    <p class="muted" id="retourProbleme" hidden></p>
+  </div>
+</div>
+
 <footer>Le Sanctuaire des Brumes</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="../assets/js/supabase-client.js"></script>
+<script src="../assets/js/parcours.js"></script>
 <script src="../assets/js/game.js"></script>
 <script src="../assets/js/etape.js"></script>
 <script>
@@ -177,11 +258,13 @@ GABARIT = """<!DOCTYPE html>
 </html>
 """
 
-if os.path.isdir(SORTIE):
-    for f in os.listdir(SORTIE):
-        if f.endswith(".html"): os.remove(os.path.join(SORTIE, f))
-else:
-    os.makedirs(SORTIE)
+# On efface les anciens dossiers de bornes (repertoires purement numeriques)
+# et l'ancien dossier etapes/, pour qu'aucune adresse perimee ne subsiste.
+import shutil
+for nom in os.listdir(SORTIE):
+    chemin = os.path.join(SORTIE, nom)
+    if os.path.isdir(chemin) and (nom.isdigit() or nom == "etapes"):
+        shutil.rmtree(chemin)
 
 for c in PAGES:
     et = etapes[c]
@@ -196,7 +279,7 @@ for c in PAGES:
     for s in ("A", "B"):
         for x in sorties[s]:
             suite = et["suite" + s]
-            x = dict(x, lien=FICHIER.get(suite) if suite else None)
+            x = dict(x, lien=("../" + FICHIER[suite]) if suite else None)
             blocs.append(bloc_ecran(et, x, True, s))
 
     # Garde-fou terrain : les bornes sont physiques et un groupe peut tomber
@@ -226,12 +309,15 @@ for c in PAGES:
     posA = "Étape %d sur %d" % (ordre["A"][c], TOTAL["A"]) if c in ordre["A"] else ""
     posB = "Étape %d sur %d" % (ordre["B"][c], TOTAL["B"]) if c in ordre["B"] else ""
 
-    page = GABARIT.format(titre=e(et["nom"]), borne=e(et["nom"]),
+    page = GABARIT.format(titre=e(et["nom"]), borne=e(et["nom"]), code=c,
                           posA=e(posA), posB=e(posB),
                           ecrans="\n".join(blocs), extra=extra)
-    open(os.path.join(SORTIE, FICHIER[c]), "w", encoding="utf-8").write(page)
-    print("  %-38s %-3s A:%-3s B:%-3s %d écran(s)" % (
-        FICHIER[c], c, ordre["A"].get(c, "-"), ordre["B"].get(c, "-"), len(blocs)))
+    dossier = os.path.join(SORTIE, str(secours[c]))
+    os.makedirs(dossier, exist_ok=True)
+    open(os.path.join(dossier, "index.html"), "w", encoding="utf-8").write(page)
+    print("  /%-6s %-5s %-34s A:%-3s B:%-3s %d écran(s)" % (
+        FICHIER[c], c, etapes[c]["nom"][:34], ordre["A"].get(c, "-"),
+        ordre["B"].get(c, "-"), len(blocs)))
 
 # ------------------------------------------------------------
 # Le SQL des bornes, fabrique depuis la meme source que les pages.
@@ -279,5 +365,78 @@ sql.append("-- Controle : doit renvoyer %d." % len(vals))
 sql.append("select count(*) as bornes_enregistrees from qr_points;")
 open(os.path.join(ICI, "bornes.sql"), "w", encoding="utf-8").write("\n".join(sql) + "\n")
 
+# ------------------------------------------------------------
+# Le plan du parcours, pour le navigateur.
+#
+# Les pages doivent savoir quelle est la position de chaque borne dans
+# chaque sens, pour refuser une borne trop en avance sur la progression
+# du groupe. Ce fichier sort du cahier, comme tout le reste.
+#
+# Le code de secours est un nombre a 4 chiffres, imprime sur l'affichette
+# a cote du QR. Il est derive du code d'etape de facon stable, et
+# volontairement NON sequentiel : E01 ne doit pas donner 1001 et E02 1002,
+# sinon il suffirait de lire une affichette pour deviner toutes les autres
+# et sauter la moitie du parcours.
+# ------------------------------------------------------------
+plan = {
+    "pages":   {c: FICHIER[c] for c in PAGES},
+    "noms":    {c: etapes[c]["nom"] for c in PAGES},
+    "ordre":   {"A": {c: ordre["A"][c] for c in ordre["A"] if c != "E00"},
+                "B": {c: ordre["B"][c] for c in ordre["B"] if c != "E00"}},
+    "secours": {str(n): c for c, n in secours.items()},
+}
+import json as _json
+open(os.path.join(RACINE, "assets", "js", "parcours.js"), "w", encoding="utf-8").write(
+    "// ============================================================\n"
+    "// LE PLAN DU PARCOURS\n"
+    "// Fabrique automatiquement depuis le cahier de contenu.\n"
+    "// Ne pas modifier a la main : relancer fabriquer-les-pages.py.\n"
+    "// ============================================================\n"
+    "const PARCOURS = " + _json.dumps(plan, ensure_ascii=False, indent=2) + ";\n")
+
+# ------------------------------------------------------------
+# La liste des adresses a encoder dans les QR codes.
+# Le domaine est en tete, a un seul endroit : le jour ou le site change
+# d'adresse, tous les QR deja imprimes deviennent caducs, donc ce choix
+# doit etre arrete AVANT la fabrication des affichettes.
+# ------------------------------------------------------------
+DOMAINE = "https://enquete.pomelolab.fr"
+
+lignes_url = [
+ "# Adresses des bornes a encoder dans les QR codes",
+ "",
+ "Domaine utilise : `%s`" % DOMAINE,
+ "",
+ "> **A verifier avant toute impression.** Un QR code encode une adresse en dur.",
+ "> Si le site passe un jour sur un nom de domaine personnalise, toutes les",
+ "> affichettes deja posees dans le parc cessent de fonctionner. Ce choix doit",
+ "> etre arrete avant la fabrication, pas apres.",
+ "",
+ "Le depart (E00) n'a pas de QR dans le parc : le code est remis sur un ticket",
+ "papier a la caisse, et le joueur arrive sur la page d'accueil du site.",
+ "",
+ "Chaque affichette porte le QR code ET le nombre a 4 chiffres, a saisir dans",
+ "le jeu si le QR refuse de se lire.",
+ "",
+ "| Code | Borne | Lieu | Sens A | Sens B | Secours | Adresse a encoder |",
+ "|---|---|---|---|---|---|---|",
+]
+for c in PAGES:
+    et = etapes[c]
+    lignes_url.append("| %s | %s | %s | %s | %s | **%d** | `%s/%s` |" % (
+        c, et["nom"], et["lieu"] or "*a preciser*",
+        ordre["A"].get(c, "—"), ordre["B"].get(c, "—"), secours[c], DOMAINE, FICHIER[c]))
+lignes_url += ["", "## Page d'accueil (remise du ticket)", "",
+               "`%s/` — le joueur y arrive avec le code imprime sur son ticket." % DOMAINE,
+               "", "## Pourquoi des adresses en chiffres", "",
+               "L'adresse s'affiche dans la barre du navigateur avant meme que la",
+               "page se charge. `/etapes/e04-indice-les-jumelles-la-carcasse.html`",
+               "annoncait l'enigme et le nombre d'etapes ; `/3208/` ne dit rien.",
+               "",
+               "Le nombre est aussi celui a saisir si le QR refuse de se lire : une",
+               "seule reference a imprimer sur l'affichette, pour les deux usages.", ""]
+open(os.path.join(ICI, "adresses-des-bornes.md"), "w", encoding="utf-8").write("\n".join(lignes_url) + "\n")
+
 print("\n%d pages fabriquees dans etapes/" % len(PAGES))
+print("Adresses des bornes ecrites dans contenu/adresses-des-bornes.md")
 print("SQL des %d bornes ecrit dans contenu/bornes.sql" % len(PAGES))

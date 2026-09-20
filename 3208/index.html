@@ -9,7 +9,7 @@
 <!-- PAGE FABRIQUÉE AUTOMATIQUEMENT depuis contenu/sanctuaire-cahier-de-contenu.xlsx
      Toute correction faite ici sera perdue à la prochaine fabrication.
      Corriger le cahier, puis relancer contenu/fabriquer-les-pages.py -->
-<body data-borne="Indice : les jumelles, la carcasse">
+<body data-borne="Indice : les jumelles, la carcasse" data-etape="E04" data-racine="../">
 
 <div class="wrap">
   <div class="timer" id="timer">Chargement du chrono...</div>
@@ -30,21 +30,55 @@
   <p>Rendez-vous au dessus de l&#x27;enclos des loups pour intéroger votre prochain témoin</p>
   <!-- A AJOUTER : la photo qui montre où aller.
        <img src="../assets/img/XXX.jpg" alt="Le chemin à prendre"> -->
-  <a href="e05-la-passante.html" class="btn">Continuer l'enquête</a>
+  <p class="consigne-scan">Rendez-vous sur place, puis scannez le QR code de la borne.</p>
+  <a href="../6120/" class="btn btn-test" data-lien-test hidden>Raccourci de test</a>
 </section>
 <section class="ecran card" data-sens="B" hidden>
   <div class="ecran-titre">4. Ou aller ensuite</div>
   <p>Rendez-vous au dessus de l&#x27;enclos des loups pour intéroger votre prochain témoin</p>
   <!-- A AJOUTER : la photo qui montre où aller.
        <img src="../assets/img/XXX.jpg" alt="Le chemin à prendre"> -->
-  <a href="e05-la-passante.html" class="btn">Continuer l'enquête</a>
+  <p class="consigne-scan">Rendez-vous sur place, puis scannez le QR code de la borne.</p>
+  <a href="../6120/" class="btn btn-test" data-lien-test hidden>Raccourci de test</a>
 </section>
+</div>
+
+<div class="wrap secours-zone">
+  <div class="secours-boutons">
+    <button class="btn-lien" id="boutonSecours">Le QR code ne fonctionne pas</button>
+    <button class="btn-lien" id="boutonProbleme">J'ai un problème</button>
+  </div>
+
+  <div class="card" id="zoneSecours" hidden>
+    <p>Sur l'affichette, à côté du QR code, se trouve un nombre à quatre chiffres. Saisissez-le.</p>
+    <input type="text" id="champSecours" inputmode="numeric" maxlength="4" placeholder="Ex. 4172">
+    <div class="error-box visible" id="erreurSecours" hidden></div>
+    <button id="validerSecours">Ouvrir cette borne</button>
+  </div>
+
+  <div class="card" id="zoneProbleme" hidden>
+    <div id="formProbleme">
+      <p>Dites-nous ce qui ne va pas, l'équipe est prévenue tout de suite.</p>
+      <label for="categorieProbleme">De quoi s'agit-il ?</label>
+      <select id="categorieProbleme">
+        <option value="qr">Un QR code illisible ou décollé</option>
+        <option value="decor">Un décor abîmé ou manquant</option>
+        <option value="bug">Un problème sur le site</option>
+        <option value="autre">Autre chose</option>
+      </select>
+      <label for="messageProbleme">Quelques mots (facultatif)</label>
+      <textarea id="messageProbleme" rows="3" maxlength="500" placeholder="Ce que vous avez constaté"></textarea>
+      <button id="envoyerProbleme">Envoyer</button>
+    </div>
+    <p class="muted" id="retourProbleme" hidden></p>
+  </div>
 </div>
 
 <footer>Le Sanctuaire des Brumes</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="../assets/js/supabase-client.js"></script>
+<script src="../assets/js/parcours.js"></script>
 <script src="../assets/js/game.js"></script>
 <script src="../assets/js/etape.js"></script>
 <script>

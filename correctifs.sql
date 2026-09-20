@@ -10,7 +10,8 @@
 --   Message attendu : "Success. No rows returned"
 --
 -- ============================================================
---        ETAT : UN CORRECTIF EN ATTENTE (le n°3, tout en bas)
+--   ETAT : le correctif 4 est EN ATTENTE. Voir aussi la remise a zero des
+--          codes de test, a relancer avant chaque essai.
 -- ============================================================
 
 
@@ -114,3 +115,97 @@ select conname as regle, pg_get_constraintdef(oid) as definition
 from pg_constraint
 where conrelid = 'codes'::regclass
   and conname in ('codes_max_participants_check', 'codes_participants_reels_check');
+
+
+-- ------------------------------------------------------------
+-- REMISE A ZERO DES CODES DE TEST
+-- A relancer avant chaque nouvelle session d'essai.
+--
+-- Un code deja active garde sa date de fin : le rejouer ouvrirait une
+-- partie deja terminee. Cette requete leur rend leur etat neuf.
+--
+-- Ne touche QUE les codes commencant par TEST. Sans effet sur les vrais.
+-- ------------------------------------------------------------
+
+-- 1. Effacer les passages enregistres par ces codes.
+--    Indispensable depuis que le parcours est verrouille : sans cela, le jeu
+--    croit que le groupe a deja visite la moitie des bornes, et on ne teste
+--    plus rien du tout.
+delete from scans
+ where code_id in (select id from codes where code like 'TEST%');
+
+-- 2. Rendre aux codes leur etat neuf.
+update codes
+   set status = 'unused',
+       activated_at = null,
+       expires_at = null,
+       participants_reels = null
+ where code like 'TEST%';
+
+-- Controle : statut 'unused' partout, et 0 passage restant.
+select c.code, c.status, count(s.id) as passages_restants
+from codes c
+left join scans s on s.code_id = c.id
+where c.code like 'TEST%'
+group by c.code, c.status
+order by c.code;
+
+
+-- ------------------------------------------------------------
+-- CORRECTIF 4 — Permettre au jeu de lire la progression du groupe
+-- >>> PAS ENCORE APPLIQUE <<<
+--
+-- Le parcours est desormais verrouille : une borne trop en avance sur ce
+-- que le groupe a reellement scanne est refusee. Pour cela, la page doit
+-- pouvoir relire les passages deja enregistres.
+--
+-- Or "scans" n'a aucune regle de lecture : le site ne peut pas relire ce
+-- qu'il vient d'ecrire. Sans ce correctif, le verrouillage retombe sur la
+-- trace gardee par le telephone, et un joueur qui change de telephone en
+-- cours de partie se retrouverait bloque.
+--
+-- Ce que cela expose : la liste des passages, sans aucune donnee
+-- personnelle (ni nom, ni code). Un joueur ne peut rien en faire, le jeu
+-- ne regarde que les passages de son propre groupe.
+--
+-- Ajoute aussi la table des signalements, pour le bouton "j'ai un
+-- probleme" : elle accepte les ecritures du terrain mais n'est lisible
+-- que par le backoffice, a travers une vue.
+-- ------------------------------------------------------------
+
+-- Le "drop if exists" permet de relancer ce correctif sans erreur : une
+-- regle deja creee ferait echouer la requete entiere, avec un message peu
+-- parlant, et on ne saurait plus ce qui a ete applique ou non.
+drop policy if exists "Lecture publique des scans" on scans;
+create policy "Lecture publique des scans"
+  on scans for select to public
+  using (true);
+
+create table if not exists signalements (
+  id          uuid primary key default gen_random_uuid(),
+  code_id     uuid references codes(id),
+  borne       text,                 -- libelle de la borne, ou null si depuis l'accueil
+  categorie   text not null check (categorie in ('qr', 'decor', 'bug', 'autre')),
+  message     text,
+  signale_le  timestamptz not null default now()
+);
+
+alter table signalements enable row level security;
+
+drop policy if exists "Signalement depuis le terrain" on signalements;
+create policy "Signalement depuis le terrain"
+  on signalements for insert to public
+  with check (true);
+
+create index if not exists idx_signalements_date on signalements(signale_le desc);
+
+-- Le backoffice lit a travers cette vue : une vue interroge les tables avec
+-- les droits de son proprietaire, donc pas besoin d'ouvrir la table elle-meme.
+create or replace view signalements_recents as
+select s.signale_le, s.categorie, s.borne, s.message, c.code
+from signalements s
+left join codes c on c.id = s.code_id
+order by s.signale_le desc;
+
+-- Controle : doit renvoyer 0 sans erreur.
+select count(*) as signalements from signalements_recents;

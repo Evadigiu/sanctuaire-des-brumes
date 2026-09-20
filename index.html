@@ -6,7 +6,7 @@
 <title>Le Sanctuaire des Brumes</title>
 <link rel="stylesheet" href="assets/css/style.css">
 </head>
-<body>
+<body data-racine="">
 
 <div class="wrap">
   <div class="eyebrow">Le Sanctuaire des Brumes</div>
@@ -54,13 +54,14 @@
     <p>Entrez dans le jardin des pivoines, sur votre droite après l'accueil du zoo, pour recevoir les instructions de votre commissaire.</p>
     <!-- A AJOUTER : la photo qui montre le chemin.
          <img src="assets/img/depart.jpg" alt="Le jardin des pivoines"> -->
-    <a href="etapes/e01-le-commissaire-jean.html" class="btn">Rejoindre le commissaire</a>
+    <a href="#" id="versPremiereBorne" class="btn">Rejoindre le commissaire</a>
   </section>
 </div>
 
 <footer>Pomelo Événementiel &times; Zoo de Mulhouse</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/js/parcours.js"></script>
 <script src="assets/js/supabase-client.js"></script>
 <script src="assets/js/game.js"></script>
 <script>
@@ -118,6 +119,14 @@
       startBtn.textContent = "Démarrer l'enquête";
       return;
     }
+
+    // La première borne du sens attribué au groupe. On ne code pas son
+    // adresse en dur : elle sort du plan du parcours, comme partout ailleurs,
+    // pour qu'un changement de parcours n'oublie jamais la page d'accueil.
+    const sens = (result.session.direction === "antihoraire") ? "B" : "A";
+    const premiere = Object.keys(PARCOURS.ordre[sens])
+      .find(c => PARCOURS.ordre[sens][c] === 1);
+    document.getElementById("versPremiereBorne").href = PARCOURS.pages[premiere];
 
     // Le chrono part d'ici. On affiche l'écran qui envoie vers la 1re borne.
     saisie.hidden = true; depart.hidden = false; window.scrollTo(0, 0);
