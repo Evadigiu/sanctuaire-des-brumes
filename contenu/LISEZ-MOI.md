@@ -109,3 +109,13 @@ jamais figurer sur une affichette : « Indice : les jumelles, la carcasse »
 raconterait l'énigme à quiconque passe devant. Sur l'affichette, le QR et le
 nombre à quatre chiffres, rien d'autre. La planche de pose, elle, est réservée
 à l'équipe.
+
+## La police des titres
+
+```
+python3 contenu/completer-la-police.py
+```
+
+À relancer seulement si la police d'origine est remplacée. Il compose les
+lettres accentuées françaises que DCC Ash ne possède pas, et produit le fichier
+allégé servi aux joueurs. Voir `assets/fonts/LISEZ-MOI.md`.
