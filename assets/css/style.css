@@ -36,7 +36,9 @@
   --bg: #0B0D14;
   --panel: #151928;
   --panel2: #1B2033;
-  --fog: #8B93A6;
+  --fog: #BFB7AC;   /* texte secondaire : le ton le plus sobre qui reste
+                       lisible sur la texture comme sur une carte, seuil
+                       4,5:1 tenu dans les deux cas */
   --gold: #C9A24B;
   --titre-or: #dbda7d;   /* la couleur des titres */
   --gold-bright: #E4C87A;
@@ -48,6 +50,32 @@
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ------------------------------------------------------------
+   LE FOND
+
+   L'image est portée par un calque fixe derrière la page, et non par
+   le body en "background-attachment: fixed" : sur iPhone, cette
+   propriété est ignorée depuis des années et l'image se met à sauter
+   pendant le défilement.
+
+   Un voile sombre la recouvre. La texture est belle mais elle a des
+   zones claires, et du texte posé directement dessus perdrait par
+   endroits la moitié de son contraste. Le voile lui rend son rôle :
+   une ambiance derrière le jeu, pas un décor qui gêne la lecture.
+   ------------------------------------------------------------ */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(11, 13, 20, 0.32), rgba(11, 13, 20, 0.46)),
+    url("../img/fond.webp");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
 
 body {
   background: var(--bg);
@@ -93,7 +121,9 @@ p { margin-bottom: 14px; color: #ffffff; font-weight: 300; }
 p.muted { color: var(--fog); font-size: 0.95rem; }
 
 .card {
-  background: var(--panel);
+  background: rgba(16, 19, 31, 0.88);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
   border: 1px solid var(--hair);
   border-radius: 8px;
   padding: 20px;
@@ -324,3 +354,17 @@ select, textarea {
 }
 select:focus, textarea:focus { outline: none; border-color: var(--gold); }
 textarea { resize: vertical; }
+
+/* ------------------------------------------------------------
+   SIGNATURE DE L'ORGANISATEUR
+
+   Le logo Pomelo est celui de l'agence, pas celui du jeu : ses verts
+   et ses corails n'ont rien à faire au-dessus d'une enquête nocturne.
+   Il signe en pied de page, à sa vraie place.
+   ------------------------------------------------------------ */
+footer .signature {
+  display: block;
+  width: 92px;
+  margin: 0 auto 10px;
+  opacity: 0.75;
+}
