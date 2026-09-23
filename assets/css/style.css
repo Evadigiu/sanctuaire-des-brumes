@@ -2,12 +2,43 @@
    LE SANCTUAIRE DES BRUMES — style partagé
    ============================================================ */
 
+/* ------------------------------------------------------------
+   LES TROIS VOIX TYPOGRAPHIQUES
+
+   Titres      : DCC Ash, en capitales, doré clair
+   Sous-titres : Avenir gras, en capitales
+   Corps       : Avenir Light, blanc
+
+   Avenir est une police commerciale, livrée d'origine sur iPhone et Mac
+   mais absente d'Android et de Windows : près d'un joueur sur deux ne
+   l'a pas. Le repli n'est donc pas un filet de sécurité théorique, c'est
+   ce que verra la moitié du public. Mulish est dessinée sur le même
+   principe et s'en approche de très près.
+   ------------------------------------------------------------ */
+
+@font-face {
+  font-family: "DCC Ash";
+  src: url("../fonts/dcc-ash.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  /* Le texte s'affiche tout de suite avec la police de repli, puis bascule
+     une fois Ash chargée. Sans cela, un titre resterait invisible plusieurs
+     secondes sur un réseau lent, ce qui est le cas dans un parc. */
+  font-display: swap;
+}
+
+:root {
+  --titre: "DCC Ash", Georgia, serif;
+  --texte: Avenir, "Avenir Next", Mulish, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
 :root {
   --bg: #0B0D14;
   --panel: #151928;
   --panel2: #1B2033;
   --fog: #8B93A6;
   --gold: #C9A24B;
+  --titre-or: #dbda7d;   /* la couleur des titres */
   --gold-bright: #E4C87A;
   --pink: #EE3F81;
   --green: #7BB27D;
@@ -20,8 +51,9 @@
 
 body {
   background: var(--bg);
-  color: var(--ink);
-  font-family: Georgia, 'Times New Roman', serif;
+  color: #ffffff;
+  font-family: var(--texte);
+  font-weight: 300;              /* Avenir Light */
   line-height: 1.6;
   min-height: 100vh;
   display: flex;
@@ -37,15 +69,19 @@ body {
 }
 
 h1 {
-  font-family: Georgia, serif;
-  font-weight: 700;
-  font-size: 1.6rem;
-  color: var(--ink);
-  letter-spacing: 0.5px;
+  font-family: var(--titre);
+  font-weight: normal;           /* Ash n'a qu'une graisse */
+  font-size: 2rem;
+  color: var(--titre-or);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  line-height: 1.15;
   margin-bottom: 8px;
 }
 
 .eyebrow {
+  font-family: var(--texte);
+  font-weight: 700;              /* Avenir gras */
   font-size: 0.75rem;
   letter-spacing: 3px;
   color: var(--gold);
@@ -53,7 +89,7 @@ h1 {
   margin-bottom: 6px;
 }
 
-p { margin-bottom: 14px; color: var(--ink); }
+p { margin-bottom: 14px; color: #ffffff; font-weight: 300; }
 p.muted { color: var(--fog); font-size: 0.95rem; }
 
 .card {
@@ -66,6 +102,9 @@ p.muted { color: var(--fog); font-size: 0.95rem; }
 
 label {
   display: block;
+  font-family: var(--texte);
+  font-weight: 700;              /* Avenir gras */
+  text-transform: uppercase;
   font-size: 0.85rem;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -105,8 +144,9 @@ button, .btn {
   padding: 14px 22px;
   font-size: 1rem;
   font-weight: 700;
-  font-family: Georgia, serif;
-  letter-spacing: 0.5px;
+  font-family: var(--texte);
+  text-transform: uppercase;
+  letter-spacing: 1px;
   cursor: pointer;
   margin-top: 20px;
   width: 100%;
@@ -136,7 +176,8 @@ button:hover:not(:disabled), .btn:hover { background: var(--gold-bright); }
 .error-box.visible { display: block; }
 
 .timer {
-  font-family: Georgia, serif;
+  font-family: var(--texte);
+  font-weight: 700;
   font-size: 1.1rem;
   color: var(--gold-bright);
   text-align: center;
@@ -189,6 +230,8 @@ footer {
    Un seul est visible à la fois, la navigation est dans etape.js.
    ============================================================ */
 .ecran-titre {
+  font-family: var(--texte);
+  font-weight: 700;
   font-size: 0.7rem;
   letter-spacing: 2px;
   text-transform: uppercase;

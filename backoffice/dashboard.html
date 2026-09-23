@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Suivi en direct, Le Sanctuaire des Brumes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mulish:wght@300;700&display=swap">
 <link rel="stylesheet" href="../assets/css/style.css">
 <style>
   .wrap { max-width: 1000px; }
@@ -34,7 +37,7 @@
     margin-bottom: 24px;
   }
   .creneau-tete { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-  .creneau h2 { margin: 0; font-size: 1.05rem; color: var(--gold-bright); font-family: Georgia, serif; }
+  .creneau h2 { margin: 0; font-size: 0.95rem; color: var(--gold-bright); font-family: var(--texte); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
   .creneau .fenetre { color: var(--fog); font-size: 0.8rem; }
 
   /* Le chiffre que l'accueil surveille. Un seul par écran. */
@@ -162,10 +165,10 @@
 
   <div class="stat-row" id="statRow"></div>
 
-  <h2 style="font-family:Georgia,serif; color:var(--gold-bright); font-size:1.1rem; margin-top:24px;">Signalements du terrain</h2>
+  <h2 style="font-family:var(--texte); font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--gold-bright); font-size:0.95rem; margin-top:24px;">Signalements du terrain</h2>
   <div class="card" id="signalements"><p class="loading">Chargement...</p></div>
 
-  <h2 style="font-family:Georgia,serif; color:var(--gold-bright); font-size:1.1rem; margin-top:24px;">Groupes actifs</h2>
+  <h2 style="font-family:var(--texte); font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--gold-bright); font-size:0.95rem; margin-top:24px;">Groupes actifs</h2>
   <table id="liveTable">
     <thead>
       <tr><th>Code</th><th>Pers.</th><th>Sens</th><th>Dernière borne</th><th>Depuis</th></tr>
@@ -173,13 +176,13 @@
     <tbody id="liveBody"><tr><td colspan="5" class="loading">Chargement...</td></tr></tbody>
   </table>
 
-<h2 style="font-family:Georgia,serif; color:var(--gold-bright); font-size:1.1rem; margin-top:32px;">Trois dernières heures, par demi-heure</h2>
+<h2 style="font-family:var(--texte); font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--gold-bright); font-size:0.95rem; margin-top:32px;">Trois dernières heures, par demi-heure</h2>
   <table id="histoTable">
     <thead><tr><th>Demi-heure</th><th>Personnes</th><th>Groupes</th><th>Pers./groupe</th></tr></thead>
     <tbody id="histoBody"><tr><td colspan="4" class="loading">Chargement...</td></tr></tbody>
   </table>
 
-  <h2 style="font-family:Georgia,serif; color:var(--gold-bright); font-size:1.1rem; margin-top:32px;">Réconciliation par jour</h2>
+  <h2 style="font-family:var(--texte); font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--gold-bright); font-size:0.95rem; margin-top:32px;">Réconciliation par jour</h2>
   <table id="reconTable">
     <thead>
       <tr><th>Jour</th><th>Codes activés</th><th>Participants estimés</th></tr>
