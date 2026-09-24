@@ -135,6 +135,17 @@ Ce qui n'existe pas, et qu'il faut savoir :
 
 La vérification est rejouable à tout moment : coller `verification_base.sql` dans le SQL Editor de Supabase.
 
+### ⚠️ Supabase, changement du 30 octobre 2026
+
+À partir du 30 octobre, Supabase n'accorde plus automatiquement l'accès API aux **nouvelles** tables du schéma `public`. Les tables du jeu sont antérieures et gardent leurs droits : **le jeu n'est pas affecté**.
+
+Deux conséquences, et la date tombe en plein pendant l'événement :
+
+- **Ne créer aucune table entre le 17 octobre et le 2 novembre.** Rien ne l'exige de toute façon : l'étape finale utilise `quiz_responses` et `conclusions`, qui existent déjà.
+- **Toute nouvelle table ou vue doit être accompagnée de son `grant`**, dans la même requête. Le correctif 4 le fait désormais pour la table des signalements, de sorte qu'il fonctionne qu'il soit lancé avant ou après la date.
+
+Sans ce `grant`, la table est bien créée mais reste muette : le site reçoit un refus, et rien dans le code ne laisse deviner pourquoi.
+
 ## 8. Règles métier importantes
 
 - **Groupes** : **1 à 6 personnes** par code. Le jeu en solo est autorisé depuis le 20/09/2026, ce qui revient sur la décision précédente qui l'interdisait.
