@@ -82,6 +82,27 @@ create index idx_scans_qr_point_id on scans(qr_point_id);
 
 
 -- ============================================================
+-- 2 bis. DROITS D'ACCES A L'API (a partir du 30 octobre 2026)
+--
+-- Supabase a cesse, le 30 octobre 2026, d'accorder automatiquement
+-- l'acces API aux nouvelles tables du schema public. Les cinq tables
+-- ci-dessus sont anterieures : elles gardent leurs droits, rien a faire.
+--
+-- MAIS toute table creee APRES cette date reste muette tant qu'un GRANT
+-- explicite ne lui a pas ete accorde. Le site recoit alors un refus, et
+-- rien dans le code ne laisse deviner pourquoi.
+--
+-- REGLE POUR LA SUITE : toute nouvelle table ou vue s'accompagne de son
+-- GRANT, dans la meme requete. Le correctif 4 le fait deja pour la table
+-- des signalements.
+--
+-- A ne pas confondre avec la securite : un GRANT ouvre la porte du
+-- couloir, les regles RLS de la section 3 ouvrent celle de la piece.
+-- Accorder un GRANT n'expose rien tant que les regles tiennent.
+-- ============================================================
+
+
+-- ============================================================
 -- 3. SECURITE (RLS)
 --
 -- La cle publique du site est visible par tout le monde dans le code source.

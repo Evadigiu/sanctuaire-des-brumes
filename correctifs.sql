@@ -199,6 +199,25 @@ create policy "Signalement depuis le terrain"
 
 create index if not exists idx_signalements_date on signalements(signale_le desc);
 
+-- ------------------------------------------------------------
+-- DROITS D'ACCES EXPLICITES
+--
+-- A partir du 30 octobre 2026, Supabase cesse d'accorder
+-- automatiquement l'acces API aux nouvelles tables du schema public.
+-- Une table creee apres cette date sans GRANT reste muette : le site
+-- recoit un refus, et rien ne le laisse deviner a la lecture du code.
+--
+-- Les tables deja en place gardent leurs droits, rien a faire pour
+-- elles. On ecrit quand meme ces GRANT ici : ils ne changent rien
+-- avant le 30 octobre, et ils sauvent ce correctif s'il est lance
+-- apres. Or il tombe en plein pendant l'evenement.
+--
+-- Ces droits ne sont pas une securite : les regles RLS ci-dessus
+-- restent seules a decider qui peut faire quoi. Un GRANT ouvre la
+-- porte du couloir, la regle ouvre celle de la piece.
+-- ------------------------------------------------------------
+grant insert on table signalements to anon, authenticated;
+
 -- Le backoffice lit a travers cette vue : une vue interroge les tables avec
 -- les droits de son proprietaire, donc pas besoin d'ouvrir la table elle-meme.
 create or replace view signalements_recents as
@@ -263,6 +282,9 @@ select s.id, s.signale_le, s.categorie, s.borne, s.message, s.traite_le, c.code
 from signalements s
 left join codes c on c.id = s.code_id
 order by s.signale_le desc;
+
+-- La vue est recreee, donc elle aussi a besoin de ses droits.
+grant select on table signalements_recents to anon, authenticated;
 
 -- Controle : doit s'executer sans erreur et renvoyer 0.
 select count(*) filter (where traite_le is null) as en_attente
