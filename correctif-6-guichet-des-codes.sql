@@ -7,6 +7,21 @@
 --   Il peut etre relance sans risque : chaque morceau verifie d'abord si
 --   le travail est deja fait.
 --
+--   >>> UN AVERTISSEMENT VA S'AFFICHER : "Potential issue detected, this
+--   query creates tables without enabling Row Level Security". REPONDRE
+--   "RUN WITHOUT RLS", le bouton orange. <<<
+--
+--   C'est un faux positif. Le detecteur de Supabase lit le nom des
+--   variables internes des fonctions (v_row, v_tentatives) et croit y voir
+--   des tables a proteger. S'il a l'autorisation, il ajoute deux lignes
+--   "ALTER TABLE ... ENABLE ROW LEVEL SECURITY" AU MILIEU d'une fonction,
+--   ce qui la casse : la requete entiere est refusee (erreur a "as $$") et
+--   rien n'est applique.
+--
+--   La seule table creee ici est verrouillee par le fichier lui-meme, a la
+--   section 1 : "enable row level security" puis "revoke all". Le
+--   garde-fou reclame est deja en place.
+--
 -- ATTENTION : ce correctif et la mise a jour du site vont ENSEMBLE.
 -- Lance-le le jour ou tu fusionnes la branche, pas avant : entre les deux,
 -- l'activation des codes ne marche plus.
