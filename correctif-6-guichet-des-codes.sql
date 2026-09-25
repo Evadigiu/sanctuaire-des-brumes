@@ -7,20 +7,24 @@
 --   Il peut etre relance sans risque : chaque morceau verifie d'abord si
 --   le travail est deja fait.
 --
---   >>> UN AVERTISSEMENT VA S'AFFICHER : "Potential issue detected, this
---   query creates tables without enabling Row Level Security". REPONDRE
---   "RUN WITHOUT RLS", le bouton orange. <<<
+--   SI L'AVERTISSEMENT "Potential issue detected ... without enabling Row
+--   Level Security" APPARAIT QUAND MEME, repondre "RUN WITHOUT RLS", le
+--   bouton orange, JAMAIS le vert.
 --
---   C'est un faux positif. Le detecteur de Supabase lit le nom des
---   variables internes des fonctions (v_row, v_tentatives) et croit y voir
---   des tables a proteger. S'il a l'autorisation, il ajoute deux lignes
---   "ALTER TABLE ... ENABLE ROW LEVEL SECURITY" AU MILIEU d'une fonction,
---   ce qui la casse : la requete entiere est refusee (erreur a "as $$") et
---   rien n'est applique.
+--   Pourquoi : l'assistant de Supabase lisait "select ... into v_row" comme
+--   la creation d'une table nommee v_row (en SQL ordinaire, cette phrase
+--   cree effectivement une table ; dans une fonction, elle range un
+--   resultat dans une variable). Il inserait alors un "alter table" AU
+--   MILIEU de la fonction, ce qui la cassait : erreur a "as $$", et rien
+--   n'etait applique. Ces phrases ont ete reecrites, l'avertissement ne
+--   devrait plus se declencher.
 --
---   La seule table creee ici est verrouillee par le fichier lui-meme, a la
---   section 1 : "enable row level security" puis "revoke all". Le
---   garde-fou reclame est deja en place.
+--   Dans tous les cas, la seule table creee ici est verrouillee par le
+--   fichier lui-meme, section 1 : "enable row level security" puis
+--   "revoke all". Le garde-fou reclame est deja en place.
+--
+--   >>> A COLLER DANS UN ONGLET NEUF (le "+" a cote des onglets). Un
+--   onglet ou l'assistant est deja passe garde son texte modifie. <<<
 --
 -- ATTENTION : ce correctif et la mise a jour du site vont ENSEMBLE.
 -- Lance-le le jour ou tu fusionnes la branche, pas avant : entre les deux,
@@ -135,10 +139,9 @@ begin
   end;
 
   if v_origine is not null and v_origine <> '' then
-    select count(*) into v_tentatives
-      from tentatives_activation
-     where origine = v_origine
-       and tente_le > now() - interval '1 hour';
+    v_tentatives := (select count(*) from tentatives_activation
+                      where origine = v_origine
+                        and tente_le > now() - interval '1 hour');
 
     if v_tentatives >= 100 then
       return json_build_object('ok', false,
@@ -148,7 +151,14 @@ begin
 
   -- "for update" met la ligne de cote le temps de la decision : deux
   -- telephones ne peuvent pas activer le meme code au meme instant.
-  select * into v_row from codes where code = v_code for update;
+  --
+  -- On met de cote, PUIS on lit, en deux temps. Ecrit d'un seul trait,
+  -- "select ... into v_row", cela voudrait dire "range le resultat dans
+  -- v_row" ici, mais "cree une table nommee v_row" en SQL ordinaire.
+  -- L'assistant de Supabase lit la seconde version, croit voir une table
+  -- sans protection et va inserer un "alter table" au milieu de la
+  -- fonction, ce qui la casse. Ces deux lignes evitent le malentendu.
+  perform 1 from codes where code = v_code for update;
 
   if not found then
     delete from tentatives_activation where tente_le < now() - interval '1 day';
@@ -156,6 +166,8 @@ begin
     return json_build_object('ok', false,
       'message', 'Ce code n''existe pas. Verifie la saisie ou demande a l''accueil.');
   end if;
+
+  v_row := (select c from codes c where c.code = v_code);
 
   -- Code deja consomme : soit marque expire, soit active il y a plus de 3h.
   if v_row.status = 'expired'
@@ -232,9 +244,9 @@ begin
     return json_build_object('ok', false, 'message', 'Aucune partie en cours pour ce code.');
   end if;
 
-  select id into v_point from qr_points where label = p_borne;
+  v_point := (select id from qr_points where label = p_borne);
 
-  if not found then
+  if v_point is null then
     return json_build_object('ok', false,
       'message', 'Borne inconnue en base : ' || coalesce(p_borne, '(vide)'));
   end if;
