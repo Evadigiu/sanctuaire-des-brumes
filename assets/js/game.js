@@ -31,13 +31,13 @@ async function activateCode(code, participantName, nbJoueurs) {
 
   if (error) {
     console.warn("Guichet injoignable :", error.message);
-    return { ok: false, message: "Erreur de connexion, réessaie dans un instant." };
+    return { ok: false, message: "Erreur de connexion, réessayez dans un instant." };
   }
   if (!data || !data.ok) {
     return {
       ok: false,
       message: (data && data.message)
-        || "Ce code n'a pas pu être activé. Adresse-toi à l'accueil du zoo.",
+        || "Ce code n'a pas pu être activé. Adressez-vous à l'accueil du zoo.",
     };
   }
 
