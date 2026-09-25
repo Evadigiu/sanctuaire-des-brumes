@@ -15,96 +15,42 @@ const BASE_PATH = document.body.getAttribute("data-racine") || "";
 /**
  * Tente d'activer un code au point de départ.
  * Retourne { ok: true, session } ou { ok: false, message }
+ *
+ * Le site ne touche plus à la table des codes : elle est fermée. Il passe
+ * par le guichet activer_code(), une fonction de la base qui vérifie le
+ * code et ouvre elle-même la partie. Trois conséquences :
+ *   - la liste des codes n'est plus lisible depuis un téléphone ;
+ *   - le chrono de 3h est calculé par la base, pas par l'horloge du joueur ;
+ *   - c'est la base qui rédige le message de refus, affiché tel quel.
  */
 async function activateCode(code, participantName, nbJoueurs) {
-  const cleanCode = code.trim().toUpperCase();
+  const { data, error } = await supabaseClient.rpc("activer_code", {
+    p_code: code,
+    p_nb_joueurs: nbJoueurs || null,
+  });
 
-  const { data: existing, error: fetchError } = await supabaseClient
-    .from("codes")
-    .select("*")
-    .eq("code", cleanCode)
-    .maybeSingle();
-
-  if (fetchError) {
+  if (error) {
+    console.warn("Guichet injoignable :", error.message);
     return { ok: false, message: "Erreur de connexion, réessaie dans un instant." };
   }
-  if (!existing) {
-    return { ok: false, message: "Ce code n'existe pas. Vérifie la saisie ou demande à l'accueil." };
-  }
-  if (existing.status === "expired") {
-    return { ok: false, message: "Ce code a expiré. Adresse-toi à l'accueil du zoo." };
-  }
-  if (existing.status === "active") {
-    // Un code déjà activé dont les 3h sont écoulées ne doit pas rouvrir une
-    // partie : on laisserait le joueur entrer pour l'éjecter à l'écran
-    // suivant, sans qu'il comprenne pourquoi. On refuse ici, clairement.
-    if (existing.expires_at && new Date(existing.expires_at) <= new Date()) {
-      return { ok: false, message: "Ce code a déjà servi et sa partie est terminée. Adresse-toi à l'accueil du zoo." };
-    }
-    // Sinon on relance la partie en cours plutôt que de refuser : utile si le
-    // joueur recharge la page ou change de téléphone dans le groupe.
-    const session = buildSession(existing, participantName, nbJoueurs);
-    saveSession(session);
-    return { ok: true, session };
+  if (!data || !data.ok) {
+    return {
+      ok: false,
+      message: (data && data.message)
+        || "Ce code n'a pas pu être activé. Adresse-toi à l'accueil du zoo.",
+    };
   }
 
-  // status === "unused" : première activation
-  const activatedAt = new Date();
-  const expiresAt = new Date(activatedAt.getTime() + 3 * 60 * 60 * 1000); // +3h
-
-  const base = {
-    status: "active",
-    activated_at: activatedAt.toISOString(),
-    expires_at: expiresAt.toISOString(),
-  };
-
-  function activer(champs) {
-    return supabaseClient
-      .from("codes")
-      .update(champs)
-      .eq("id", existing.id)
-      .eq("status", "unused") // garde-fou anti double-activation simultanée
-      .select()
-      .maybeSingle();
-  }
-
-  // On tente d'enregistrer aussi le nombre réel de joueurs. Si la colonne
-  // n'existe pas encore dans cette base, la requête entière est refusée et
-  // rien n'est modifié : on réessaie alors sans ce champ.
-  //
-  // Le nombre de joueurs est un confort ; démarrer la partie ne l'est pas.
-  // Un groupe qui attend à la caisse ne doit jamais rester bloqué à cause
-  // d'une colonne manquante.
-  let updated = null, updateError = null;
-  if (nbJoueurs) {
-    ({ data: updated, error: updateError } =
-      await activer(Object.assign({ participants_reels: nbJoueurs }, base)));
-    if (updateError) {
-      console.warn("Nombre de joueurs non enregistré :", updateError.message);
-      ({ data: updated, error: updateError } = await activer(base));
-    }
-  } else {
-    ({ data: updated, error: updateError } = await activer(base));
-  }
-
-  if (updateError || !updated) {
-    return { ok: false, message: "Ce code vient d'être activé ailleurs. Réessaie ou demande un nouveau code." };
-  }
-
-  const session = buildSession(updated, participantName, nbJoueurs);
-  saveSession(session);
-  return { ok: true, session };
-}
-
-function buildSession(codeRow, participantName, nbJoueurs) {
-  return {
-    codeId: codeRow.id,
-    code: codeRow.code,
-    direction: codeRow.direction,
-    expiresAt: codeRow.expires_at,
+  const session = {
+    codeId: data.code_id,
+    code: data.code,
+    direction: data.direction,
+    expiresAt: data.expires_at,
     participantName: participantName || "",
     nbJoueurs: nbJoueurs || null,
   };
+  saveSession(session);
+  return { ok: true, session };
 }
 
 function saveSession(session) {
@@ -136,28 +82,32 @@ function requireActiveSession() {
 }
 
 /**
- * Enregistre le passage à une borne (table scans), en retrouvant
- * le point QR par son label dans la table qr_points.
+ * Enregistre le passage à une borne, par le guichet.
+ *
+ * La table des passages n'accepte plus d'écriture directe : sans cela, un
+ * joueur pouvait s'inscrire d'un coup les seize bornes et déverrouiller
+ * tout le parcours sans marcher.
+ *
+ * Le guichet répond aussi quand le libellé de la borne ne correspond à
+ * rien en base. Avant, ce cas-là passait inaperçu et le passage était
+ * simplement perdu : c'est la panne qu'on ne voyait qu'au dépouillement.
  */
 async function logScan(qrLabel) {
   const session = getSession();
   if (!session) return;
 
-  const { data: point } = await supabaseClient
-    .from("qr_points")
-    .select("id")
-    .eq("label", qrLabel)
-    .maybeSingle();
+  const { data, error } = await supabaseClient.rpc("enregistrer_passage", {
+    p_code_id: session.codeId,
+    p_borne: qrLabel,
+  });
 
-  if (!point) {
-    console.warn("Point QR introuvable en base :", qrLabel);
+  if (error) {
+    console.warn("Passage non enregistré :", error.message);
     return;
   }
-
-  await supabaseClient.from("scans").insert({
-    code_id: session.codeId,
-    qr_point_id: point.id,
-  });
+  if (!data || !data.ok) {
+    console.warn("Passage refusé :", (data && data.message) || "raison inconnue");
+  }
 }
 
 /**

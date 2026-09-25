@@ -10,8 +10,21 @@
 --   Message attendu : "Success. No rows returned"
 --
 -- ============================================================
---   ETAT : les correctifs 4 et 5 sont EN ATTENTE. Voir aussi la remise a
---          zero des codes de test, a relancer avant chaque essai.
+--   ETAT AU 25/09/2026
+--
+--   Correctifs 1 a 5 : APPLIQUES en production.
+--
+--   Correctifs 6 et 7 : ils sont assez gros pour vivre dans leur propre
+--   fichier, a la racine du depot :
+--     correctif-6-guichet-des-codes.sql        ferme la table des codes
+--     correctif-7-fabriquer-les-vrais-codes.sql  fabrique des codes
+--                                                impossibles a deviner
+--
+--   Pour savoir ou en est la base a tout moment, sans rien modifier :
+--   lancer bilan-de-la-base.sql.
+--
+--   Voir aussi la remise a zero des codes de test ci-dessous, a relancer
+--   avant chaque essai.
 -- ============================================================
 
 
@@ -92,7 +105,7 @@ alter table codes
 
 -- ------------------------------------------------------------
 -- CORRECTIF 3 — Autoriser le jeu en solo (1 a 6 personnes)
--- >>> PAS ENCORE APPLIQUE <<<
+-- >>> APPLIQUE — confirme par bilan-de-la-base.sql le 25/09/2026 <<<
 --
 -- Decision du 20/09/2026, qui revient sur la regle precedente interdisant
 -- le solo. Les deux colonnes qui comptent des personnes plafonnaient a un
@@ -153,7 +166,7 @@ order by c.code;
 
 -- ------------------------------------------------------------
 -- CORRECTIF 4 — Permettre au jeu de lire la progression du groupe
--- >>> PAS ENCORE APPLIQUE <<<
+-- >>> APPLIQUE — confirme par bilan-de-la-base.sql le 25/09/2026 <<<
 --
 -- Le parcours est desormais verrouille : une borne trop en avance sur ce
 -- que le groupe a reellement scanne est refusee. Pour cela, la page doit
@@ -232,7 +245,7 @@ select count(*) as signalements from signalements_recents;
 
 -- ------------------------------------------------------------
 -- CORRECTIF 5 — Suivre et clore les signalements
--- >>> PAS ENCORE APPLIQUE <<<
+-- >>> APPLIQUE — confirme par bilan-de-la-base.sql le 25/09/2026 <<<
 --
 -- Le bouton "j'ai un probleme" enregistre, mais rien ne permet de dire
 -- qu'un probleme a ete traite. Sans cela, au troisieme jour, l'equipe a

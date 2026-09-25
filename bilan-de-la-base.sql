@@ -43,6 +43,23 @@ with etat as (
              where proname = 'marquer_signalement_traite')
       as c5_guichet,
 
+    -- Correctif 6 : la table des codes est-elle fermee, et les guichets en place ?
+    exists (select 1 from pg_proc where proname = 'activer_code')
+      as c6_guichet_activation,
+    exists (select 1 from pg_proc where proname = 'enregistrer_passage')
+      as c6_guichet_passages,
+    not exists (select 1 from pg_policies
+                 where tablename = 'codes' and 'public' = any(roles))
+      as c6_codes_fermes,
+    not exists (select 1 from pg_policies
+                 where tablename = 'scans' and cmd = 'INSERT')
+      as c6_scans_fermes,
+
+    -- Correctif 7 : les vrais codes sont-ils fabricables, et deja fabriques ?
+    exists (select 1 from pg_proc where proname = 'fabriquer_codes')
+      as c7_fabrique,
+    (select count(*) from codes where code not like 'TEST%') as nb_vrais_codes,
+
     -- Les bornes du parcours
     (select count(*) from qr_points) as nb_bornes,
     (select count(*) from codes)     as nb_codes,
@@ -73,11 +90,21 @@ select * from (
          'L''equipe peut clore un signalement traite',
          case when c5_cloture and c5_guichet then 'FAIT' else 'A LANCER' end from etat
   union all
-  select 7, 'Les bornes',
+  select 7, 'Correctif 6',
+         'Les codes ne sont plus lisibles ni modifiables depuis un telephone',
+         case when c6_guichet_activation and c6_guichet_passages
+                   and c6_codes_fermes and c6_scans_fermes
+              then 'FAIT' else 'A LANCER' end from etat
+  union all
+  select 8, 'Correctif 7',
+         'Les vrais codes sont impossibles a deviner (' || nb_vrais_codes || ' fabrique(s))',
+         case when c7_fabrique then 'FAIT' else 'A LANCER' end from etat
+  union all
+  select 9, 'Les bornes',
          'Le parcours compte ' || nb_bornes || ' bornes (il en faut 16)',
          case when nb_bornes = 16 then 'FAIT' else 'A REVOIR' end from etat
   union all
-  select 8, 'Le contenu',
+  select 10, 'Le contenu',
          nb_codes || ' code(s), ' || nb_passages || ' passage(s) enregistre(s)',
          'pour information' from etat
 ) bilan

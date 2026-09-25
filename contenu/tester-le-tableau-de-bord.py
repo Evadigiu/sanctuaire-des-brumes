@@ -32,7 +32,9 @@ def stub(codes, signalements=None):
         if (s) s.traite_le = new Date().toISOString();
         return { data: s ? s.traite_le : null, error: null }; },
       from: (t) => {
-      const donnees = t === "codes" ? window.__codes
+      // "departs_recents" a remplace la lecture directe de "codes" au
+      // correctif 6 : la table est fermee, le backoffice lit une vue.
+      const donnees = t === "departs_recents" ? window.__codes
                     : t === "signalements_recents" ? window.__sign : [];
       const rep = { data: donnees, error: null };
       const q = {

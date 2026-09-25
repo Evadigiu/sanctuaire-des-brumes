@@ -4,7 +4,8 @@
 -- Format Postgres (compatible Supabase)
 --
 -- CE FICHIER DECRIT LA BASE REELLEMENT EN PLACE.
--- Derniere verification faite directement sur la base : 1er septembre 2026.
+-- Derniere verification faite directement sur la base : 1er septembre 2026,
+-- mise a jour le 25 septembre 2026 (correctifs 4, 5, 6).
 -- Si tu modifies quelque chose dans Supabase, reporte-le ici le jour meme,
 -- sinon ce fichier redevient un plan de maison sans les serrures.
 -- Pour re-verifier a tout moment : lancer verification_base.sql.
@@ -93,8 +94,8 @@ create index idx_scans_qr_point_id on scans(qr_point_id);
 -- rien dans le code ne laisse deviner pourquoi.
 --
 -- REGLE POUR LA SUITE : toute nouvelle table ou vue s'accompagne de son
--- GRANT, dans la meme requete. Le correctif 4 le fait deja pour la table
--- des signalements.
+-- GRANT, dans la meme requete. Les correctifs 4 et 6 le font deja pour la
+-- table des signalements et pour la vue des departs.
 --
 -- A ne pas confondre avec la securite : un GRANT ouvre la porte du
 -- couloir, les regles RLS de la section 3 ouvrent celle de la piece.
@@ -106,31 +107,14 @@ create index idx_scans_qr_point_id on scans(qr_point_id);
 -- 3. SECURITE (RLS)
 --
 -- La cle publique du site est visible par tout le monde dans le code source.
--- C'est normal. Ce sont donc UNIQUEMENT les regles ci-dessous qui protegent
--- la base. Elles sont reproduites a l'identique de ce qui tourne en prod.
+-- C'est normal. Ce sont donc UNIQUEMENT les regles ci-dessous, et les
+-- guichets de la section 3 bis, qui protegent la base.
 --
--- >>> AVERTISSEMENT, A LIRE AVANT DE GENERER LES VRAIS CODES <<<
---
--- Ces regles comportent DEUX TROUS CONNUS, sans danger tant que la base ne
--- contient que des codes de test, inacceptables une fois les vrais codes
--- generes :
---
---   TROU 1 — "Lecture publique des codes" autorise n'importe qui a lire la
---   liste complete des codes, y compris ceux non encore vendus. Autrement
---   dit : jouer gratuitement sans passer par la billetterie.
---
---   TROU 2 — "Activation d'un code non utilise" ne verifie que la colonne
---   status. Elle n'empeche ni de modifier plusieurs codes a la fois, ni
---   d'ecrire n'importe quoi dans les autres colonnes. Consequences :
---     a) une seule requete peut passer TOUS les codes non utilises en
---        "active" et expire, rendant tous les tickets imprimes inutilisables ;
---     b) le joueur ecrit lui-meme son expires_at, donc son propre chrono.
---        (Le README ne doit pas pretendre que le chrono est calcule cote
---        serveur : il ne l'est pas.)
---
--- CORRECTION PREVUE : supprimer ces deux regles et faire passer l'activation
--- par une fonction "security definer" (un guichet : le joueur soumet son code,
--- la base verifie et ecrit elle-meme). Voir le point 4 de la feuille de route.
+-- Les trois trous signales ici jusqu'au 25/09/2026 sont boucher : voir
+-- correctif-6-guichet-des-codes.sql. Pour memoire, ils permettaient
+-- respectivement de lire tous les codes (donc de jouer sans payer), de
+-- griller tous les billets imprimes en une requete, et de s'inscrire les
+-- seize passages de bornes sans marcher.
 -- ============================================================
 
 alter table qr_points      enable row level security;
@@ -139,46 +123,72 @@ alter table scans          enable row level security;
 alter table quiz_responses enable row level security;
 alter table conclusions    enable row level security;
 
--- Les 4 regles reellement en place (verifiees le 01/09/2026).
+-- Les regles reellement en place apres le correctif 6.
 create policy "Lecture publique des bornes"
   on qr_points for select to public
   using (true);
 
-create policy "Lecture publique des codes"          -- TROU 1, voir ci-dessus
-  on codes for select to public
+-- La table "codes" n'a plus AUCUNE regle publique : ni lecture, ni
+-- ecriture. Tout passe par activer_code(), section 3 bis.
+
+-- Lecture des passages : c'est elle qui permet au jeu de verifier la
+-- progression d'un groupe. Elle ne contient ni nom ni code, seulement des
+-- identifiants techniques. Ne pas la retirer : le verrouillage du parcours
+-- tomberait avec.
+create policy "Lecture publique des scans"
+  on scans for select to public
   using (true);
 
-create policy "Activation d'un code non utilise"    -- TROU 2, voir ci-dessus
-  on codes for update to public
-  using (status = 'unused')
-  with check (status = 'active');
+-- L'ecriture des passages, elle, passe par enregistrer_passage().
 
-create policy "Enregistrement des scans"
-  on scans for insert to public
+create policy "Signalement depuis le terrain"
+  on signalements for insert to public
   with check (true);
+
+
+-- ------------------------------------------------------------
+-- 3 bis. LES GUICHETS (fonctions security definer)
+--
+-- Une fonction "security definer" travaille avec les droits du
+-- proprietaire de la base, pas ceux du visiteur. Le site lui soumet une
+-- demande, elle verifie et ecrit elle-meme. C'est ce qui permet de fermer
+-- completement les tables sans empecher le jeu de fonctionner.
+--
+--   activer_code(code, nb_joueurs)     ouvre une partie, calcule le chrono
+--                                      de 3h cote serveur, limite les
+--                                      essais en rafale
+--   enregistrer_passage(code_id, borne) inscrit un passage si la partie est
+--                                      ouverte, et signale un libelle de
+--                                      borne inconnu au lieu de le perdre
+--   marquer_signalement_traite(id)     clot un signalement (correctif 5)
+--
+-- REGLE A NE PAS OUBLIER : Postgres autorise par defaut TOUT LE MONDE a
+-- executer une fonction nouvellement creee, et Supabase les expose au site.
+-- Toute fonction d'administration (fabriquer_codes, par exemple) doit donc
+-- s'accompagner de son "revoke execute ... from public". Voir le
+-- correctif 7.
+-- ------------------------------------------------------------
+
 
 -- ------------------------------------------------------------
 -- CE QUI N'EXISTE PAS, ET QU'IL FAUT SAVOIR :
 --
--- * Aucune regle de lecture sur "scans". Les tableaux de bord fonctionnent
---   quand meme, parce qu'une vue Postgres interroge les tables avec les
---   droits de son proprietaire et non ceux du visiteur. Deux consequences :
---     - les vues du backoffice sont lisibles par n'importe qui, le mot de
---       passe "brumes2026" ne cache que le bouton ;
---     - le jour ou quelqu'un activera "security_invoker" sur ces vues, les
---       tableaux de bord tomberont en panne d'un coup.
---
 -- * Aucune regle de suppression nulle part. Personne ne peut effacer de
 --   donnees depuis le site. C'est voulu, ne pas en ajouter.
---
--- * "Enregistrement des scans" accepte tout, sans verification. N'importe qui
---   peut inventer des passages de bornes et fausser les statistiques.
 --
 -- * AUCUNE regle sur "quiz_responses" et "conclusions". Ces deux tables sont
 --   donc totalement fermees, y compris au site lui-meme. L'etape finale ne
 --   pourra RIEN y enregistrer : les reponses des joueurs seront rejetees en
---   silence, sans message d'erreur. A regler en meme temps que le guichet,
---   AVANT de construire l'etape finale.
+--   silence, sans message d'erreur. A regler AVANT de construire l'etape
+--   finale, et par un guichet plutot que par une regle ouverte.
+--
+-- * LE BACKOFFICE N'EST PAS PROTEGE. Le mot de passe "brumes2026" est ecrit
+--   en clair dans dashboard.html : il ne cache qu'un bouton. Les vues de
+--   suivi sont lisibles par n'importe qui. Depuis le correctif 6 elles ne
+--   montrent plus que les 4 derniers caracteres d'un code, ce qui evite le
+--   pire, mais l'activite du jeu reste consultable par un inconnu. Correctif
+--   a prevoir : un vrai compte Supabase Auth pour l'equipe, et les vues
+--   fermees a "anon".
 -- ------------------------------------------------------------
 
 
@@ -195,7 +205,7 @@ create policy "Enregistrement des scans"
 -- Ce fichier est de nouveau aligne avec la prod.
 create or replace view live_dashboard as
 select
-  c.code,
+  right(c.code, 4) as code,   -- code partiel : voir correctif 6
   c.max_participants,
   c.direction,
   c.slot_time,

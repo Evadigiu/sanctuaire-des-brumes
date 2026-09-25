@@ -171,7 +171,7 @@
   <h2 style="font-family:var(--texte); font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--gold-bright); font-size:0.95rem; margin-top:24px;">Groupes actifs</h2>
   <table id="liveTable">
     <thead>
-      <tr><th>Code</th><th>Pers.</th><th>Sens</th><th>Dernière borne</th><th>Depuis</th></tr>
+      <tr><th>Groupe</th><th>Pers.</th><th>Sens</th><th>Dernière borne</th><th>Depuis</th></tr>
     </thead>
     <tbody id="liveBody"><tr><td colspan="5" class="loading">Chargement...</td></tr></tbody>
   </table>
@@ -318,9 +318,10 @@
   async function chargerCreneau() {
     const depuis = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
     const { data, error } = await supabaseClient
-      .from("codes")
+      // La table des codes est fermée depuis le correctif 6. On passe par
+      // une vue qui ne montre que les nombres, jamais les codes eux-mêmes.
+      .from("departs_recents")
       .select("activated_at, participants_reels, max_participants, direction")
-      .not("activated_at", "is", null)
       .gte("activated_at", depuis);
 
     if (error) {
@@ -422,7 +423,7 @@
       + '<span class="cat ' + x.categorie + '">' + (LIBELLE_CATEGORIE[x.categorie] || x.categorie) + '</span>'
       + '<span class="borne">' + (x.borne || "Accueil") + '</span>'
       + '<span class="quand">' + heure(x.signale_le)
-      + (x.code ? " · groupe " + x.code : "") + '</span>'
+      + (x.code ? " · groupe ···" + x.code : "") + '</span>'
       + '</div>'
       + (x.message ? '<div class="mot">' + x.message + '</div>' : '')
       + '</div>'
@@ -459,7 +460,7 @@
         const staleMin = g.last_scan_at ? (new Date() - new Date(g.last_scan_at)) / 60000 : 999;
         const staleClass = staleMin > 20 ? "stale" : "";
         return `<tr class="${staleClass}">
-          <td>${g.code}</td>
+          <td>···${g.code}</td>
           <td>${g.max_participants}</td>
           <td><span class="badge ${g.direction}">${g.direction}</span></td>
           <td>${g.last_point || "—"}</td>

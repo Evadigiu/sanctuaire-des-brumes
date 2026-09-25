@@ -107,31 +107,31 @@ La clé du site est publique, visible par tout le monde dans le code source.
 C'est normal pour ce type de projet. Ce sont uniquement les règles configurées
 dans Supabase qui protègent la base.
 
-Ces règles ont aujourd'hui **quatre défauts connus**, vérifiés directement sur
-la base le 1er septembre 2026 :
+Ces règles avaient **quatre défauts connus**. Trois sont réparés depuis le
+25 septembre 2026 par `correctif-6-guichet-des-codes.sql` :
 
-1. **N'importe qui peut lire la liste complète des codes**, y compris ceux non
-   encore vendus. C'est-à-dire jouer sans passer par la billetterie.
-2. **Une seule requête peut griller tous les codes non utilisés d'un coup**, ce
-   qui rendrait tous les tickets imprimés inutilisables du jour au lendemain.
-   La même faiblesse permet à un joueur de s'accorder plus de 3 heures.
-3. **N'importe qui peut inventer des passages de bornes**, ce qui fausserait les
-   statistiques sans qu'on puisse faire le tri.
-4. **Les tables du quiz et des conclusions sont totalement fermées**, y compris
-   au site lui-même. L'étape finale ne pourra rien y enregistrer : les réponses
-   des joueurs seront rejetées en silence.
+1. ~~N'importe qui pouvait lire la liste complète des codes~~ → la table est
+   fermée. L'activation passe par un guichet (`activer_code`) : le site soumet
+   un code, la base vérifie et ouvre elle-même la partie.
+2. ~~Une seule requête pouvait griller tous les codes d'un coup~~ → plus aucune
+   écriture directe n'est possible. Le chrono de 3 h est désormais calculé par
+   la base, plus par le téléphone du joueur.
+3. ~~N'importe qui pouvait inventer des passages de bornes~~ → même guichet
+   (`enregistrer_passage`), qui vérifie que la partie est bien ouverte.
+4. **Les tables du quiz et des conclusions sont toujours fermées**, y compris au
+   site lui-même. L'étape finale ne pourra rien y enregistrer : les réponses des
+   joueurs seront rejetées en silence. À régler en construisant l'étape finale,
+   par un guichet et non par une règle ouverte.
 
-Rien ne brûle aujourd'hui : la base ne contient que 3 codes de test, il n'y a
-donc rien à voler ni à détruire. **Le point de bascule, c'est le jour où les
-vrais codes seront générés.** Les quatre défauts se réparent ensemble, par le
-même chantier : faire en sorte que le téléphone du joueur n'écrive plus jamais
-directement dans la base.
+Deux points restent ouverts, à traiter avant l'ouverture au public :
+
+- **Le backoffice n'est pas protégé.** Voir ci-dessous.
+- **Le format des vrais codes.** Un code numéroté (SDB-001, SDB-002…) se devine
+  en trois secondes et annule tout ce qui précède.
+  `correctif-7-fabriquer-les-vrais-codes.sql` fabrique des codes de 8 signes
+  tirés au hasard, sans caractères qui se confondent à la lecture.
 
 Le détail technique complet est dans `schema_escape_game.sql`, section 3.
-
-**À noter aussi :** le chrono n'est pas calculé côté serveur. C'est le
-téléphone du joueur qui écrit lui-même son heure de fin. Le chantier de
-sécurité ci-dessus corrige aussi ce point.
 
 Enfin, le mot de passe du backoffice (`brumes2026`) est écrit en clair dans le
 code des pages. Il cache le bouton, il ne protège pas les données.
