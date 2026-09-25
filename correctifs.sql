@@ -10,8 +10,21 @@
 --   Message attendu : "Success. No rows returned"
 --
 -- ============================================================
---   ETAT : les correctifs 4 et 5 sont EN ATTENTE. Voir aussi la remise a
---          zero des codes de test, a relancer avant chaque essai.
+--   ETAT AU 25/09/2026
+--
+--   Correctifs 1 a 5 : APPLIQUES en production.
+--
+--   Correctifs 6 et 7 : ils sont assez gros pour vivre dans leur propre
+--   fichier, a la racine du depot :
+--     correctif-6-guichet-des-codes.sql        ferme la table des codes
+--     correctif-7-fabriquer-les-vrais-codes.sql  fabrique des codes
+--                                                impossibles a deviner
+--
+--   Pour savoir ou en est la base a tout moment, sans rien modifier :
+--   lancer bilan-de-la-base.sql.
+--
+--   Voir aussi la remise a zero des codes de test ci-dessous, a relancer
+--   avant chaque essai.
 -- ============================================================
 
 
@@ -92,7 +105,7 @@ alter table codes
 
 -- ------------------------------------------------------------
 -- CORRECTIF 3 — Autoriser le jeu en solo (1 a 6 personnes)
--- >>> PAS ENCORE APPLIQUE <<<
+-- >>> APPLIQUE — confirme par bilan-de-la-base.sql le 25/09/2026 <<<
 --
 -- Decision du 20/09/2026, qui revient sur la regle precedente interdisant
 -- le solo. Les deux colonnes qui comptent des personnes plafonnaient a un
@@ -153,7 +166,7 @@ order by c.code;
 
 -- ------------------------------------------------------------
 -- CORRECTIF 4 — Permettre au jeu de lire la progression du groupe
--- >>> PAS ENCORE APPLIQUE <<<
+-- >>> APPLIQUE — confirme par bilan-de-la-base.sql le 25/09/2026 <<<
 --
 -- Le parcours est desormais verrouille : une borne trop en avance sur ce
 -- que le groupe a reellement scanne est refusee. Pour cela, la page doit
@@ -199,6 +212,25 @@ create policy "Signalement depuis le terrain"
 
 create index if not exists idx_signalements_date on signalements(signale_le desc);
 
+-- ------------------------------------------------------------
+-- DROITS D'ACCES EXPLICITES
+--
+-- A partir du 30 octobre 2026, Supabase cesse d'accorder
+-- automatiquement l'acces API aux nouvelles tables du schema public.
+-- Une table creee apres cette date sans GRANT reste muette : le site
+-- recoit un refus, et rien ne le laisse deviner a la lecture du code.
+--
+-- Les tables deja en place gardent leurs droits, rien a faire pour
+-- elles. On ecrit quand meme ces GRANT ici : ils ne changent rien
+-- avant le 30 octobre, et ils sauvent ce correctif s'il est lance
+-- apres. Or il tombe en plein pendant l'evenement.
+--
+-- Ces droits ne sont pas une securite : les regles RLS ci-dessus
+-- restent seules a decider qui peut faire quoi. Un GRANT ouvre la
+-- porte du couloir, la regle ouvre celle de la piece.
+-- ------------------------------------------------------------
+grant insert on table signalements to anon, authenticated;
+
 -- Le backoffice lit a travers cette vue : une vue interroge les tables avec
 -- les droits de son proprietaire, donc pas besoin d'ouvrir la table elle-meme.
 create or replace view signalements_recents as
@@ -213,7 +245,7 @@ select count(*) as signalements from signalements_recents;
 
 -- ------------------------------------------------------------
 -- CORRECTIF 5 — Suivre et clore les signalements
--- >>> PAS ENCORE APPLIQUE <<<
+-- >>> APPLIQUE — confirme par bilan-de-la-base.sql le 25/09/2026 <<<
 --
 -- Le bouton "j'ai un probleme" enregistre, mais rien ne permet de dire
 -- qu'un probleme a ete traite. Sans cela, au troisieme jour, l'equipe a
@@ -263,6 +295,9 @@ select s.id, s.signale_le, s.categorie, s.borne, s.message, s.traite_le, c.code
 from signalements s
 left join codes c on c.id = s.code_id
 order by s.signale_le desc;
+
+-- La vue est recreee, donc elle aussi a besoin de ses droits.
+grant select on table signalements_recents to anon, authenticated;
 
 -- Controle : doit s'executer sans erreur et renvoyer 0.
 select count(*) filter (where traite_le is null) as en_attente

@@ -38,7 +38,12 @@ def init(sens):
     tous = _j.dumps([{"qr_points": {"label": n}} for n in noms.values()], ensure_ascii=False)
     return """
     window.__scans = [];
-    window.supabase = { createClient: () => ({ from: (t) => ({
+    window.supabase = { createClient: () => ({
+      // Depuis le correctif 6, le passage d'une borne s'enregistre par un
+      // guichet (rpc) et non plus par une ecriture directe dans la table.
+      rpc: async (nom, args) => { if (nom === "enregistrer_passage") window.__scans.push(args);
+                                  return { data: { ok: true }, error: null }; },
+      from: (t) => ({
       select: () => ({ eq: (...a) => (t === "scans"
                         ? Promise.resolve({ data: %s, error: null })
                         : ({ maybeSingle: async () => ({ data: { id: 'pt-1' } }) })) }),

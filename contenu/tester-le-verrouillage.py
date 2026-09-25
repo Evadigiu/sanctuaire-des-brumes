@@ -28,7 +28,11 @@ def init(sens, scans, code="TEST01"):
     labels = [PARC["noms"][c] for c in scans]
     return """
     window.__inserts = [];
-    window.supabase = { createClient: () => ({ from: (t) => {
+    window.supabase = { createClient: () => ({
+      // Le passage d'une borne passe par le guichet depuis le correctif 6.
+      rpc: async (nom, args) => { window.__inserts.push([nom, args]);
+                                  return { data: { ok: true }, error: null }; },
+      from: (t) => {
       if (t === "scans") {
         return { select: () => ({ eq: () => Promise.resolve({
                    data: %s.map(l => ({ qr_points: { label: l } })), error: null }) }),
