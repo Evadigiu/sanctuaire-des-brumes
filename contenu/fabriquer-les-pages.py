@@ -117,6 +117,42 @@ FICHIER = {c: "%d/" % secours[c] for c in PAGES}
 # ============================================================
 EPREUVE_REPONSE = {"E08": ("11", "S")}   # etape -> (bonne reponse, lettre debloquee)
 APPEL_AUDIO     = {"E12"}
+# ============================================================
+# LES MEDIAS (videos et audio)
+#
+# Les videos NE SONT PAS dans ce depot, et ne doivent pas y entrer :
+# GitHub Pages est fait pour servir des pages, pas des heures de video a
+# des milliers de visiteurs. Elles vivent chez un hebergeur de fichiers,
+# et le jeu va les y chercher.
+#
+# MEDIA_BASE : l'adresse de cet hebergeur, sans le / final. C'est le SEUL
+# endroit a changer le jour ou l'on change d'hebergeur.
+#
+# MEDIAS : le fichier de chaque borne. Une borne absente de cette liste
+# garde son emplacement vide, comme avant, avec son commentaire.
+#
+# POSTERS : l'image fixe affichee avant que le joueur appuie sur lecture.
+# Facultative, mais sans elle il voit un rectangle noir. Les posters, eux,
+# sont assez legers pour vivre dans le depot (assets/img/).
+# ============================================================
+MEDIA_BASE = ""
+
+MEDIAS = {
+ # "E01": "le-commissaire-jean.mp4",
+ "E02": "la-collegue-soigneuse.mp4",
+ # "E03": "la-videosurveillance.mp4",
+ # "E05": "la-passante.mp4",
+ # "E06": "sabri-et-arez.mp4",
+ # "E07": "le-veterinaire.mp4",
+ # "E09": "greg-sens-a.mp4",
+ "E10": "bill.mp4",
+ # "E12": "l-epouvantail.mp3",
+ # "E16": "greg-sens-b.mp4",
+}
+
+POSTERS = {}
+
+
 NON_CONSTRUIT   = {
  "E14": "L'épreuve de conversion des 4 lettres en chiffres reste à construire.",
  "E15": "Le champ de conclusions jugé par une IA reste à construire. Il ne peut pas "
@@ -136,9 +172,24 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
     h.append('  <div class="ecran-titre">%s</div>' % e(lib))
 
     if est_media:
-        h.append('  <!-- Remplacer la source par la vraie vidéo une fois tournée -->')
-        h.append('  <video controls playsinline poster=""><source src="" type="video/mp4">')
-        h.append('  Votre navigateur ne supporte pas la vidéo.</video>')
+        fichier = MEDIAS.get(c)
+        poster  = POSTERS.get(c, "")
+        if fichier and MEDIA_BASE:
+            # preload="none" : rien ne se telecharge tant que le joueur n'a pas
+            # appuye sur lecture. Sur le reseau mobile d'un parc, c'est la
+            # difference entre une page qui s'ouvre et une page qui rame.
+            h.append('  <video controls playsinline preload="none" poster="%s">'
+                     % e(poster))
+            h.append('    <source src="%s/%s" type="video/mp4">' % (MEDIA_BASE, e(fichier)))
+            h.append('    <p>Votre navigateur ne lit pas cette vidéo. '
+                     'Prévenez un membre de l\'équipe sur place.</p>')
+            h.append('  </video>')
+        else:
+            h.append('  <!-- Vidéo pas encore intégrée : ajouter le fichier dans')
+            h.append('       MEDIAS (contenu/fabriquer-les-pages.py) et renseigner')
+            h.append('       MEDIA_BASE. Ne jamais mettre la vidéo dans le dépôt. -->')
+            h.append('  <video controls playsinline poster=""><source src="" type="video/mp4">')
+            h.append('  Votre navigateur ne supporte pas la vidéo.</video>')
     if c in APPEL_AUDIO and lg["n"] == 1:
         h.append('  <button id="decrocher" class="btn-appel">Décrocher</button>')
         h.append('  <div id="blocAppel" hidden>')
