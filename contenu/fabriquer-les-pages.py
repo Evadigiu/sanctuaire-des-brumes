@@ -151,13 +151,13 @@ MEDIAS = {
  "E02": "la-collegue-soigneuse-8bdz93.mp4",
  # "E03": "la-videosurveillance-yag6qs.mp4",
  # "E05": "la-passante-qri7tr.mp4",
- # "E06": "sabri-et-arez-zc9ddy.mp4",
+ # "E06": "quiz-animalier-hwqbca.mp4",
  # "E07": "le-veterinaire-66ckyk.mp4",
  # "E09": "greg-sens-a-sj7kmm.mp4",
  # "E10": "bill-t87isj.mp4",
- # "E12": "l-epouvantail-ymjcwc.mp3",
- # "E14": "la-conversion-u8tg7w.mp4",
- # "E15": "le-botaniste-rybneg.mp4",
+ # "E12": "appel-du-commissaire-bm7fpb.mp3",
+ # "E14": "le-botaniste-acanpa.mp4",
+ # "E15": "la-serre-f4bxez.mp4",
  # "E16": "greg-sens-b-wuwfvp.mp4",
 }
 
