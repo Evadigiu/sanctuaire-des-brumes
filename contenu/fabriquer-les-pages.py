@@ -135,7 +135,7 @@ APPEL_AUDIO     = {"E12"}
 # Facultative, mais sans elle il voit un rectangle noir. Les posters, eux,
 # sont assez legers pour vivre dans le depot (assets/img/).
 # ============================================================
-MEDIA_BASE = ""
+MEDIA_BASE = "https://sanctuaire-brumes.b-cdn.net"
 
 # Les six caracteres au bout de chaque nom ne sont pas decoratifs. Sans eux,
 # un visiteur qui lit le code source d'une seule page devine les dix autres
@@ -154,7 +154,7 @@ MEDIAS = {
  # "E06": "sabri-et-arez-zc9ddy.mp4",
  # "E07": "le-veterinaire-66ckyk.mp4",
  # "E09": "greg-sens-a-sj7kmm.mp4",
- "E10": "bill-t87isj.mp4",
+ # "E10": "bill-t87isj.mp4",
  # "E12": "l-epouvantail-ymjcwc.mp3",
  # "E14": "la-conversion-u8tg7w.mp4",
  # "E15": "le-botaniste-rybneg.mp4",
