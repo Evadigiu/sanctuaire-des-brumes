@@ -137,17 +137,28 @@ APPEL_AUDIO     = {"E12"}
 # ============================================================
 MEDIA_BASE = ""
 
+# Les six caracteres au bout de chaque nom ne sont pas decoratifs. Sans eux,
+# un visiteur qui lit le code source d'une seule page devine les dix autres
+# adresses ("bill.mp4" donc surement "greg-sens-a.mp4") et regarde toute
+# l'enquete avant de la jouer. C'est la meme precaution que les dossiers
+# numeriques des bornes et les QR sans legende : le nom ne doit rien dire
+# a qui ne l'a pas deja.
+#
+# CES NOMS FONT FOI. Le fichier depose chez l'hebergeur porte exactement
+# ce nom-la, sinon la borne affiche un rectangle noir.
 MEDIAS = {
- # "E01": "le-commissaire-jean.mp4",
- "E02": "la-collegue-soigneuse.mp4",
- # "E03": "la-videosurveillance.mp4",
- # "E05": "la-passante.mp4",
- # "E06": "sabri-et-arez.mp4",
- # "E07": "le-veterinaire.mp4",
- # "E09": "greg-sens-a.mp4",
- "E10": "bill.mp4",
- # "E12": "l-epouvantail.mp3",
- # "E16": "greg-sens-b.mp4",
+ # "E01": "le-commissaire-jean-79swb7.mp4",
+ "E02": "la-collegue-soigneuse-8bdz93.mp4",
+ # "E03": "la-videosurveillance-yag6qs.mp4",
+ # "E05": "la-passante-qri7tr.mp4",
+ # "E06": "sabri-et-arez-zc9ddy.mp4",
+ # "E07": "le-veterinaire-66ckyk.mp4",
+ # "E09": "greg-sens-a-sj7kmm.mp4",
+ "E10": "bill-t87isj.mp4",
+ # "E12": "l-epouvantail-ymjcwc.mp3",
+ # "E14": "la-conversion-u8tg7w.mp4",
+ # "E15": "le-botaniste-rybneg.mp4",
+ # "E16": "greg-sens-b-wuwfvp.mp4",
 }
 
 POSTERS = {}
