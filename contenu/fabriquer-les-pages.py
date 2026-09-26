@@ -117,6 +117,53 @@ FICHIER = {c: "%d/" % secours[c] for c in PAGES}
 # ============================================================
 EPREUVE_REPONSE = {"E08": ("11", "S")}   # etape -> (bonne reponse, lettre debloquee)
 APPEL_AUDIO     = {"E12"}
+# ============================================================
+# LES MEDIAS (videos et audio)
+#
+# Les videos NE SONT PAS dans ce depot, et ne doivent pas y entrer :
+# GitHub Pages est fait pour servir des pages, pas des heures de video a
+# des milliers de visiteurs. Elles vivent chez un hebergeur de fichiers,
+# et le jeu va les y chercher.
+#
+# MEDIA_BASE : l'adresse de cet hebergeur, sans le / final. C'est le SEUL
+# endroit a changer le jour ou l'on change d'hebergeur.
+#
+# MEDIAS : le fichier de chaque borne. Une borne absente de cette liste
+# garde son emplacement vide, comme avant, avec son commentaire.
+#
+# POSTERS : l'image fixe affichee avant que le joueur appuie sur lecture.
+# Facultative, mais sans elle il voit un rectangle noir. Les posters, eux,
+# sont assez legers pour vivre dans le depot (assets/img/).
+# ============================================================
+MEDIA_BASE = "https://sanctuaire-brumes.b-cdn.net"
+
+# Les six caracteres au bout de chaque nom ne sont pas decoratifs. Sans eux,
+# un visiteur qui lit le code source d'une seule page devine les dix autres
+# adresses ("bill.mp4" donc surement "greg-sens-a.mp4") et regarde toute
+# l'enquete avant de la jouer. C'est la meme precaution que les dossiers
+# numeriques des bornes et les QR sans legende : le nom ne doit rien dire
+# a qui ne l'a pas deja.
+#
+# CES NOMS FONT FOI. Le fichier depose chez l'hebergeur porte exactement
+# ce nom-la, sinon la borne affiche un rectangle noir.
+MEDIAS = {
+ # "E01": "le-commissaire-jean-79swb7.mp4",
+ "E02": "la-collegue-soigneuse-8bdz93.mp4",
+ # "E03": "la-videosurveillance-yag6qs.mp4",
+ # "E05": "la-passante-qri7tr.mp4",
+ # "E06": "sabri-et-arez-zc9ddy.mp4",
+ # "E07": "le-veterinaire-66ckyk.mp4",
+ # "E09": "greg-sens-a-sj7kmm.mp4",
+ # "E10": "bill-t87isj.mp4",
+ # "E12": "l-epouvantail-ymjcwc.mp3",
+ # "E14": "la-conversion-u8tg7w.mp4",
+ # "E15": "le-botaniste-rybneg.mp4",
+ # "E16": "greg-sens-b-wuwfvp.mp4",
+}
+
+POSTERS = {}
+
+
 NON_CONSTRUIT   = {
  "E14": "L'épreuve de conversion des 4 lettres en chiffres reste à construire.",
  "E15": "Le champ de conclusions jugé par une IA reste à construire. Il ne peut pas "
@@ -136,9 +183,24 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
     h.append('  <div class="ecran-titre">%s</div>' % e(lib))
 
     if est_media:
-        h.append('  <!-- Remplacer la source par la vraie vidéo une fois tournée -->')
-        h.append('  <video controls playsinline poster=""><source src="" type="video/mp4">')
-        h.append('  Votre navigateur ne supporte pas la vidéo.</video>')
+        fichier = MEDIAS.get(c)
+        poster  = POSTERS.get(c, "")
+        if fichier and MEDIA_BASE:
+            # preload="none" : rien ne se telecharge tant que le joueur n'a pas
+            # appuye sur lecture. Sur le reseau mobile d'un parc, c'est la
+            # difference entre une page qui s'ouvre et une page qui rame.
+            h.append('  <video controls playsinline preload="none" poster="%s">'
+                     % e(poster))
+            h.append('    <source src="%s/%s" type="video/mp4">' % (MEDIA_BASE, e(fichier)))
+            h.append('    <p>Votre navigateur ne lit pas cette vidéo. '
+                     'Prévenez un membre de l\'équipe sur place.</p>')
+            h.append('  </video>')
+        else:
+            h.append('  <!-- Vidéo pas encore intégrée : ajouter le fichier dans')
+            h.append('       MEDIAS (contenu/fabriquer-les-pages.py) et renseigner')
+            h.append('       MEDIA_BASE. Ne jamais mettre la vidéo dans le dépôt. -->')
+            h.append('  <video controls playsinline poster=""><source src="" type="video/mp4">')
+            h.append('  Votre navigateur ne supporte pas la vidéo.</video>')
     if c in APPEL_AUDIO and lg["n"] == 1:
         h.append('  <button id="decrocher" class="btn-appel">Décrocher</button>')
         h.append('  <div id="blocAppel" hidden>')

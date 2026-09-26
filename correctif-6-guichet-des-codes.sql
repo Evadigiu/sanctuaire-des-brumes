@@ -101,6 +101,12 @@ revoke all on table tentatives_activation from anon, authenticated;
 -- code, ouvre-moi une partie si tu peux". La base repond par un oui ou un
 -- non accompagne d'une phrase affichable telle quelle a l'ecran.
 --
+-- ATTENTION AUX PHRASES : les textes places dans "message" s'affichent
+-- TELS QUELS sur l'ecran du joueur. Ils portent donc leurs accents, et ils
+-- vouvoient, comme toute la page d'accueil ("Vous etes l'enqueteur.rice",
+-- "Saisissez le nom de votre equipe"). Le reste du fichier, commentaires
+-- compris, reste sans accents.
+--
 -- Trois choses changent au passage, en plus de la securite :
 --   * le chrono de 3h est desormais calcule par la base, plus par le
 --     telephone du joueur. Changer l'heure de son portable ne donne plus
@@ -126,7 +132,7 @@ declare
 begin
   if v_code = '' then
     return json_build_object('ok', false,
-      'message', 'Entre le code inscrit sur ton billet.');
+      'message', 'Saisissez le code inscrit sur votre billet.');
   end if;
 
   -- D'ou vient la demande. Si l'information manque, on ne compte pas :
@@ -145,7 +151,7 @@ begin
 
     if v_tentatives >= 100 then
       return json_build_object('ok', false,
-        'message', 'Trop d''essais depuis cet appareil. Attends une heure ou adresse-toi a l''accueil du zoo.');
+        'message', 'Trop d''essais depuis cet appareil. Patientez une heure, ou adressez-vous à l''accueil du zoo.');
     end if;
   end if;
 
@@ -164,7 +170,7 @@ begin
     delete from tentatives_activation where tente_le < now() - interval '1 day';
     insert into tentatives_activation (origine) values (v_origine);
     return json_build_object('ok', false,
-      'message', 'Ce code n''existe pas. Verifie la saisie ou demande a l''accueil.');
+      'message', 'Ce code n''existe pas. Vérifiez la saisie, ou demandez de l''aide à l''accueil.');
   end if;
 
   v_row := (select c from codes c where c.code = v_code);
@@ -173,7 +179,7 @@ begin
   if v_row.status = 'expired'
      or (v_row.expires_at is not null and v_row.expires_at <= now()) then
     return json_build_object('ok', false,
-      'message', 'Ce code a deja servi et sa partie est terminee. Adresse-toi a l''accueil du zoo.');
+      'message', 'Ce code a déjà servi et sa partie est terminée. Adressez-vous à l''accueil du zoo.');
   end if;
 
   -- Partie en cours : on la rend plutot que de refuser. Utile quand le
@@ -187,11 +193,18 @@ begin
   end if;
 
   -- Reste le cas 'unused' : premiere activation.
-  if p_nb_joueurs is not null
-     and (p_nb_joueurs < 1 or p_nb_joueurs > v_row.max_participants) then
+  if p_nb_joueurs is not null and p_nb_joueurs < 1 then
     return json_build_object('ok', false,
-      'message', 'Ce billet couvre ' || v_row.max_participants ||
-                 ' personne(s) au maximum. Corrige le nombre, ou demande un second code a l''accueil.');
+      'message', 'Indiquez le nombre de joueurs de votre équipe.');
+  end if;
+
+  if p_nb_joueurs is not null and p_nb_joueurs > v_row.max_participants then
+    return json_build_object('ok', false,
+      'message', case when v_row.max_participants = 1
+                      then 'Ce billet ne couvre qu''une seule personne.'
+                      else 'Ce billet couvre ' || v_row.max_participants ||
+                           ' personnes au maximum.' end ||
+                 ' Corrigez le nombre, ou demandez un second code à l''accueil.');
   end if;
 
   v_fin := now() + interval '3 hours';
