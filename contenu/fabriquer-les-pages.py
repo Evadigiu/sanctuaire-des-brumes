@@ -147,7 +147,7 @@ MEDIA_BASE = "https://sanctuaire-brumes.b-cdn.net"
 # CES NOMS FONT FOI. Le fichier depose chez l'hebergeur porte exactement
 # ce nom-la, sinon la borne affiche un rectangle noir.
 MEDIAS = {
- # "E01": "le-commissaire-jean-79swb7.mp4",
+ "E01": "le-commissaire-jean-79swb7.mp4",
  "E02": "la-collegue-soigneuse-8bdz93.mp4",
  # "E03": "la-videosurveillance-yag6qs.mp4",
  # "E05": "la-passante-qri7tr.mp4",
