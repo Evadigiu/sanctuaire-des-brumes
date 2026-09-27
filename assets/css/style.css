@@ -249,6 +249,48 @@ button:hover:not(:disabled), .btn:hover { background: var(--gold-bright); }
   margin-bottom: 12px;
 }
 
+/* La barre de progression, en tete de chaque borne. Elle remplace la ligne
+   « Étape 2 sur 15 » : un trait se lit sans lire. Le compte chiffre reste a
+   droite, parce qu'un trait rempli au tiers ne dit pas combien de bornes il
+   reste a trouver. */
+.progression {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.progression-barre {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.progression-barre > span {
+  display: block;
+  height: 100%;
+  width: var(--part, 0%);
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--gold), var(--titre-or));
+  transition: width 0.5s ease;
+}
+
+.progression-compte {
+  font-family: var(--texte);
+  font-weight: 700;              /* Avenir gras, comme les sur-titres */
+  font-size: 0.75rem;
+  letter-spacing: 2px;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;   /* les chiffres ne dansent pas */
+}
+
+/* Certains telephones sont regles pour limiter les animations : on respecte. */
+@media (prefers-reduced-motion: reduce) {
+  .progression-barre > span { transition: none; }
+}
+
 /* Le plan du parc qui montre le chemin jusqu'a la borne suivante. */
 .plan-chemin {
   display: block;
