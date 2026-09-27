@@ -178,6 +178,45 @@ with sync_playwright() as pw:
     # L'ecran de depart etait la seule porte qui laissait commencer l'enquete
     # sans scanner un QR code : un joueur pouvait la franchir assis a la
     # caisse. On verifie que le raccourci reste reserve aux codes de test.
+    # Le bouton « Revenir en arriere » du premier ecran ne faisait rien : il
+    # n'y a pas d'ecran avant. Il ramene maintenant a la borne precedente,
+    # pour revoir un temoignage.
+    print("\nRevoir le temoignage precedent")
+    page = nav.new_page(); page.add_init_script(init("horaire"))
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E02"]))
+    page.wait_for_timeout(400)
+    b1 = page.query_selector(".ecran:not([hidden]) [data-retour]")
+    verifier("premier ecran : le bouton propose de revoir",
+             b1 is not None and not b1.is_hidden()
+             and "témoignage" in (b1.text_content() or ""),
+             repr(b1 and b1.text_content()))
+    b1.click(); page.wait_for_timeout(500)
+    verifier("il mene bien a la borne d'avant",
+             page.url.endswith(PARC["pages"]["E01"] + "?revoir=E02"), page.url)
+    retour = page.query_selector(".retour-borne")
+    verifier("un retour vers sa propre borne est propose",
+             retour is not None and PARC["noms"]["E02"] in (retour.text_content() or ""),
+             repr(retour and retour.text_content()))
+    retour.click(); page.wait_for_timeout(500)
+    verifier("ce retour ramene a la bonne borne",
+             page.url.endswith(PARC["pages"]["E02"]), page.url)
+    page.close()
+
+    # Sur la borne de depart il n'y a rien avant : le bouton disparait plutot
+    # que de rester la sans rien faire.
+    page = nav.new_page(); page.add_init_script(init("horaire"))
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E01"]))
+    page.wait_for_timeout(700)
+    b0 = page.query_selector(".ecran:not([hidden]) [data-retour]")
+    verifier("borne de depart : le bouton est retire",
+             b0 is None or b0.is_hidden())
+    # Une adresse ?revoir= fantaisiste ne doit rien ouvrir.
+    page.goto("http://127.0.0.1:%d/%s?revoir=ZZZ" % (PORT, PARC["pages"]["E01"]))
+    page.wait_for_timeout(400)
+    verifier("un code de retour inconnu est ignore",
+             page.query_selector(".retour-borne") is None)
+    page.close()
+
     print("\nindex.html : les quatre champs sont obligatoires")
     page = nav.new_page(); page.add_init_script(init("horaire"))
     page.goto("http://127.0.0.1:%d/index.html" % PORT)

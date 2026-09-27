@@ -180,6 +180,7 @@ POSTERS = {}
 # ------------------------------------------------------------
 CHEMINS = {
  ("E01", "A"): "chemin-e01-a.webp",
+ ("E02", "A"): "chemin-e02-a.webp",
 }
 
 
@@ -353,7 +354,8 @@ GABARIT = """<!DOCTYPE html>
 <!-- PAGE FABRIQUÉE AUTOMATIQUEMENT depuis contenu/sanctuaire-cahier-de-contenu.xlsx
      Toute correction faite ici sera perdue à la prochaine fabrication.
      Corriger le cahier, puis relancer contenu/fabriquer-les-pages.py -->
-<body data-borne="{borne}" data-etape="{code}" data-racine="../">
+<body data-borne="{borne}" data-etape="{code}" data-racine="../"
+      data-prec-A="{precA}" data-prec-B="{precB}">
 
 <div class="wrap">
   <div class="timer" id="timer">Chargement du chrono...</div>
@@ -471,9 +473,21 @@ for c in PAGES:
     posA = str(ordre["A"][c]) if c in ordre["A"] else ""
     posB = str(ordre["B"][c]) if c in ordre["B"] else ""
 
+    # La borne d'avant, dans chaque sens. Elle permet de revoir un temoignage
+    # sans retraverser le parc : le verrouillage autorise deja toute borne
+    # deja visitee, il ne manquait que le chemin pour y revenir.
+    def precedente(sens):
+        pos = ordre[sens].get(c)
+        if not pos or pos <= 1: return ""
+        for autre, p in ordre[sens].items():
+            if p == pos - 1: return autre
+        return ""
+    precA, precB = precedente("A"), precedente("B")
+
     page = GABARIT.format(titre=e(et["nom"]), borne=e(et["nom"]), code=c,
                           posA=e(posA), posB=e(posB),
                           totA=TOTAL["A"], totB=TOTAL["B"],
+                          precA=e(precA), precB=e(precB),
                           ecrans="\n".join(blocs), extra=extra)
     dossier = os.path.join(SORTIE, str(secours[c]))
     os.makedirs(dossier, exist_ok=True)
