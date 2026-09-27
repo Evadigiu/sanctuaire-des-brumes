@@ -71,9 +71,9 @@ with sync_playwright() as pw:
     nav = pw.chromium.launch(executable_path=CHROME, args=["--no-sandbox"])
 
     for fichier, sens, pos_attendue, libelle in [
-        (PARC["pages"]["E02"], "horaire",     "Étape 2 sur 15", "sens A"),
-        (PARC["pages"]["E02"], "antihoraire", "Étape 8 sur 15", "sens B"),
-        (PARC["pages"]["E09"], "antihoraire", "",               "borne de l'autre sens"),
+        (PARC["pages"]["E02"], "horaire",     (2, 15), "sens A"),
+        (PARC["pages"]["E02"], "antihoraire", (8, 15), "sens B"),
+        (PARC["pages"]["E09"], "antihoraire", None,    "borne de l'autre sens"),
     ]:
         page = nav.new_page()
         page.add_init_script(init(sens))
@@ -82,8 +82,30 @@ with sync_playwright() as pw:
         print("\n%s  [%s]" % (fichier, libelle))
 
         verifier("pas de redirection", "/index.html" not in page.url, page.url)
-        verifier("position affichee", page.text_content("#position").strip() == pos_attendue,
-                 repr(page.text_content("#position")))
+        # La ligne « Étape 2 sur 15 » est devenue une barre. Sur une borne de
+        # l'autre sens, elle est retiree plutot que remplie a zero, ce qui
+        # ferait croire au groupe qu'il est revenu au debut.
+        etat = page.evaluate("""() => {
+          const z = document.getElementById("position");
+          if (!z) return { absente: true };
+          return { absente: false, hidden: z.hidden,
+                   texte: z.getAttribute("aria-valuetext"),
+                   compte: z.querySelector(".progression-compte").textContent,
+                   part: getComputedStyle(z).getPropertyValue("--part").trim() };
+        }""")
+        if pos_attendue:
+            n, total = pos_attendue
+            verifier("barre de progression affichee",
+                     not etat["absente"] and not etat["hidden"], str(etat))
+            verifier("elle annonce la bonne etape",
+                     etat.get("texte") == "Étape %d sur %d" % (n, total), str(etat))
+            verifier("le compte est juste",
+                     etat.get("compte") == "%d / %d" % (n, total), str(etat))
+            verifier("le remplissage est proportionnel",
+                     etat.get("part") == "%d%%" % round(n / total * 100), str(etat))
+        else:
+            verifier("barre retiree sur la borne de l'autre sens",
+                     etat["absente"], str(etat))
         scans = page.evaluate("window.__scans")
         verifier("passage enregistre une fois", len(scans) == 1, str(scans))
         verifier("un seul ecran visible",
@@ -156,6 +178,39 @@ with sync_playwright() as pw:
     # L'ecran de depart etait la seule porte qui laissait commencer l'enquete
     # sans scanner un QR code : un joueur pouvait la franchir assis a la
     # caisse. On verifie que le raccourci reste reserve aux codes de test.
+    print("\nindex.html : les quatre champs sont obligatoires")
+    page = nav.new_page(); page.add_init_script(init("horaire"))
+    page.goto("http://127.0.0.1:%d/index.html" % PORT)
+    page.wait_for_timeout(200)
+    page.click("#versSaisie")
+    manquants = [
+        ("nom d'equipe", "#participantName", "Les Limiers", "le nom de votre équipe"),
+        ("nombre de joueurs", "#nbJoueurs", "3",            "le nombre de joueurs"),
+        ("code",              "#codeInput", "TEST01",       "votre code"),
+    ]
+    for libelle, champ, valeur, attendu in manquants:
+        verifier("%s : signale comme manquant" % libelle,
+                 attendu in page.text_content("#ceQuiManque"),
+                 repr(page.text_content("#ceQuiManque")))
+        verifier("%s : bouton bloque" % libelle,
+                 page.eval_on_selector("#startBtn", "e=>e.disabled"))
+        page.fill(champ, valeur)
+    verifier("consignes : signalees comme manquantes",
+             "consignes" in page.text_content("#ceQuiManque"),
+             repr(page.text_content("#ceQuiManque")))
+    verifier("consignes : bouton encore bloque",
+             page.eval_on_selector("#startBtn", "e=>e.disabled"))
+    page.check("#acceptRules")
+    verifier("tout rempli : bouton ouvert",
+             not page.eval_on_selector("#startBtn", "e=>e.disabled"))
+    verifier("tout rempli : plus rien a signaler",
+             page.text_content("#ceQuiManque").strip() == "",
+             repr(page.text_content("#ceQuiManque")))
+    page.fill("#participantName", "   ")
+    verifier("un nom fait d'espaces ne compte pas",
+             page.eval_on_selector("#startBtn", "e=>e.disabled"))
+    page.close()
+
     print("\nindex.html : l'ecran de depart n'ouvre plus la premiere borne")
     for code, attendu, libelle in [("TEST01", True, "code de test"),
                                    ("K7NPX4RT", False, "vrai code")]:

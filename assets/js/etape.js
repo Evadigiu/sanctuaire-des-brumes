@@ -33,9 +33,8 @@ function demarrerEtape() {
     if (el.getAttribute("data-sens") !== sens) el.remove();
   });
 
-  // 2. Le numéro d'étape et le lien de sortie dépendent du sens.
-  const pos = document.querySelector("#position");
-  if (pos) pos.textContent = pos.getAttribute("data-" + sens) || "";
+  // 2. La barre de progression et le lien de sortie dépendent du sens.
+  afficherProgression(sens);
 
   // 3. Enregistrement du passage, dès l'arrivée sur la borne.
   //    Choix assumé : on mesure le moment où le groupe arrive physiquement,
@@ -114,6 +113,39 @@ function pleinEcranALaLecture() {
       }
     }, { once: true });   // une seule fois : qui ressort du plein écran l'a voulu
   });
+}
+
+/**
+ * Remplit la barre de progression selon le sens du groupe.
+ *
+ * Une ligne de texte disait « Étape 2 sur 15 ». Une barre se lit d'un coup
+ * d'œil, sans lire : c'est ce qu'on veut d'un groupe qui marche dans un
+ * parc avec un chrono de 3 h. Le compte chiffré reste à côté, parce qu'un
+ * trait rempli au tiers ne dit pas combien de bornes il reste à trouver.
+ *
+ * Sur une borne qui n'appartient pas au parcours du groupe (elles sont
+ * physiques, on peut tomber dessus en se promenant), le numéro est vide :
+ * on retire la barre plutôt que d'en afficher une à zéro, qui ferait
+ * croire au groupe qu'il est revenu au début.
+ */
+function afficherProgression(sens) {
+  const zone = document.getElementById("position");
+  if (!zone) return;
+
+  const n     = parseInt(zone.getAttribute("data-" + sens), 10);
+  const total = parseInt(zone.getAttribute("data-total-" + sens), 10);
+
+  if (!n || !total) { zone.remove(); return; }
+
+  const part = Math.min(100, Math.round(n / total * 100));
+  zone.style.setProperty("--part", part + "%");
+  zone.setAttribute("aria-valuenow", part);
+  zone.setAttribute("aria-valuetext", "Étape " + n + " sur " + total);
+
+  const compte = zone.querySelector(".progression-compte");
+  if (compte) compte.textContent = n + " / " + total;
+
+  zone.hidden = false;
 }
 
 function epreuveReponse(idChamp, idBouton, bonneReponse, idResultat) {

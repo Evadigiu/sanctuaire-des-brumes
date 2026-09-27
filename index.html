@@ -27,16 +27,19 @@
 
   <!-- Écran 2 : le code, l'équipe, le nombre de joueurs. -->
   <section class="ecran card" id="ecranSaisie" hidden>
-    <p>Saisissez le nom de votre équipe ainsi que le nombre de joueurs :</p>
+    <p>Ces trois informations sont nécessaires pour démarrer :</p>
 
     <label for="participantName">Nom de votre équipe</label>
-    <input type="text" id="participantName" placeholder="Ex. Les Limiers du Dimanche">
+    <input type="text" id="participantName" required maxlength="40"
+           placeholder="Ex. Les Limiers du Dimanche">
 
     <label for="nbJoueurs">Nombre de joueurs</label>
-    <input type="number" id="nbJoueurs" min="1" max="6" step="1" placeholder="Entre 1 et 6">
+    <input type="number" id="nbJoueurs" required min="1" max="6" step="1"
+           placeholder="Entre 1 et 6">
 
     <label for="codeInput">Code secret remis à l'accueil</label>
-    <input type="text" id="codeInput" placeholder="Ex. AB12CD" autocapitalize="characters">
+    <input type="text" id="codeInput" required maxlength="16"
+           placeholder="Ex. AB12CD" autocapitalize="characters">
 
     <div class="checkbox-row">
       <input type="checkbox" id="acceptRules">
@@ -48,6 +51,7 @@
     <div class="error-box" id="errorBox"></div>
 
     <button id="startBtn" disabled>Démarrer l'enquête</button>
+    <p class="muted" id="ceQuiManque"></p>
     <button class="btn-secondary" id="retourAccueil">Revenir en arrière</button>
   </section>
 
@@ -109,15 +113,30 @@
     saisie.hidden = true; accueil.hidden = false; window.scrollTo(0, 0);
   });
 
+  const nomEquipe  = document.getElementById("participantName");
+  const ceQuiManque = document.getElementById("ceQuiManque");
+
+  // Les trois champs et la case sont obligatoires. Un bouton grisé sans
+  // explication laisse le joueur chercher ce qui cloche, debout à la caisse :
+  // on lui dit ce qui manque, tant qu'il manque quelque chose.
   function refreshButtonState() {
     const n = parseInt(nbJoueurs.value, 10);
-    startBtn.disabled = !(acceptBox.checked
-                          && codeInput.value.trim().length > 0
-                          && n >= 1 && n <= 6);
+    const manque = [];
+    if (!nomEquipe.value.trim())          manque.push("le nom de votre équipe");
+    if (!(n >= 1 && n <= 6))              manque.push("le nombre de joueurs, de 1 à 6");
+    if (!codeInput.value.trim())          manque.push("votre code");
+    if (!acceptBox.checked)               manque.push("votre accord sur les consignes");
+
+    startBtn.disabled = manque.length > 0;
+    ceQuiManque.textContent = manque.length
+      ? "Il reste à renseigner : " + manque.join(", ") + "."
+      : "";
   }
   acceptBox.addEventListener("change", refreshButtonState);
   codeInput.addEventListener("input", refreshButtonState);
   nbJoueurs.addEventListener("input", refreshButtonState);
+  nomEquipe.addEventListener("input", refreshButtonState);
+  refreshButtonState();   // dire ce qui manque dès l'arrivée sur l'écran
 
   // Message d'erreur venant d'une redirection (session expirée, etc.)
   const params = new URLSearchParams(window.location.search);

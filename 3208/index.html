@@ -16,7 +16,15 @@
 
 <div class="wrap">
   <div class="timer" id="timer">Chargement du chrono...</div>
-  <div class="eyebrow" id="position" data-A="Étape 4 sur 15" data-B="Étape 9 sur 15"></div>
+  <!-- La progression du groupe. Les attributs portent le NUMERO de l'etape
+       dans chaque sens ; etape.js remplit la barre selon le sens du groupe,
+       et retire le bloc sur une borne qui n'appartient pas a ce parcours. -->
+  <div class="progression" id="position" role="progressbar"
+       data-A="4" data-B="9" data-total-A="15" data-total-B="15"
+       aria-valuemin="0" aria-valuemax="100" hidden>
+    <div class="progression-barre"><span></span></div>
+    <div class="progression-compte"></div>
+  </div>
   <h1>Indice : les jumelles, la carcasse</h1>
 <section class="ecran card" hidden>
   <!-- cahier : 1. Accueil apres le scan -->

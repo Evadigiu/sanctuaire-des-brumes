@@ -357,7 +357,15 @@ GABARIT = """<!DOCTYPE html>
 
 <div class="wrap">
   <div class="timer" id="timer">Chargement du chrono...</div>
-  <div class="eyebrow" id="position" data-A="{posA}" data-B="{posB}"></div>
+  <!-- La progression du groupe. Les attributs portent le NUMERO de l'etape
+       dans chaque sens ; etape.js remplit la barre selon le sens du groupe,
+       et retire le bloc sur une borne qui n'appartient pas a ce parcours. -->
+  <div class="progression" id="position" role="progressbar"
+       data-A="{posA}" data-B="{posB}" data-total-A="{totA}" data-total-B="{totB}"
+       aria-valuemin="0" aria-valuemax="100" hidden>
+    <div class="progression-barre"><span></span></div>
+    <div class="progression-compte"></div>
+  </div>
   <h1>{titre}</h1>
 {ecrans}
 </div>
@@ -460,11 +468,12 @@ for c in PAGES:
     if c in APPEL_AUDIO:
         extra += '  appelEntrant("decrocher", "audioAppel", "blocAppel");\n'
 
-    posA = "Étape %d sur %d" % (ordre["A"][c], TOTAL["A"]) if c in ordre["A"] else ""
-    posB = "Étape %d sur %d" % (ordre["B"][c], TOTAL["B"]) if c in ordre["B"] else ""
+    posA = str(ordre["A"][c]) if c in ordre["A"] else ""
+    posB = str(ordre["B"][c]) if c in ordre["B"] else ""
 
     page = GABARIT.format(titre=e(et["nom"]), borne=e(et["nom"]), code=c,
                           posA=e(posA), posB=e(posB),
+                          totA=TOTAL["A"], totB=TOTAL["B"],
                           ecrans="\n".join(blocs), extra=extra)
     dossier = os.path.join(SORTIE, str(secours[c]))
     os.makedirs(dossier, exist_ok=True)
