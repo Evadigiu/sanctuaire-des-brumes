@@ -173,6 +173,27 @@ NON_CONSTRUIT   = {
 
 def e(t): return html.escape(t, quote=True)
 
+def fusionner_legendes(code, lg):
+    """La legende d'un media ("Mathilde, soigneuse animaliere") occupait un
+    ecran entier : le joueur devait appuyer sur Suivant pour lire une ligne,
+    puis encore une fois pour continuer. Elle devient une signature sous la
+    video, sur le meme ecran. Le texte est conserve, le clic disparait."""
+    def est_le_media(x):
+        if "egende" in x["ecran"]: return False
+        if re.search(r"vid[ée]o|audio", x["ecran"], re.I): return True
+        return code in APPEL_AUDIO and x["n"] == 1   # la borne de l'appel
+
+    medias = [x for x in lg if est_le_media(x)]
+    restant = []
+    for x in lg:
+        if "egende" in x["ecran"] and x["texte"] and medias:
+            cible = next((m for m in medias if m["sens"] == x["sens"]), medias[0])
+            cible["legende"] = x["texte"]
+            continue                    # l'ecran disparait
+        restant.append(x)
+    return restant
+
+
 def bloc_ecran(etape, lg, dernier, sens_attr):
     """Un ecran = une carte. sens_attr vaut None, 'A' ou 'B'."""
     c, lib, txt = etape["code"], lg["ecran"], lg["texte"]
@@ -189,7 +210,10 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
             # preload="none" : rien ne se telecharge tant que le joueur n'a pas
             # appuye sur lecture. Sur le reseau mobile d'un parc, c'est la
             # difference entre une page qui s'ouvre et une page qui rame.
-            h.append('  <video controls playsinline preload="none" poster="%s">'
+            # Pas de "playsinline" : cet attribut demande justement a iOS de
+            # rester dans la page. Sans lui, la video part d'elle-meme en
+            # plein ecran sur iPhone, et etape.js s'en charge sur Android.
+            h.append('  <video controls preload="none" poster="%s">'
                      % e(poster))
             h.append('    <source src="%s/%s" type="video/mp4">' % (MEDIA_BASE, e(fichier)))
             h.append('    <p>Votre navigateur ne lit pas cette vidéo. '
@@ -207,6 +231,9 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
         h.append('    <!-- Remplacer la source par le vrai fichier audio -->')
         h.append('    <audio id="audioAppel" controls><source src="" type="audio/mpeg"></audio>')
         h.append('  </div>')
+
+    if lg.get("legende"):
+        h.append('  <p class="witness-name">%s</p>' % e(lg["legende"]))
 
     if txt and txt != "/":
         for p in [x.strip() for x in txt.split("\n") if x.strip()]:
@@ -337,6 +364,7 @@ for nom in os.listdir(SORTIE):
 for c in PAGES:
     et = etapes[c]
     lg = sorted(lignes.get(c, []), key=lambda x: (x["n"], x["sens"]))
+    lg = fusionner_legendes(c, lg)
     communs = [x for x in lg if x["sens"] == "les deux"]
     sorties = {s: [x for x in lg if x["sens"] == "sens " + s.lower()] for s in ("A", "B")}
 

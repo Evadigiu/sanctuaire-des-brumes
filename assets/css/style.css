@@ -143,7 +143,10 @@ label {
   margin-top: 16px;
 }
 
-input[type="text"] {
+input[type="text"],
+input[type="number"],
+input[type="tel"],
+input[type="email"] {
   width: 100%;
   padding: 12px 14px;
   background: var(--panel2);
@@ -153,7 +156,16 @@ input[type="text"] {
   font-size: 1rem;
   font-family: inherit;
 }
-input[type="text"]:focus { outline: none; border-color: var(--gold); }
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="tel"]:focus,
+input[type="email"]:focus { outline: none; border-color: var(--gold); }
+
+/* Les fleches haut/bas d'un champ numerique volent de la place et se ratent
+   au pouce. Le clavier du telephone suffit. */
+input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
 .checkbox-row {
   display: flex;

@@ -14,6 +14,7 @@ function demarrerEtape() {
   if (!session) return;
 
   startCountdown("timer");
+  pleinEcranALaLecture();
 
   const sens = (session.direction === "antihoraire") ? "B" : "A";
   document.body.setAttribute("data-sens", sens);
@@ -87,6 +88,34 @@ function demarrerEtape() {
 // Épreuve à réponse vérifiée (le panneau d'empreintes).
 // La lettre n'apparaît que si la réponse est la bonne.
 // ------------------------------------------------------------
+/**
+ * Fait basculer la vidéo en plein écran dès que le joueur appuie sur
+ * lecture. Un témoignage filmé dans un rectangle de six centimètres au
+ * milieu d'une page, ce n'est pas une scène, c'est une vignette.
+ *
+ * Trois façons de le demander selon le téléphone. Sur iPhone c'est la
+ * première, et elle marche déjà toute seule depuis qu'on a retiré
+ * l'attribut "playsinline" du lecteur : celui-ci demandait justement
+ * l'inverse.
+ *
+ * Le navigateur a le droit de refuser, et il le fait parfois sans qu'on
+ * sache pourquoi. Dans ce cas la vidéo se lit dans la page, comme avant :
+ * on ne bloque jamais la lecture pour une question de confort.
+ */
+function pleinEcranALaLecture() {
+  document.querySelectorAll("video").forEach(video => {
+    video.addEventListener("play", () => {
+      try {
+        if (video.webkitEnterFullscreen)        video.webkitEnterFullscreen();
+        else if (video.requestFullscreen)       video.requestFullscreen().catch(() => {});
+        else if (video.webkitRequestFullscreen) video.webkitRequestFullscreen();
+      } catch (e) {
+        console.warn("Plein écran refusé :", e && e.message);
+      }
+    }, { once: true });   // une seule fois : qui ressort du plein écran l'a voulu
+  });
+}
+
 function epreuveReponse(idChamp, idBouton, bonneReponse, idResultat) {
   const champ = document.getElementById(idChamp);
   const bouton = document.getElementById(idBouton);

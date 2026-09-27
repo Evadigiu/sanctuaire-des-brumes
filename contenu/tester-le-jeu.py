@@ -41,8 +41,13 @@ def init(sens):
     window.supabase = { createClient: () => ({
       // Depuis le correctif 6, le passage d'une borne s'enregistre par un
       // guichet (rpc) et non plus par une ecriture directe dans la table.
-      rpc: async (nom, args) => { if (nom === "enregistrer_passage") window.__scans.push(args);
-                                  return { data: { ok: true }, error: null }; },
+      rpc: async (nom, args) => {
+        if (nom === "enregistrer_passage") { window.__scans.push(args);
+          return { data: { ok: true }, error: null }; }
+        if (nom === "activer_code") return { data: { ok: true, code_id: "c1",
+          code: (args.p_code || "").toUpperCase(), direction: "horaire",
+          expires_at: "2099-01-01T00:00:00Z" }, error: null };
+        return { data: { ok: true }, error: null }; },
       from: (t) => ({
       select: () => ({ eq: (...a) => (t === "scans"
                         ? Promise.resolve({ data: %s, error: null })
@@ -147,6 +152,45 @@ with sync_playwright() as pw:
     page.fill("#nbJoueurs", "6")
     verifier("6 joueurs acceptes", not page.eval_on_selector("#startBtn", "e=>e.disabled"))
     page.close()
+
+    # L'ecran de depart etait la seule porte qui laissait commencer l'enquete
+    # sans scanner un QR code : un joueur pouvait la franchir assis a la
+    # caisse. On verifie que le raccourci reste reserve aux codes de test.
+    print("\nindex.html : l'ecran de depart n'ouvre plus la premiere borne")
+    for code, attendu, libelle in [("TEST01", True, "code de test"),
+                                   ("K7NPX4RT", False, "vrai code")]:
+        page = nav.new_page(); page.add_init_script(init("horaire"))
+        page.goto("http://127.0.0.1:%d/index.html" % PORT)
+        page.wait_for_timeout(200)
+        page.click("#versSaisie")
+        page.fill("#participantName", "Eva"); page.fill("#nbJoueurs", "2")
+        page.fill("#codeInput", code); page.check("#acceptRules")
+        page.click("#startBtn"); page.wait_for_timeout(300)
+        visible = page.eval_on_selector_all(
+            "#versPremiereBorne", "e => e.length === 1 && !e[0].hidden")
+        verifier("%s : raccourci %s" % (libelle, "propose" if attendu else "retire"),
+                 visible == attendu)
+        verifier("%s : secours propose" % libelle,
+                 page.is_visible("#boutonSecours"))
+        page.close()
+
+    # Le nombre a quatre chiffres de l'affichette doit ouvrir la borne, et
+    # sans empiler les dossiers : /8055/ et non /index.html/8055/.
+    print("\nindex.html : le secours a quatre chiffres")
+    page = nav.new_page(); page.add_init_script(init("horaire"))
+    page.goto("http://127.0.0.1:%d/index.html" % PORT)
+    page.wait_for_timeout(200)
+    page.click("#versSaisie")
+    page.fill("#participantName", "Eva"); page.fill("#nbJoueurs", "2")
+    page.fill("#codeInput", "K7NPX4RT"); page.check("#acceptRules")
+    page.click("#startBtn"); page.wait_for_timeout(300)
+    page.click("#boutonSecours")
+    page.fill("#champSecours", "8055")
+    page.click("#validerSecours"); page.wait_for_timeout(400)
+    attendue = "http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E01"])
+    verifier("ouvre bien la borne du commissaire", page.url == attendue, page.url)
+    page.close()
+
     nav.close()
 
 srv.shutdown()

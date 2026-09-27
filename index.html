@@ -51,14 +51,35 @@
     <button class="btn-secondary" id="retourAccueil">Revenir en arrière</button>
   </section>
 
-  <!-- Écran 3 : où aller. Le chrono tourne déjà. -->
+  <!-- Écran 3 : où aller. Le chrono tourne déjà.
+
+       Cet écran n'ouvre PLUS la première borne d'un simple bouton. Le jeu
+       consiste à trouver les QR codes dans le parc, et c'était la seule
+       porte qui laissait entrer sans en scanner un : un joueur pouvait
+       commencer l'enquête assis à la caisse. Il reste le nombre à quatre
+       chiffres de l'affichette si le QR refuse de se lire, et le raccourci
+       réservé aux codes de test. -->
   <section class="ecran card" id="ecranDepart" hidden>
     <div class="ecran-titre">Votre enquête commence</div>
-    <p>Entrez dans le jardin des pivoines, sur votre droite après l'accueil du zoo, pour recevoir les instructions de votre commissaire.</p>
+    <p>Tournez directement à droite dans le jardin des Pivoines, juste après l'accueil du zoo. Votre commissaire vous y attend.</p>
     <!-- A AJOUTER : la photo qui montre le chemin.
          <img src="assets/img/depart.jpg" alt="Le jardin des pivoines"> -->
-    <a href="#" id="versPremiereBorne" class="btn">Rejoindre le commissaire</a>
+    <p class="consigne-scan">Sur place, scannez le QR code de la borne pour recevoir ses instructions.</p>
+    <a href="#" id="versPremiereBorne" class="btn btn-test" data-lien-test hidden>Raccourci de test</a>
   </section>
+
+  <div id="secoursDepart" class="secours-zone" hidden>
+    <div class="secours-boutons">
+      <button class="btn-lien" id="boutonSecours">Le QR code ne fonctionne pas</button>
+    </div>
+
+    <div class="card" id="zoneSecours" hidden>
+      <p>Sur l'affichette, à côté du QR code, se trouve un nombre à quatre chiffres. Saisissez-le.</p>
+      <input type="text" id="champSecours" inputmode="numeric" maxlength="4" placeholder="Ex. 4172">
+      <div class="error-box visible" id="erreurSecours" hidden></div>
+      <button id="validerSecours">Ouvrir cette borne</button>
+    </div>
+  </div>
 </div>
 
 <footer>
@@ -70,6 +91,7 @@
 <script src="assets/js/parcours.js"></script>
 <script src="assets/js/supabase-client.js"></script>
 <script src="assets/js/game.js"></script>
+<script src="assets/js/etape.js"></script>
 <script>
   const accueil  = document.getElementById("ecranAccueil");
   const saisie   = document.getElementById("ecranSaisie");
@@ -133,6 +155,18 @@
     const premiere = Object.keys(PARCOURS.ordre[sens])
       .find(c => PARCOURS.ordre[sens][c] === 1);
     document.getElementById("versPremiereBorne").href = PARCOURS.pages[premiere];
+
+    // Le raccourci n'existe que pour les codes de test. Un vrai joueur doit
+    // trouver la borne et scanner son QR : c'est le jeu.
+    if (/^TEST/i.test(result.session.code || "")) {
+      document.getElementById("versPremiereBorne").hidden = false;
+    } else {
+      document.getElementById("versPremiereBorne").remove();
+    }
+
+    // Le secours par le nombre à quatre chiffres, comme sur chaque borne.
+    document.getElementById("secoursDepart").hidden = false;
+    brancherSecours();
 
     // Le chrono part d'ici. On affiche l'écran qui envoie vers la 1re borne.
     saisie.hidden = true; depart.hidden = false; window.scrollTo(0, 0);
