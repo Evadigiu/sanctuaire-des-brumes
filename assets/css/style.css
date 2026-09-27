@@ -42,7 +42,6 @@
   --gold: #C9A24B;
   --titre-or: #dbda7d;   /* la couleur des titres */
   --gold-bright: #E4C87A;
-  --pink: #EE3F81;
   --green: #7BB27D;
   --red: #E8604C;
   --ink: #E9E6DC;
@@ -143,7 +142,10 @@ label {
   margin-top: 16px;
 }
 
-input[type="text"] {
+input[type="text"],
+input[type="number"],
+input[type="tel"],
+input[type="email"] {
   width: 100%;
   padding: 12px 14px;
   background: var(--panel2);
@@ -153,7 +155,16 @@ input[type="text"] {
   font-size: 1rem;
   font-family: inherit;
 }
-input[type="text"]:focus { outline: none; border-color: var(--gold); }
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="tel"]:focus,
+input[type="email"]:focus { outline: none; border-color: var(--gold); }
+
+/* Les fleches haut/bas d'un champ numerique volent de la place et se ratent
+   au pouce. Le clavier du telephone suffit. */
+input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
 .checkbox-row {
   display: flex;
@@ -227,10 +238,25 @@ button:hover:not(:disabled), .btn:hover { background: var(--gold-bright); }
 }
 .card.indice .eyebrow { margin-bottom: 10px; }
 
+/* La signature du temoin, sous sa video. Elle etait ecrite en rose vif
+   (#EE3F81), une couleur heritee d'une maquette anterieure et qui ne
+   servait nulle part ailleurs : tant que la legende occupait son propre
+   ecran, cette regle ne s'appliquait a rien et personne ne l'avait vue.
+   Elle prend le ton des textes secondaires, comme le reste du site. */
 .witness-name {
-  color: var(--pink);
+  color: var(--fog);
   font-style: italic;
   margin-bottom: 12px;
+}
+
+/* Le plan du parc qui montre le chemin jusqu'a la borne suivante. */
+.plan-chemin {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 14px 0 4px;
+  background: var(--panel2);
 }
 
 video {

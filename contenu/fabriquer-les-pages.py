@@ -163,6 +163,25 @@ MEDIAS = {
 
 POSTERS = {}
 
+# ------------------------------------------------------------
+# LES PLANS QUI MONTRENT LE CHEMIN
+#
+# Un joueur qui sort d'une borne doit trouver la suivante dans un parc de
+# vingt-cinq hectares. La phrase ("rendez-vous au bureau des soigneurs")
+# suppose qu'il sait ou c'est ; le plan le lui montre.
+#
+# La cle est le code de la borne ET le sens, parce que le chemin n'est pas
+# le meme selon le cote par lequel on tourne. Une borne absente de cette
+# liste garde son emplacement vide, sans rien casser.
+#
+# Contrairement aux videos, ces images vivent DANS le depot : quelques
+# dizaines de kilo-octets chacune, servies une fois puis gardees en memoire
+# par le telephone.
+# ------------------------------------------------------------
+CHEMINS = {
+ ("E01", "A"): "chemin-e01-a.webp",
+}
+
 
 NON_CONSTRUIT   = {
  "E14": "L'épreuve de conversion des 4 lettres en chiffres reste à construire.",
@@ -173,6 +192,51 @@ NON_CONSTRUIT   = {
 
 def e(t): return html.escape(t, quote=True)
 
+# ------------------------------------------------------------
+# LES TITRES D'ECRAN VUS PAR LE JOUEUR
+#
+# Les etiquettes du cahier ("3. Texte ou epreuve", "1. Accueil apres le
+# scan") sont des reperes de travail : numerotes, sans accents, ecrits pour
+# celle qui remplit le tableau. Elles s'affichaient telles quelles a des
+# gens qui ont paye.
+#
+# Le cahier garde donc ses etiquettes, c'est l'outil de travail. Seules
+# celles listees ici apparaissent a l'ecran, reecrites pour le joueur ;
+# toutes les autres disparaissent, et l'ecran commence directement par son
+# contenu.
+#
+# La cle passe par slug(), donc un accent ou une majuscule de travers dans
+# le cahier ne fait pas manquer la correspondance.
+# ------------------------------------------------------------
+TITRES = {
+ "4-ou-aller-ensuite": "Où aller ensuite",
+}
+
+def titre_joueur(libelle):
+    return TITRES.get(slug(libelle), "")
+
+
+def fusionner_legendes(code, lg):
+    """La legende d'un media ("Mathilde, soigneuse animaliere") occupait un
+    ecran entier : le joueur devait appuyer sur Suivant pour lire une ligne,
+    puis encore une fois pour continuer. Elle devient une signature sous la
+    video, sur le meme ecran. Le texte est conserve, le clic disparait."""
+    def est_le_media(x):
+        if "egende" in x["ecran"]: return False
+        if re.search(r"vid[ée]o|audio", x["ecran"], re.I): return True
+        return code in APPEL_AUDIO and x["n"] == 1   # la borne de l'appel
+
+    medias = [x for x in lg if est_le_media(x)]
+    restant = []
+    for x in lg:
+        if "egende" in x["ecran"] and x["texte"] and medias:
+            cible = next((m for m in medias if m["sens"] == x["sens"]), medias[0])
+            cible["legende"] = x["texte"]
+            continue                    # l'ecran disparait
+        restant.append(x)
+    return restant
+
+
 def bloc_ecran(etape, lg, dernier, sens_attr):
     """Un ecran = une carte. sens_attr vaut None, 'A' ou 'B'."""
     c, lib, txt = etape["code"], lg["ecran"], lg["texte"]
@@ -180,7 +244,13 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
     est_sortie = "aller ensuite" in lib.lower()
     attr = ' data-sens="%s"' % sens_attr if sens_attr else ""
     h = ['<section class="ecran card"%s hidden>' % attr]
-    h.append('  <div class="ecran-titre">%s</div>' % e(lib))
+    titre = titre_joueur(lib)
+    if titre:
+        h.append('  <div class="ecran-titre">%s</div>' % e(titre))
+    else:
+        # L'etiquette du cahier reste en commentaire : elle sert a retrouver
+        # la ligne du tableur quand on relit une page.
+        h.append('  <!-- cahier : %s -->' % lib.replace("--", "—"))
 
     if est_media:
         fichier = MEDIAS.get(c)
@@ -189,7 +259,10 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
             # preload="none" : rien ne se telecharge tant que le joueur n'a pas
             # appuye sur lecture. Sur le reseau mobile d'un parc, c'est la
             # difference entre une page qui s'ouvre et une page qui rame.
-            h.append('  <video controls playsinline preload="none" poster="%s">'
+            # Pas de "playsinline" : cet attribut demande justement a iOS de
+            # rester dans la page. Sans lui, la video part d'elle-meme en
+            # plein ecran sur iPhone, et etape.js s'en charge sur Android.
+            h.append('  <video controls preload="none" poster="%s">'
                      % e(poster))
             h.append('    <source src="%s/%s" type="video/mp4">' % (MEDIA_BASE, e(fichier)))
             h.append('    <p>Votre navigateur ne lit pas cette vidéo. '
@@ -207,6 +280,9 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
         h.append('    <!-- Remplacer la source par le vrai fichier audio -->')
         h.append('    <audio id="audioAppel" controls><source src="" type="audio/mpeg"></audio>')
         h.append('  </div>')
+
+    if lg.get("legende"):
+        h.append('  <p class="witness-name">%s</p>' % e(lg["legende"]))
 
     if txt and txt != "/":
         for p in [x.strip() for x in txt.split("\n") if x.strip()]:
@@ -231,8 +307,17 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
         h.append('  <p class="a-construire">%s</p>' % e(NON_CONSTRUIT[c]))
 
     if est_sortie:
-        h.append('  <!-- A AJOUTER : la photo qui montre où aller.')
-        h.append('       <img src="../assets/img/XXX.jpg" alt="Le chemin à prendre"> -->')
+        plan = CHEMINS.get((c, sens_attr))
+        if plan:
+            # loading="lazy" : le plan ne se telecharge qu'en arrivant a cet
+            # ecran, pas au chargement de la borne.
+            h.append('  <img class="plan-chemin" loading="lazy" src="../assets/img/%s"'
+                     % e(plan))
+            h.append('       alt="Plan du parc : le chemin à suivre jusqu\'à la borne suivante">')
+        else:
+            h.append('  <!-- A AJOUTER : le plan qui montre où aller. Déposer l\'image')
+            h.append('       dans assets/img/ et ajouter sa ligne à CHEMINS, en haut')
+            h.append('       de contenu/fabriquer-les-pages.py. -->')
 
     if lg["rem"]:
         h.append('  <!-- Note du cahier de contenu : %s -->' % lg["rem"].replace("--", "—"))
@@ -337,6 +422,7 @@ for nom in os.listdir(SORTIE):
 for c in PAGES:
     et = etapes[c]
     lg = sorted(lignes.get(c, []), key=lambda x: (x["n"], x["sens"]))
+    lg = fusionner_legendes(c, lg)
     communs = [x for x in lg if x["sens"] == "les deux"]
     sorties = {s: [x for x in lg if x["sens"] == "sens " + s.lower()] for s in ("A", "B")}
 

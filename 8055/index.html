@@ -19,34 +19,30 @@
   <div class="eyebrow" id="position" data-A="Étape 1 sur 15" data-B="Étape 1 sur 15"></div>
   <h1>LE COMMISSAIRE JEAN</h1>
 <section class="ecran card" hidden>
-  <div class="ecran-titre">1. Vidéo du commissaire</div>
-  <video controls playsinline preload="none" poster="">
+  <!-- cahier : 1. Vidéo du commissaire -->
+  <video controls preload="none" poster="">
     <source src="https://sanctuaire-brumes.b-cdn.net/le-commissaire-jean-79swb7.mp4" type="video/mp4">
     <p>Votre navigateur ne lit pas cette vidéo. Prévenez un membre de l'équipe sur place.</p>
   </video>
+  <p class="witness-name">Monsieur le commissaire Jean</p>
   <!-- Note du cahier de contenu : pas de texte, que du média vidéo -->
   <button data-suivant>Suivant</button>
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
 </section>
-<section class="ecran card" hidden>
-  <div class="ecran-titre">2. Legende du media</div>
-  <p>Monsieur le commissaire Jean</p>
-  <button data-suivant>Suivant</button>
-  <button class="btn-secondary" data-retour>Revenir en arrière</button>
-</section>
 <section class="ecran card" data-sens="A" hidden>
-  <div class="ecran-titre">4. Ou aller ensuite</div>
+  <div class="ecran-titre">Où aller ensuite</div>
   <p>Rendez-vous au bureau des soigneurs pour intérroger votre premier témoin.</p>
-  <!-- A AJOUTER : la photo qui montre où aller.
-       <img src="../assets/img/XXX.jpg" alt="Le chemin à prendre"> -->
+  <img class="plan-chemin" loading="lazy" src="../assets/img/chemin-e01-a.webp"
+       alt="Plan du parc : le chemin à suivre jusqu'à la borne suivante">
   <p class="consigne-scan">Rendez-vous sur place, puis scannez le QR code de la borne.</p>
   <a href="../1965/" class="btn btn-test" data-lien-test hidden>Raccourci de test</a>
 </section>
 <section class="ecran card" data-sens="B" hidden>
-  <div class="ecran-titre">4. Ou aller ensuite</div>
+  <div class="ecran-titre">Où aller ensuite</div>
   <p>Rendez-vous au repère sur la carte pour intérroger votre premier témoin.</p>
-  <!-- A AJOUTER : la photo qui montre où aller.
-       <img src="../assets/img/XXX.jpg" alt="Le chemin à prendre"> -->
+  <!-- A AJOUTER : le plan qui montre où aller. Déposer l'image
+       dans assets/img/ et ajouter sa ligne à CHEMINS, en haut
+       de contenu/fabriquer-les-pages.py. -->
   <p class="consigne-scan">Rendez-vous sur place, puis scannez le QR code de la borne.</p>
   <a href="../8017/" class="btn btn-test" data-lien-test hidden>Raccourci de test</a>
 </section>

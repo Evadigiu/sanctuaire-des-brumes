@@ -19,42 +19,39 @@
   <div class="eyebrow" id="position" data-A="Étape 12 sur 15" data-B="Étape 5 sur 15"></div>
   <h1>Appel du commissaire</h1>
 <section class="ecran card" hidden>
-  <div class="ecran-titre">1. Accueil apres le scan</div>
+  <!-- cahier : 1. Accueil apres le scan -->
   <button id="decrocher" class="btn-appel">Décrocher</button>
   <div id="blocAppel" hidden>
     <!-- Remplacer la source par le vrai fichier audio -->
     <audio id="audioAppel" controls><source src="" type="audio/mpeg"></audio>
   </div>
+  <p class="witness-name">Commissaire Jean, dubitatif</p>
   <p>Vous avez un appel entrant du Commissaire Jean</p>
   <!-- Note du cahier de contenu : sonnerie émise, il faudrait que les gens puisse toucher le bouton "décrocher pour déclencher l'audio" -->
   <button data-suivant>Suivant</button>
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
 </section>
 <section class="ecran card" hidden>
-  <div class="ecran-titre">2. Legende du media</div>
-  <p>Commissaire Jean, dubitatif</p>
-  <button data-suivant>Suivant</button>
-  <button class="btn-secondary" data-retour>Revenir en arrière</button>
-</section>
-<section class="ecran card" hidden>
-  <div class="ecran-titre">3. Texte ou epreuve</div>
+  <!-- cahier : 3. Texte ou epreuve -->
   <!-- Note du cahier de contenu : Fichier audio -->
   <button data-suivant>Suivant</button>
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
 </section>
 <section class="ecran card" data-sens="A" hidden>
-  <div class="ecran-titre">4. Ou aller ensuite</div>
+  <div class="ecran-titre">Où aller ensuite</div>
   <p>Poursuivez jusqu&#x27;au bureau de Greg</p>
-  <!-- A AJOUTER : la photo qui montre où aller.
-       <img src="../assets/img/XXX.jpg" alt="Le chemin à prendre"> -->
+  <!-- A AJOUTER : le plan qui montre où aller. Déposer l'image
+       dans assets/img/ et ajouter sa ligne à CHEMINS, en haut
+       de contenu/fabriquer-les-pages.py. -->
   <p class="consigne-scan">Rendez-vous sur place, puis scannez le QR code de la borne.</p>
   <a href="../3182/" class="btn btn-test" data-lien-test hidden>Raccourci de test</a>
 </section>
 <section class="ecran card" data-sens="B" hidden>
-  <div class="ecran-titre">4. Ou aller ensuite</div>
+  <div class="ecran-titre">Où aller ensuite</div>
   <p>Poursuivez jusqu&#x27;au bureau de Greg</p>
-  <!-- A AJOUTER : la photo qui montre où aller.
-       <img src="../assets/img/XXX.jpg" alt="Le chemin à prendre"> -->
+  <!-- A AJOUTER : le plan qui montre où aller. Déposer l'image
+       dans assets/img/ et ajouter sa ligne à CHEMINS, en haut
+       de contenu/fabriquer-les-pages.py. -->
   <p class="consigne-scan">Rendez-vous sur place, puis scannez le QR code de la borne.</p>
   <a href="../3182/" class="btn btn-test" data-lien-test hidden>Raccourci de test</a>
 </section>
