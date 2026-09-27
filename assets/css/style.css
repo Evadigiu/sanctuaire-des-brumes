@@ -245,6 +245,16 @@ button:hover:not(:disabled), .btn:hover { background: var(--gold-bright); }
   margin-bottom: 12px;
 }
 
+/* Le plan du parc qui montre le chemin jusqu'a la borne suivante. */
+.plan-chemin {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 14px 0 4px;
+  background: var(--panel2);
+}
+
 video {
   width: 100%;
   border-radius: 8px;

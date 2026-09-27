@@ -163,6 +163,25 @@ MEDIAS = {
 
 POSTERS = {}
 
+# ------------------------------------------------------------
+# LES PLANS QUI MONTRENT LE CHEMIN
+#
+# Un joueur qui sort d'une borne doit trouver la suivante dans un parc de
+# vingt-cinq hectares. La phrase ("rendez-vous au bureau des soigneurs")
+# suppose qu'il sait ou c'est ; le plan le lui montre.
+#
+# La cle est le code de la borne ET le sens, parce que le chemin n'est pas
+# le meme selon le cote par lequel on tourne. Une borne absente de cette
+# liste garde son emplacement vide, sans rien casser.
+#
+# Contrairement aux videos, ces images vivent DANS le depot : quelques
+# dizaines de kilo-octets chacune, servies une fois puis gardees en memoire
+# par le telephone.
+# ------------------------------------------------------------
+CHEMINS = {
+ ("E01", "A"): "chemin-e01-a.webp",
+}
+
 
 NON_CONSTRUIT   = {
  "E14": "L'épreuve de conversion des 4 lettres en chiffres reste à construire.",
@@ -258,8 +277,17 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
         h.append('  <p class="a-construire">%s</p>' % e(NON_CONSTRUIT[c]))
 
     if est_sortie:
-        h.append('  <!-- A AJOUTER : la photo qui montre où aller.')
-        h.append('       <img src="../assets/img/XXX.jpg" alt="Le chemin à prendre"> -->')
+        plan = CHEMINS.get((c, sens_attr))
+        if plan:
+            # loading="lazy" : le plan ne se telecharge qu'en arrivant a cet
+            # ecran, pas au chargement de la borne.
+            h.append('  <img class="plan-chemin" loading="lazy" src="../assets/img/%s"'
+                     % e(plan))
+            h.append('       alt="Plan du parc : le chemin à suivre jusqu\'à la borne suivante">')
+        else:
+            h.append('  <!-- A AJOUTER : le plan qui montre où aller. Déposer l\'image')
+            h.append('       dans assets/img/ et ajouter sa ligne à CHEMINS, en haut')
+            h.append('       de contenu/fabriquer-les-pages.py. -->')
 
     if lg["rem"]:
         h.append('  <!-- Note du cahier de contenu : %s -->' % lg["rem"].replace("--", "—"))
