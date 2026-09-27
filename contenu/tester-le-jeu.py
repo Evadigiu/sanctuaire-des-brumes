@@ -183,6 +183,22 @@ with sync_playwright() as pw:
     # pour revoir un temoignage.
     print("\nRevoir le temoignage precedent")
     page = nav.new_page(); page.add_init_script(init("horaire"))
+
+    # On commence par PARCOURIR la borne du commissaire jusqu'a son dernier
+    # ecran. C'est indispensable : chaque borne se souvient de l'ecran ou on
+    # l'a quittee, et c'est ce souvenir qui ramenait le joueur sur « ou aller
+    # ensuite » au lieu de la video. Sans ce passage, le test s'ouvrirait sur
+    # un souvenir vide et passerait sans rien prouver.
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E01"]))
+    page.wait_for_timeout(400)
+    for _ in range(6):
+        suivant = page.query_selector(".ecran:not([hidden]) [data-suivant]")
+        if not suivant: break
+        suivant.click(); page.wait_for_timeout(120)
+    dernier = page.evaluate("""() => [...document.querySelectorAll('.ecran')]
+                                      .findIndex(e => !e.hidden)""")
+    verifier("le commissaire se quitte sur son dernier ecran", dernier > 0, str(dernier))
+
     page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E02"]))
     page.wait_for_timeout(400)
     b1 = page.query_selector(".ecran:not([hidden]) [data-retour]")
@@ -193,6 +209,15 @@ with sync_playwright() as pw:
     b1.click(); page.wait_for_timeout(500)
     verifier("il mene bien a la borne d'avant",
              page.url.endswith(PARC["pages"]["E01"] + "?revoir=E02"), page.url)
+    # On vient revoir une video : la borne doit s'ouvrir sur son PREMIER ecran,
+    # pas sur celui ou on l'avait quittee. Elle s'en souvient pourtant, et
+    # c'est utile quand un telephone se verrouille : les deux besoins se
+    # contredisent, celui-ci gagne.
+    verifier("elle s'ouvre sur son premier ecran",
+             page.evaluate("""() => [...document.querySelectorAll('.ecran')]
+                                    .findIndex(e => !e.hidden)""") == 0)
+    verifier("la video est bien la",
+             page.query_selector(".ecran:not([hidden]) video") is not None)
     retour = page.query_selector(".retour-borne")
     verifier("un retour vers sa propre borne est propose",
              retour is not None and PARC["noms"]["E02"] in (retour.text_content() or ""),

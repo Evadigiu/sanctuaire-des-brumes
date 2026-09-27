@@ -57,6 +57,13 @@ function demarrerEtape() {
   let courant = parseInt(sessionStorage.getItem(CLE) || "0", 10);
   if (isNaN(courant) || courant < 0 || courant >= ecrans.length) courant = 0;
 
+  // Chaque borne se souvient de l'écran où on l'a quittée, pour qu'un
+  // téléphone qui se verrouille ne fasse pas tout recommencer. Mais quand on
+  // revient exprès pour revoir un témoignage, ce souvenir joue contre nous :
+  // on rouvrait la borne sur son dernier écran, « où aller ensuite », alors
+  // qu'on venait précisément pour la vidéo. On repart donc du début.
+  if (new URLSearchParams(window.location.search).has("revoir")) courant = 0;
+
   function afficher(i) {
     courant = i;
     try { sessionStorage.setItem(CLE, String(i)); } catch (e) {}
