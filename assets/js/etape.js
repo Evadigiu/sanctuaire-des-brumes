@@ -61,6 +61,7 @@ function demarrerEtape() {
     courant = i;
     try { sessionStorage.setItem(CLE, String(i)); } catch (e) {}
     ecrans.forEach((el, n) => { el.hidden = (n !== i); });
+    reglerRetour(i);
     window.scrollTo(0, 0);
     // On coupe toute vidéo ou audio de l'écran qu'on quitte.
     document.querySelectorAll("video, audio").forEach(m => {
@@ -73,14 +74,47 @@ function demarrerEtape() {
       if (courant < ecrans.length - 1) afficher(courant + 1);
     });
   });
+  // « Revenir en arrière » ne pouvait rien faire sur le premier écran d'une
+  // borne : il n'y a pas d'écran avant. Il ramène désormais à la borne
+  // précédente, pour revoir un témoignage. Le verrouillage l'autorisait déjà
+  // — il autorise toute borne déjà visitée — il manquait juste le chemin.
+  const precedente = document.body.getAttribute("data-prec-" + sens) || "";
+  const pagePrecedente = PARCOURS.pages[precedente] || "";
+
   document.querySelectorAll("[data-retour]").forEach(b => {
     b.addEventListener("click", () => {
-      if (courant > 0) afficher(courant - 1);
+      if (courant > 0) { afficher(courant - 1); return; }
+      if (pagePrecedente) {
+        // On emporte le code de la borne d'où l'on vient, pour pouvoir y
+        // revenir sans rescanner le QR.
+        window.location.href = BASE_PATH + pagePrecedente
+                             + "?revoir=" + encodeURIComponent(codeEtape);
+      }
     });
   });
 
+  /**
+   * Le bouton de retour du premier écran ne dit pas la même chose que les
+   * autres, et disparaît quand il n'y a nulle part où revenir : un bouton
+   * qui ne fait rien use la confiance plus vite qu'un bouton absent.
+   */
+  function reglerRetour(i) {
+    const bouton = ecrans[i] && ecrans[i].querySelector("[data-retour]");
+    if (!bouton) return;
+    if (i > 0) {
+      bouton.hidden = false;
+      bouton.textContent = "Revenir en arrière";
+    } else if (pagePrecedente) {
+      bouton.hidden = false;
+      bouton.textContent = "Revoir le témoignage précédent";
+    } else {
+      bouton.hidden = true;
+    }
+  }
+
   afficher(courant);
   brancherSecours();
+  brancherRetourAMaBorne();
 }
 
 // ------------------------------------------------------------
@@ -103,6 +137,14 @@ function demarrerEtape() {
  */
 function pleinEcranALaLecture() {
   document.querySelectorAll("video").forEach(video => {
+    // La feuille de style donne d'avance au cadre la forme d'une video de
+    // telephone, pour qu'il ne soit pas ecrase avant lecture. Des que les
+    // vraies dimensions sont connues, on lui rend sa liberte : une video
+    // horizontale reprend sa forme plutot que d'etre encadree de noir.
+    video.addEventListener("loadedmetadata", () => {
+      video.style.aspectRatio = "auto";
+    }, { once: true });
+
     video.addEventListener("play", () => {
       try {
         if (video.webkitEnterFullscreen)        video.webkitEnterFullscreen();
@@ -278,6 +320,30 @@ function ouvrirProbleme() {
     }
     retour.hidden = false;
   };
+}
+
+/**
+ * Quand on arrive sur une borne par « revoir le témoignage précédent »,
+ * l'adresse porte le code de la borne d'où l'on vient. On propose alors un
+ * retour direct : sans lui, le groupe devrait rescanner le QR de la borne
+ * devant laquelle il se tient déjà.
+ *
+ * Ce n'est pas une porte dérobée : le code doit désigner une borne connue du
+ * parcours, et cette borne passe le même contrôle de progression que
+ * n'importe quelle autre.
+ */
+function brancherRetourAMaBorne() {
+  const demande = new URLSearchParams(window.location.search).get("revoir");
+  const page = demande && PARCOURS.pages[demande];
+  if (!page) return;
+
+  const lien = document.createElement("a");
+  lien.className = "btn btn-secondary retour-borne";
+  lien.href = BASE_PATH + page;
+  lien.textContent = "Revenir à ma borne : " + (PARCOURS.noms[demande] || "");
+
+  const titre = document.querySelector("h1");
+  if (titre && titre.parentNode) titre.parentNode.insertBefore(lien, titre.nextSibling);
 }
 
 function brancherSecours() {
