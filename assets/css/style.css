@@ -42,7 +42,6 @@
   --gold: #C9A24B;
   --titre-or: #dbda7d;   /* la couleur des titres */
   --gold-bright: #E4C87A;
-  --pink: #EE3F81;
   --green: #7BB27D;
   --red: #E8604C;
   --ink: #E9E6DC;
@@ -239,8 +238,13 @@ button:hover:not(:disabled), .btn:hover { background: var(--gold-bright); }
 }
 .card.indice .eyebrow { margin-bottom: 10px; }
 
+/* La signature du temoin, sous sa video. Elle etait ecrite en rose vif
+   (#EE3F81), une couleur heritee d'une maquette anterieure et qui ne
+   servait nulle part ailleurs : tant que la legende occupait son propre
+   ecran, cette regle ne s'appliquait a rien et personne ne l'avait vue.
+   Elle prend le ton des textes secondaires, comme le reste du site. */
 .witness-name {
-  color: var(--pink);
+  color: var(--fog);
   font-style: italic;
   margin-bottom: 12px;
 }

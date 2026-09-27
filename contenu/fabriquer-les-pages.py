@@ -192,6 +192,30 @@ NON_CONSTRUIT   = {
 
 def e(t): return html.escape(t, quote=True)
 
+# ------------------------------------------------------------
+# LES TITRES D'ECRAN VUS PAR LE JOUEUR
+#
+# Les etiquettes du cahier ("3. Texte ou epreuve", "1. Accueil apres le
+# scan") sont des reperes de travail : numerotes, sans accents, ecrits pour
+# celle qui remplit le tableau. Elles s'affichaient telles quelles a des
+# gens qui ont paye.
+#
+# Le cahier garde donc ses etiquettes, c'est l'outil de travail. Seules
+# celles listees ici apparaissent a l'ecran, reecrites pour le joueur ;
+# toutes les autres disparaissent, et l'ecran commence directement par son
+# contenu.
+#
+# La cle passe par slug(), donc un accent ou une majuscule de travers dans
+# le cahier ne fait pas manquer la correspondance.
+# ------------------------------------------------------------
+TITRES = {
+ "4-ou-aller-ensuite": "Où aller ensuite",
+}
+
+def titre_joueur(libelle):
+    return TITRES.get(slug(libelle), "")
+
+
 def fusionner_legendes(code, lg):
     """La legende d'un media ("Mathilde, soigneuse animaliere") occupait un
     ecran entier : le joueur devait appuyer sur Suivant pour lire une ligne,
@@ -220,7 +244,13 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
     est_sortie = "aller ensuite" in lib.lower()
     attr = ' data-sens="%s"' % sens_attr if sens_attr else ""
     h = ['<section class="ecran card"%s hidden>' % attr]
-    h.append('  <div class="ecran-titre">%s</div>' % e(lib))
+    titre = titre_joueur(lib)
+    if titre:
+        h.append('  <div class="ecran-titre">%s</div>' % e(titre))
+    else:
+        # L'etiquette du cahier reste en commentaire : elle sert a retrouver
+        # la ligne du tableur quand on relit une page.
+        h.append('  <!-- cahier : %s -->' % lib.replace("--", "—"))
 
     if est_media:
         fichier = MEDIAS.get(c)
