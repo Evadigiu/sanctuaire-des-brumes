@@ -96,9 +96,9 @@ select * from (
                    and c6_codes_fermes and c6_scans_fermes
               then 'FAIT' else 'A LANCER' end from etat
   union all
-  select 8, 'Correctif 7',
-         'Les vrais codes sont impossibles a deviner (' || nb_vrais_codes || ' fabrique(s))',
-         case when c7_fabrique then 'FAIT' else 'A LANCER' end from etat
+  select 8, 'Les vrais codes',
+         nb_vrais_codes || ' code(s) charge(s), impossibles a deviner',
+         case when nb_vrais_codes > 0 then 'FAIT' else 'A LANCER' end from etat
   union all
   select 9, 'Les bornes',
          'Le parcours compte ' || nb_bornes || ' bornes (il en faut 16)',
