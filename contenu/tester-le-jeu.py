@@ -181,6 +181,31 @@ with sync_playwright() as pw:
     # Le bouton « Revenir en arriere » du premier ecran ne faisait rien : il
     # n'y a pas d'ecran avant. Il ramene maintenant a la borne precedente,
     # pour revoir un temoignage.
+    # L'ecran de sortie, celui qui indique le chemin, n'avait aucun bouton de
+    # retour. C'est pourtant celui ou le joueur reste le plus longtemps : une
+    # fois arrive la, il ne pouvait plus revoir la video sans le bouton
+    # « precedent » de son telephone.
+    print("\nDepuis l'ecran de sortie, on peut remonter jusqu'a la video")
+    page = nav.new_page(); page.add_init_script(init("horaire"))
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E02"]))
+    page.wait_for_timeout(400)
+    for _ in range(6):
+        b = page.query_selector(".ecran:not([hidden]) [data-suivant]")
+        if not b: break
+        b.click(); page.wait_for_timeout(120)
+    verifier("on est bien sur l'ecran du chemin",
+             page.query_selector(".ecran:not([hidden]) .plan-chemin") is not None)
+    verifier("un bouton de retour y figure",
+             page.is_visible(".ecran:not([hidden]) [data-retour]"))
+    for _ in range(6):
+        i = page.evaluate("""() => [...document.querySelectorAll('.ecran')]
+                                    .findIndex(e => !e.hidden)""")
+        if i == 0: break
+        page.click(".ecran:not([hidden]) [data-retour]"); page.wait_for_timeout(150)
+    verifier("on remonte jusqu'a la video",
+             page.query_selector(".ecran:not([hidden]) video") is not None)
+    page.close()
+
     print("\nRevoir le temoignage precedent")
     page = nav.new_page(); page.add_init_script(init("horaire"))
 
