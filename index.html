@@ -22,6 +22,7 @@
     <p>Armez-vous de bon sens et observez bien ce qu'il se passe autour de vous. Suivez les consignes qui vous sont données et respectez le sens des énigmes qui vous est proposé.</p>
     <p>Vous avez 3 heures à partir de maintenant pour terminer l'enquête.</p>
     <p class="muted">Merci de ne pas toucher aux décors : d'autres enquêteurs passeront après vous.</p>
+    <a href="#" id="reprendre" class="btn" hidden>Reprendre mon enquête</a>
     <button id="versSaisie">Suivant</button>
   </section>
 
@@ -137,6 +138,33 @@
   nbJoueurs.addEventListener("input", refreshButtonState);
   nomEquipe.addEventListener("input", refreshButtonState);
   refreshButtonState();   // dire ce qui manque dès l'arrivée sur l'écran
+
+  // Un joueur qui appuie plusieurs fois sur « précédent » finit par sortir du
+  // parcours et retombe ici. Sans repère, il croit avoir perdu sa partie et
+  // cherche son code, que quelqu'un d'autre du groupe a peut-être gardé.
+  // On lui rend la main : la partie est toujours ouverte, son chrono tourne.
+  (function proposerDeReprendre() {
+    const session = getSession();
+    if (!session || !session.expiresAt) return;
+    if (new Date(session.expiresAt) <= new Date()) return;
+
+    const sens = (session.direction === "antihoraire") ? "B" : "A";
+    const positions = PARCOURS.ordre[sens] || {};
+
+    // La borne la plus avancée qu'il ait atteinte, pas la dernière vue :
+    // s'il est revenu voir un témoignage, on le ramène là où il en était.
+    let cible = null, meilleure = 0;
+    visitesLocales().forEach(c => {
+      const p = positions[c];
+      if (p && p > meilleure) { meilleure = p; cible = c; }
+    });
+    if (!cible) cible = Object.keys(positions).find(c => positions[c] === 1);
+    if (!cible || !PARCOURS.pages[cible]) return;
+
+    const lien = document.getElementById("reprendre");
+    lien.href = PARCOURS.pages[cible];
+    lien.hidden = false;
+  })();
 
   // Message d'erreur venant d'une redirection (session expirée, etc.)
   const params = new URLSearchParams(window.location.search);

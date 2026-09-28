@@ -242,6 +242,37 @@ with sync_playwright() as pw:
              page.query_selector(".retour-borne") is None)
     page.close()
 
+    # Reculer trop loin fait sortir du parcours et ramene a l'accueil. Le
+    # joueur doit pouvoir reprendre sans retaper son code, que le groupe a
+    # peut-etre garde.
+    print("\nindex.html : reprendre une enquete en cours")
+    page = nav.new_page(); page.add_init_script(init("horaire"))
+    page.add_init_script("""
+      localStorage.setItem("sdb_session", JSON.stringify({ codeId:"c1", code:"TEST01",
+        direction:"horaire", expiresAt: new Date(Date.now()+3600000).toISOString(),
+        participantName:"Eva", nbJoueurs:2 }));
+      localStorage.setItem("sdb_visites", JSON.stringify(["E01","E02","E03"]));
+    """)
+    page.goto("http://127.0.0.1:%d/index.html" % PORT)
+    page.wait_for_timeout(400)
+    verifier("le bouton est propose", page.is_visible("#reprendre"))
+    verifier("il vise la borne la plus avancee",
+             (page.get_attribute("#reprendre", "href") or "").endswith(PARC["pages"]["E03"]),
+             repr(page.get_attribute("#reprendre", "href")))
+    page.close()
+
+    # Une partie finie ne se reprend pas : le bouton n'a rien a faire la.
+    page = nav.new_page(); page.add_init_script(init("horaire"))
+    page.add_init_script("""
+      localStorage.setItem("sdb_session", JSON.stringify({ codeId:"c1", code:"TEST01",
+        direction:"horaire", expiresAt: "2020-01-01T00:00:00Z",
+        participantName:"Eva", nbJoueurs:2 }));
+    """)
+    page.goto("http://127.0.0.1:%d/index.html" % PORT)
+    page.wait_for_timeout(400)
+    verifier("partie expiree : pas de bouton", not page.is_visible("#reprendre"))
+    page.close()
+
     print("\nindex.html : les quatre champs sont obligatoires")
     page = nav.new_page(); page.add_init_script(init("horaire"))
     page.goto("http://127.0.0.1:%d/index.html" % PORT)
