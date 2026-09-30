@@ -334,6 +334,11 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
             h.append('  <a href="%s" class="btn btn-test" data-lien-test hidden>Raccourci de test</a>' % e(lg["lien"]))
         else:
             h.append('  <p class="muted">Fin du parcours.</p>')
+        # L'ecran de sortie n'avait aucun bouton de retour. C'est pourtant
+        # celui ou le joueur reste le plus longtemps, puisqu'il y lit son
+        # chemin : une fois arrive la, plus moyen de revoir le temoignage
+        # sans passer par le bouton « precedent » du telephone.
+        h.append('  <button class="btn-secondary" data-retour>Revenir en arrière</button>')
     else:
         h.append('  <button data-suivant>Suivant</button>')
         h.append('  <button class="btn-secondary" data-retour>Revenir en arrière</button>')

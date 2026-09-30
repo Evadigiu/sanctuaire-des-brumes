@@ -264,6 +264,22 @@ begin
       'message', 'Borne inconnue en base : ' || coalesce(p_borne, '(vide)'));
   end if;
 
+  -- On n'enregistre que le PREMIER passage a une borne.
+  --
+  -- Un groupe repasse sur une borne plus souvent qu'on ne croit : il revient
+  -- revoir un temoignage, ou il appuie sur « precedent » de son telephone.
+  -- Chacun de ces retours ajoutait un passage horodate maintenant. Le suivi
+  -- en direct annoncait alors « derniere borne : le commissaire », et
+  -- l'equipe voyait un groupe reculer au lieu d'avancer. Les durees entre
+  -- bornes et les statistiques d'abandon s'en trouvaient faussees aussi.
+  --
+  -- La progression du groupe n'en souffre pas : elle retient la borne la
+  -- plus avancee, pas la derniere en date.
+  if exists (select 1 from scans
+              where code_id = p_code_id and qr_point_id = v_point) then
+    return json_build_object('ok', true, 'deja_vu', true);
+  end if;
+
   insert into scans (code_id, qr_point_id) values (p_code_id, v_point);
   return json_build_object('ok', true);
 end;

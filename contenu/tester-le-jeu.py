@@ -181,6 +181,31 @@ with sync_playwright() as pw:
     # Le bouton « Revenir en arriere » du premier ecran ne faisait rien : il
     # n'y a pas d'ecran avant. Il ramene maintenant a la borne precedente,
     # pour revoir un temoignage.
+    # L'ecran de sortie, celui qui indique le chemin, n'avait aucun bouton de
+    # retour. C'est pourtant celui ou le joueur reste le plus longtemps : une
+    # fois arrive la, il ne pouvait plus revoir la video sans le bouton
+    # « precedent » de son telephone.
+    print("\nDepuis l'ecran de sortie, on peut remonter jusqu'a la video")
+    page = nav.new_page(); page.add_init_script(init("horaire"))
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E02"]))
+    page.wait_for_timeout(400)
+    for _ in range(6):
+        b = page.query_selector(".ecran:not([hidden]) [data-suivant]")
+        if not b: break
+        b.click(); page.wait_for_timeout(120)
+    verifier("on est bien sur l'ecran du chemin",
+             page.query_selector(".ecran:not([hidden]) .plan-chemin") is not None)
+    verifier("un bouton de retour y figure",
+             page.is_visible(".ecran:not([hidden]) [data-retour]"))
+    for _ in range(6):
+        i = page.evaluate("""() => [...document.querySelectorAll('.ecran')]
+                                    .findIndex(e => !e.hidden)""")
+        if i == 0: break
+        page.click(".ecran:not([hidden]) [data-retour]"); page.wait_for_timeout(150)
+    verifier("on remonte jusqu'a la video",
+             page.query_selector(".ecran:not([hidden]) video") is not None)
+    page.close()
+
     print("\nRevoir le temoignage precedent")
     page = nav.new_page(); page.add_init_script(init("horaire"))
 
@@ -240,6 +265,37 @@ with sync_playwright() as pw:
     page.wait_for_timeout(400)
     verifier("un code de retour inconnu est ignore",
              page.query_selector(".retour-borne") is None)
+    page.close()
+
+    # Reculer trop loin fait sortir du parcours et ramene a l'accueil. Le
+    # joueur doit pouvoir reprendre sans retaper son code, que le groupe a
+    # peut-etre garde.
+    print("\nindex.html : reprendre une enquete en cours")
+    page = nav.new_page(); page.add_init_script(init("horaire"))
+    page.add_init_script("""
+      localStorage.setItem("sdb_session", JSON.stringify({ codeId:"c1", code:"TEST01",
+        direction:"horaire", expiresAt: new Date(Date.now()+3600000).toISOString(),
+        participantName:"Eva", nbJoueurs:2 }));
+      localStorage.setItem("sdb_visites", JSON.stringify(["E01","E02","E03"]));
+    """)
+    page.goto("http://127.0.0.1:%d/index.html" % PORT)
+    page.wait_for_timeout(400)
+    verifier("le bouton est propose", page.is_visible("#reprendre"))
+    verifier("il vise la borne la plus avancee",
+             (page.get_attribute("#reprendre", "href") or "").endswith(PARC["pages"]["E03"]),
+             repr(page.get_attribute("#reprendre", "href")))
+    page.close()
+
+    # Une partie finie ne se reprend pas : le bouton n'a rien a faire la.
+    page = nav.new_page(); page.add_init_script(init("horaire"))
+    page.add_init_script("""
+      localStorage.setItem("sdb_session", JSON.stringify({ codeId:"c1", code:"TEST01",
+        direction:"horaire", expiresAt: "2020-01-01T00:00:00Z",
+        participantName:"Eva", nbJoueurs:2 }));
+    """)
+    page.goto("http://127.0.0.1:%d/index.html" % PORT)
+    page.wait_for_timeout(400)
+    verifier("partie expiree : pas de bouton", not page.is_visible("#reprendre"))
     page.close()
 
     print("\nindex.html : les quatre champs sont obligatoires")
