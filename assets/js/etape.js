@@ -10,6 +10,11 @@
 // ============================================================
 
 function demarrerEtape() {
+  // Aucune partie dans ce navigateur : ce n'est pas forcément qu'il n'y en a
+  // pas. Le QR a pu ouvrir un autre navigateur que celui du départ. On
+  // propose de la retrouver ici, sans quitter la borne.
+  if (!getSession()) { proposerDeRetrouverLaPartie(); return; }
+
   const session = requireActiveSession();
   if (!session) return;
 
@@ -122,6 +127,56 @@ function demarrerEtape() {
   afficher(courant);
   brancherSecours();
   brancherRetourAMaBorne();
+}
+
+/**
+ * La borne s'ouvre sans partie en mémoire. Avant, on renvoyait le groupe à
+ * l'accueil avec « Merci de démarrer l'enquête depuis cette page », alors
+ * qu'il l'avait démarrée : il ne comprenait pas, et perdait sa borne.
+ *
+ * On lui demande son code ici même. La base rend la partie en cours, et la
+ * page se recharge sur la même borne, comme s'il venait de la scanner.
+ */
+function proposerDeRetrouverLaPartie() {
+  document.querySelectorAll(".ecran").forEach(e => e.remove());
+  const timer = document.getElementById("timer");
+  if (timer) timer.remove();
+  brancherSecours();
+
+  const bloc = document.createElement("section");
+  bloc.className = "ecran card";
+  bloc.id = "retrouverPartie";
+  bloc.innerHTML =
+    '<div class="ecran-titre">Retrouvons votre enquête</div>'
+    + '<p>Ce téléphone ne trouve pas votre partie en cours. Cela arrive quand '
+    + 'le QR code s\'ouvre dans un autre navigateur que celui du départ.</p>'
+    + '<label for="codeReprise">Le code de votre billet</label>'
+    + '<input type="text" id="codeReprise" autocomplete="off" autocapitalize="characters" '
+    + 'spellcheck="false" placeholder="Ex. K7NPX4RT">'
+    + '<div class="error-box visible" id="erreurReprise" hidden></div>'
+    + '<button id="validerReprise">Reprendre l\'enquête</button>'
+    + '<p class="muted">Pas encore commencé ? '
+    + '<a href="' + BASE_PATH + 'index.html">Démarrez depuis la page d\'accueil</a>.</p>';
+  document.querySelector(".wrap").appendChild(bloc);
+  bloc.hidden = false;
+
+  const champ = document.getElementById("codeReprise");
+  const bouton = document.getElementById("validerReprise");
+  const err = document.getElementById("erreurReprise");
+
+  bouton.addEventListener("click", async () => {
+    bouton.disabled = true;
+    bouton.textContent = "Vérification...";
+    err.hidden = true;
+
+    const result = await reprendrePartie(champ.value);
+    if (result.ok) { window.location.reload(); return; }
+
+    err.textContent = result.message;
+    err.hidden = false;
+    bouton.disabled = false;
+    bouton.textContent = "Reprendre l'enquête";
+  });
 }
 
 // ------------------------------------------------------------
