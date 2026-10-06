@@ -10,6 +10,11 @@
 // ============================================================
 
 function demarrerEtape() {
+  // Aucune partie dans ce navigateur : ce n'est pas forcément qu'il n'y en a
+  // pas. Le QR a pu ouvrir un autre navigateur que celui du départ. On
+  // propose de la retrouver ici, sans quitter la borne.
+  if (!getSession()) { proposerDeRetrouverLaPartie(); return; }
+
   const session = requireActiveSession();
   if (!session) return;
 
@@ -122,6 +127,93 @@ function demarrerEtape() {
   afficher(courant);
   brancherSecours();
   brancherRetourAMaBorne();
+}
+
+/**
+ * La borne s'ouvre sans partie en mémoire. Avant, on renvoyait le groupe à
+ * l'accueil avec « Merci de démarrer l'enquête depuis cette page », alors
+ * qu'il l'avait démarrée : il ne comprenait pas, et perdait sa borne.
+ *
+ * On lui demande son code ici même. La base rend la partie en cours, et la
+ * page se recharge sur la même borne, comme s'il venait de la scanner.
+ */
+function proposerDeRetrouverLaPartie() {
+  signalerPartieIntrouvable();
+  document.querySelectorAll(".ecran").forEach(e => e.remove());
+  const timer = document.getElementById("timer");
+  if (timer) timer.remove();
+  brancherSecours();
+
+  const bloc = document.createElement("section");
+  bloc.className = "ecran card";
+  bloc.id = "retrouverPartie";
+  bloc.innerHTML =
+    '<div class="ecran-titre">Retrouvons votre enquête</div>'
+    + '<p>Ce téléphone ne trouve pas votre partie en cours. Cela arrive quand '
+    + 'le QR code s\'ouvre dans un autre navigateur que celui du départ.</p>'
+    + '<label for="codeReprise">Le code de votre billet</label>'
+    + '<input type="text" id="codeReprise" autocomplete="off" autocapitalize="characters" '
+    + 'spellcheck="false" placeholder="Ex. K7NPX4RT">'
+    + '<div class="error-box visible" id="erreurReprise" hidden></div>'
+    + '<button id="validerReprise">Reprendre l\'enquête</button>'
+    + '<p class="muted">Pas encore commencé ? '
+    + '<a href="' + BASE_PATH + 'index.html">Démarrez depuis la page d\'accueil</a>.</p>';
+  document.querySelector(".wrap").appendChild(bloc);
+  bloc.hidden = false;
+
+  const champ = document.getElementById("codeReprise");
+  const bouton = document.getElementById("validerReprise");
+  const err = document.getElementById("erreurReprise");
+
+  bouton.addEventListener("click", async () => {
+    bouton.disabled = true;
+    bouton.textContent = "Vérification...";
+    err.hidden = true;
+
+    const result = await reprendrePartie(champ.value);
+    if (result.ok) { window.location.reload(); return; }
+
+    err.textContent = result.message;
+    err.hidden = false;
+    bouton.disabled = false;
+    bouton.textContent = "Reprendre l'enquête";
+  });
+}
+
+/**
+ * Une partie qui disparaît entre deux scans faits du même geste, on ne sait
+ * pas encore l'expliquer à coup sûr. Plutôt que de deviner, la borne laisse
+ * une trace dans les signalements du tableau de bord, sans rien demander au
+ * joueur. Deux indices départagent les explications :
+ *   - les bornes déjà visitées sont-elles encore en mémoire ? Si oui, seule
+ *     la partie a disparu, et c'est une affaire de code. Si non, toute la
+ *     mémoire est vide : la page s'est ouverte dans un autre navigateur, un
+ *     autre profil ou un onglet privé ;
+ *   - le navigateur annoncé : une application qui ouvre ses liens dans sa
+ *     propre fenêtre se reconnaît à son nom (CriOS, GSA, Instagram...).
+ */
+function signalerPartieIntrouvable() {
+  let traces = "?", ecrans = "?";
+  try { traces = localStorage.getItem(VISITES_KEY) ? "oui" : "non"; } catch (e) { traces = "illisible"; }
+  try {
+    ecrans = Object.keys(sessionStorage).filter(k => k.indexOf("sdb_ecran_") === 0).length;
+  } catch (e) { ecrans = "illisible"; }
+
+  const message = [
+    "Diagnostic automatique : partie introuvable à l'ouverture de la borne.",
+    "Bornes visitées en mémoire : " + traces,
+    "Écrans en mémoire dans cet onglet : " + ecrans,
+    "Pages dans cet onglet : " + history.length,
+    "Venue de : " + (document.referrer || "aucune page"),
+    "Navigateur : " + navigator.userAgent,
+  ].join("\n").slice(0, 500);
+
+  supabaseClient.from("signalements").insert({
+    code_id: null,
+    borne: document.body.getAttribute("data-borne"),
+    categorie: "bug",
+    message: message,
+  }).then(() => {}, () => {});
 }
 
 // ------------------------------------------------------------

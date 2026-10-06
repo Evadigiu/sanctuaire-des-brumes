@@ -37,13 +37,21 @@ def init(sens):
     noms = _j.loads(txt.split("const PARCOURS =", 1)[1].rstrip().rstrip(";"))["noms"]
     tous = _j.dumps([{"qr_points": {"label": n}} for n in noms.values()], ensure_ascii=False)
     return """
-    window.__scans = [];
+    window.__scans = []; window.__signalements = [];
     window.supabase = { createClient: () => ({
       // Depuis le correctif 6, le passage d'une borne s'enregistre par un
       // guichet (rpc) et non plus par une ecriture directe dans la table.
       rpc: async (nom, args) => {
         if (nom === "enregistrer_passage") { window.__scans.push(args);
           return { data: { ok: true }, error: null }; }
+        if (nom === "reprendre_partie") {
+          const c = (args.p_code || "").trim().toUpperCase();
+          if (c === "NEUF0000") return { data: { ok: false, pas_commencee: true,
+            message: "Cette enquête n'a pas encore commencé." }, error: null };
+          if (c !== "K7NPX4RT") return { data: { ok: false,
+            message: "Ce code n'existe pas." }, error: null };
+          return { data: { ok: true, code_id: "c1", code: c, direction: "horaire",
+            expires_at: "2099-01-01T00:00:00Z" }, error: null }; }
         if (nom === "activer_code") return { data: { ok: true, code_id: "c1",
           code: (args.p_code || "").toUpperCase(), direction: "horaire",
           expires_at: "2099-01-01T00:00:00Z" }, error: null };
@@ -52,7 +60,8 @@ def init(sens):
       select: () => ({ eq: (...a) => (t === "scans"
                         ? Promise.resolve({ data: %s, error: null })
                         : ({ maybeSingle: async () => ({ data: { id: 'pt-1' } }) })) }),
-      insert: async (row) => { window.__scans.push(row); return {}; } }) }) };""" % tous + """
+      insert: async (row) => { (t === "signalements" ? window.__signalements
+                                 : window.__scans).push(row); return {}; } }) }) };""" % tous + """
     localStorage.setItem("sdb_session", JSON.stringify({
       codeId: "c1", code: "TEST", direction: "%s",
       expiresAt: "2099-01-01T00:00:00Z", participantName: "Test", nbJoueurs: 1 }));
@@ -129,6 +138,42 @@ with sync_playwright() as pw:
         else:
             verifier("le dernier ecran mene ailleurs", sortie is not None)
         page.close()
+
+    # Le cas qui a bloque les essais sur le terrain : le QR s'ouvre dans un
+    # navigateur qui n'a pas la partie en memoire (lecteur de codes de
+    # l'iPhone, Google Lens, onglet prive). Chaque new_page() ouvre un
+    # contexte vierge, exactement comme ces lecteurs. Tous les autres tests
+    # posent la session d'avance, et c'est pour cela qu'aucun ne l'a vu.
+    print("\nUne borne ouverte dans un navigateur sans la partie")
+    sans_partie = init("horaire").split('localStorage.setItem("sdb_session"')[0]
+    page = nav.new_page(); page.add_init_script(sans_partie)
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E02"]))
+    page.wait_for_timeout(300)
+    verifier("on reste sur la borne", "/index.html" not in page.url, page.url)
+    verifier("le code est demande", page.is_visible("#codeReprise"))
+    verifier("aucun ecran de jeu avant le code",
+             page.eval_on_selector_all(".ecran:not(#retrouverPartie)", "e=>e.length") == 0)
+    verifier("aucun passage enregistre sans partie",
+             len(page.evaluate("window.__scans")) == 0)
+    diag = page.evaluate("window.__signalements")
+    verifier("un diagnostic part au tableau de bord",
+             len(diag) == 1 and diag[0]["categorie"] == "bug"
+             and "Bornes visitées en mémoire : non" in diag[0]["message"]
+             and len(diag[0]["message"]) <= 500, str(diag))
+    page.fill("#codeReprise", "NEUF0000"); page.click("#validerReprise")
+    page.wait_for_timeout(200)
+    verifier("code jamais active : refuse, pas ouvert",
+             page.is_visible("#erreurReprise") and page.evaluate(
+               "localStorage.getItem('sdb_session')") is None)
+    page.fill("#codeReprise", " k7npx4rt "); page.click("#validerReprise")
+    page.wait_for_timeout(600)
+    verifier("partie retrouvee, toujours sur la borne",
+             page.url.endswith(PARC["pages"]["E02"]), page.url)
+    verifier("la borne s'affiche",
+             page.eval_on_selector_all(".ecran", "e=>e.filter(x=>!x.hidden).length") == 1
+             and not page.is_visible("#codeReprise"))
+    verifier("le passage est enregistre", len(page.evaluate("window.__scans")) == 1)
+    page.close()
 
     # Le raccourci ne doit exister que pour les codes de test
     print("\nLe raccourci vers l'etape suivante")

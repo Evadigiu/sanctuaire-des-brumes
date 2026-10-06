@@ -53,6 +53,45 @@ async function activateCode(code, participantName, nbJoueurs) {
   return { ok: true, session };
 }
 
+/**
+ * Retrouve une partie DÉJÀ commencée, depuis une borne.
+ *
+ * La partie est rangée dans la mémoire du navigateur, et un QR code ne
+ * rouvre pas toujours le même navigateur : le lecteur de codes de l'iPhone,
+ * Google Lens ou un onglet privé ont chacun leur mémoire, vide. On demande
+ * alors le code à la base plutôt que de renvoyer le groupe à l'accueil.
+ *
+ * Le guichet reprendre_partie() n'ouvre jamais de partie neuve : un code
+ * pas encore activé doit passer par l'accueil (joueurs, consignes).
+ */
+async function reprendrePartie(code) {
+  const { data, error } = await supabaseClient.rpc("reprendre_partie", { p_code: code });
+
+  if (error) {
+    console.warn("Guichet de reprise injoignable :", error.message);
+    return { ok: false, message: "Erreur de connexion, réessayez dans un instant." };
+  }
+  if (!data || !data.ok) {
+    return {
+      ok: false,
+      pasCommencee: !!(data && data.pas_commencee),
+      message: (data && data.message)
+        || "Cette partie n'a pas pu être retrouvée. Adressez-vous à l'accueil du zoo.",
+    };
+  }
+
+  const session = {
+    codeId: data.code_id,
+    code: data.code,
+    direction: data.direction,
+    expiresAt: data.expires_at,
+    participantName: "",
+    nbJoueurs: null,
+  };
+  saveSession(session);
+  return { ok: true, session };
+}
+
 function saveSession(session) {
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
 }
