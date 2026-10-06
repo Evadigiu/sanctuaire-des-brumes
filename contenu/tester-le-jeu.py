@@ -37,7 +37,7 @@ def init(sens):
     noms = _j.loads(txt.split("const PARCOURS =", 1)[1].rstrip().rstrip(";"))["noms"]
     tous = _j.dumps([{"qr_points": {"label": n}} for n in noms.values()], ensure_ascii=False)
     return """
-    window.__scans = [];
+    window.__scans = []; window.__signalements = [];
     window.supabase = { createClient: () => ({
       // Depuis le correctif 6, le passage d'une borne s'enregistre par un
       // guichet (rpc) et non plus par une ecriture directe dans la table.
@@ -60,7 +60,8 @@ def init(sens):
       select: () => ({ eq: (...a) => (t === "scans"
                         ? Promise.resolve({ data: %s, error: null })
                         : ({ maybeSingle: async () => ({ data: { id: 'pt-1' } }) })) }),
-      insert: async (row) => { window.__scans.push(row); return {}; } }) }) };""" % tous + """
+      insert: async (row) => { (t === "signalements" ? window.__signalements
+                                 : window.__scans).push(row); return {}; } }) }) };""" % tous + """
     localStorage.setItem("sdb_session", JSON.stringify({
       codeId: "c1", code: "TEST", direction: "%s",
       expiresAt: "2099-01-01T00:00:00Z", participantName: "Test", nbJoueurs: 1 }));
@@ -154,6 +155,11 @@ with sync_playwright() as pw:
              page.eval_on_selector_all(".ecran:not(#retrouverPartie)", "e=>e.length") == 0)
     verifier("aucun passage enregistre sans partie",
              len(page.evaluate("window.__scans")) == 0)
+    diag = page.evaluate("window.__signalements")
+    verifier("un diagnostic part au tableau de bord",
+             len(diag) == 1 and diag[0]["categorie"] == "bug"
+             and "Bornes visitées en mémoire : non" in diag[0]["message"]
+             and len(diag[0]["message"]) <= 500, str(diag))
     page.fill("#codeReprise", "NEUF0000"); page.click("#validerReprise")
     page.wait_for_timeout(200)
     verifier("code jamais active : refuse, pas ouvert",

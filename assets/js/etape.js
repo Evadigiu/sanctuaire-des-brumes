@@ -138,6 +138,7 @@ function demarrerEtape() {
  * page se recharge sur la même borne, comme s'il venait de la scanner.
  */
 function proposerDeRetrouverLaPartie() {
+  signalerPartieIntrouvable();
   document.querySelectorAll(".ecran").forEach(e => e.remove());
   const timer = document.getElementById("timer");
   if (timer) timer.remove();
@@ -177,6 +178,42 @@ function proposerDeRetrouverLaPartie() {
     bouton.disabled = false;
     bouton.textContent = "Reprendre l'enquête";
   });
+}
+
+/**
+ * Une partie qui disparaît entre deux scans faits du même geste, on ne sait
+ * pas encore l'expliquer à coup sûr. Plutôt que de deviner, la borne laisse
+ * une trace dans les signalements du tableau de bord, sans rien demander au
+ * joueur. Deux indices départagent les explications :
+ *   - les bornes déjà visitées sont-elles encore en mémoire ? Si oui, seule
+ *     la partie a disparu, et c'est une affaire de code. Si non, toute la
+ *     mémoire est vide : la page s'est ouverte dans un autre navigateur, un
+ *     autre profil ou un onglet privé ;
+ *   - le navigateur annoncé : une application qui ouvre ses liens dans sa
+ *     propre fenêtre se reconnaît à son nom (CriOS, GSA, Instagram...).
+ */
+function signalerPartieIntrouvable() {
+  let traces = "?", ecrans = "?";
+  try { traces = localStorage.getItem(VISITES_KEY) ? "oui" : "non"; } catch (e) { traces = "illisible"; }
+  try {
+    ecrans = Object.keys(sessionStorage).filter(k => k.indexOf("sdb_ecran_") === 0).length;
+  } catch (e) { ecrans = "illisible"; }
+
+  const message = [
+    "Diagnostic automatique : partie introuvable à l'ouverture de la borne.",
+    "Bornes visitées en mémoire : " + traces,
+    "Écrans en mémoire dans cet onglet : " + ecrans,
+    "Pages dans cet onglet : " + history.length,
+    "Venue de : " + (document.referrer || "aucune page"),
+    "Navigateur : " + navigator.userAgent,
+  ].join("\n").slice(0, 500);
+
+  supabaseClient.from("signalements").insert({
+    code_id: null,
+    borne: document.body.getAttribute("data-borne"),
+    categorie: "bug",
+    message: message,
+  }).then(() => {}, () => {});
 }
 
 // ------------------------------------------------------------
