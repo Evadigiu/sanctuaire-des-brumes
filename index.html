@@ -168,6 +168,13 @@
 
   // Message d'erreur venant d'une redirection (session expirée, etc.)
   const params = new URLSearchParams(window.location.search);
+
+  // Venu d'une borne avec un code pas encore activé : on le garde saisi. On
+  // laisse l'écran d'accueil, que le groupe n'a pas encore lu.
+  if (params.get("code")) {
+    codeInput.value = params.get("code").trim().toUpperCase();
+    refreshButtonState();
+  }
   if (params.get("error") === "expired" || params.get("error") === "no_session") {
     accueil.hidden = true; saisie.hidden = false;
     errorBox.textContent = params.get("error") === "expired"
