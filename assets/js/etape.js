@@ -13,7 +13,27 @@ function demarrerEtape() {
   // Aucune partie dans ce navigateur : ce n'est pas forcément qu'il n'y en a
   // pas. Le QR a pu ouvrir un autre navigateur que celui du départ. On
   // propose de la retrouver ici, sans quitter la borne.
-  if (!getSession()) { proposerDeRetrouverLaPartie(); return; }
+  //
+  // Une partie au chrono écoulé compte comme absente. C'est le plus souvent
+  // le reste d'une partie précédente sur ce téléphone (un essai la veille) :
+  // la borne renvoyait alors à l'accueil avec « Votre session de jeu est
+  // terminée », et le groupe ne pouvait plus démarrer depuis un QR.
+  //
+  // Seulement pour un code de test : l'équipe remet ces codes à zéro entre
+  // deux essais. Un vrai joueur dont le temps est écoulé apprend que son
+  // enquête est finie, au lieu d'être invité à la redémarrer. Ce n'est pas
+  // le téléphone qui l'empêche de rejouer, c'est la base : elle refuse tout
+  // code dont les 3 h sont passées.
+  const trouvee = getSession();
+  if (trouvee && partieTerminee(trouvee) && !/^TEST/i.test(trouvee.code || "")) {
+    afficherPartieTerminee();
+    return;
+  }
+  if (!trouvee || partieTerminee(trouvee)) {
+    if (trouvee) oublierPartie();
+    proposerDeRetrouverLaPartie(!!trouvee);
+    return;
+  }
 
   const session = requireActiveSession();
   if (!session) return;
@@ -130,34 +150,38 @@ function demarrerEtape() {
 }
 
 /**
- * La borne s'ouvre sans partie en mémoire. Avant, on renvoyait le groupe à
- * l'accueil avec « Merci de démarrer l'enquête depuis cette page », alors
- * qu'il l'avait démarrée : il ne comprenait pas, et perdait sa borne.
+ * La borne s'ouvre sans partie en cours. Deux groupes arrivent ici :
+ *   - ceux qui n'ont pas encore démarré, parce qu'ils ont scanné le QR de
+ *     la borne au lieu de passer par l'accueil. C'est le cas le plus
+ *     fréquent, il passe donc en premier ;
+ *   - ceux dont le téléphone a perdu la partie en route. Ils ressaisissent
+ *     le code du billet et restent sur la borne.
  *
- * On lui demande son code ici même. La base rend la partie en cours, et la
- * page se recharge sur la même borne, comme s'il venait de la scanner.
+ * Avant, la borne renvoyait tout le monde à l'accueil avec un message
+ * d'erreur, y compris ceux qui n'avaient rien fait de travers.
  */
-function proposerDeRetrouverLaPartie() {
-  signalerPartieIntrouvable();
+function proposerDeRetrouverLaPartie(ancienneTrouvee) {
+  if (!ancienneTrouvee && !borneDeDepart()) signalerPartieIntrouvable();
   document.querySelectorAll(".ecran").forEach(e => e.remove());
   const timer = document.getElementById("timer");
   if (timer) timer.remove();
   brancherSecours();
 
+  const accueil = BASE_PATH + "index.html";
   const bloc = document.createElement("section");
   bloc.className = "ecran card";
   bloc.id = "retrouverPartie";
   bloc.innerHTML =
-    '<div class="ecran-titre">Retrouvons votre enquête</div>'
-    + '<p>Ce téléphone ne trouve pas votre partie en cours. Cela arrive quand '
-    + 'le QR code s\'ouvre dans un autre navigateur que celui du départ.</p>'
+    '<div class="ecran-titre">Votre enquête commence à l\'accueil</div>'
+    + '<p>Pour démarrer, munissez-vous du code inscrit sur votre billet.</p>'
+    + '<a href="' + accueil + '" class="btn" id="versAccueil">Démarrer l\'enquête</a>'
+    + '<p class="muted">Votre enquête est déjà en cours ? Saisissez votre code '
+    + 'pour la retrouver ici.</p>'
     + '<label for="codeReprise">Le code de votre billet</label>'
     + '<input type="text" id="codeReprise" autocomplete="off" autocapitalize="characters" '
     + 'spellcheck="false" placeholder="Ex. K7NPX4RT">'
     + '<div class="error-box visible" id="erreurReprise" hidden></div>'
-    + '<button id="validerReprise">Reprendre l\'enquête</button>'
-    + '<p class="muted">Pas encore commencé ? '
-    + '<a href="' + BASE_PATH + 'index.html">Démarrez depuis la page d\'accueil</a>.</p>';
+    + '<button class="btn-secondary" id="validerReprise">Reprendre mon enquête</button>';
   document.querySelector(".wrap").appendChild(bloc);
   bloc.hidden = false;
 
@@ -173,11 +197,47 @@ function proposerDeRetrouverLaPartie() {
     const result = await reprendrePartie(champ.value);
     if (result.ok) { window.location.reload(); return; }
 
+    // Un code jamais activé : le groupe n'a pas encore démarré. On l'envoie
+    // à l'accueil avec son code déjà saisi, plutôt que de lui opposer un refus.
+    if (result.pasCommencee) {
+      window.location.href = accueil + "?code=" + encodeURIComponent(champ.value.trim());
+      return;
+    }
+
     err.textContent = result.message;
     err.hidden = false;
     bouton.disabled = false;
-    bouton.textContent = "Reprendre l'enquête";
+    bouton.textContent = "Reprendre mon enquête";
   });
+}
+
+/**
+ * Le temps est écoulé pour un vrai billet. On le dit sur la borne même,
+ * sans renvoyer à l'accueil. Le lien sert aux visiteurs revenus un autre
+ * jour avec un nouveau billet : l'ancien code, lui, reste refusé par la base.
+ */
+function afficherPartieTerminee() {
+  document.querySelectorAll(".ecran").forEach(e => e.remove());
+  const timer = document.getElementById("timer");
+  if (timer) timer.remove();
+  brancherSecours();
+
+  const bloc = document.createElement("section");
+  bloc.className = "ecran card";
+  bloc.id = "partieTerminee";
+  bloc.innerHTML =
+    '<div class="ecran-titre">Votre enquête est terminée</div>'
+    + '<p>Les 3 heures de votre partie sont écoulées. Merci d\'avoir mené l\'enquête !</p>'
+    + '<p class="muted">Vous avez un nouveau billet ? '
+    + '<a href="' + BASE_PATH + 'index.html" id="nouveauBillet">Démarrez une nouvelle enquête</a>.</p>';
+  document.querySelector(".wrap").appendChild(bloc);
+  bloc.hidden = false;
+}
+
+/** La borne ouvre-t-elle le parcours, dans l'un des deux sens ? */
+function borneDeDepart() {
+  const c = document.body.getAttribute("data-etape");
+  return ["A", "B"].some(sens => PARCOURS.ordre[sens] && PARCOURS.ordre[sens][c] === 1);
 }
 
 /**

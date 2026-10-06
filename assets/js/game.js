@@ -93,7 +93,27 @@ async function reprendrePartie(code) {
 }
 
 function saveSession(session) {
+  // Une nouvelle partie sur un téléphone qui en a déjà joué une (un essai la
+  // veille, un billet acheté pour une seconde famille) : les bornes visitées
+  // la dernière fois ne doivent ni débloquer le parcours, ni servir de cible
+  // au bouton « Reprendre ».
+  const avant = getSession();
+  if (avant && avant.codeId !== session.codeId) {
+    try { localStorage.removeItem(VISITES_KEY); } catch (e) {}
+  }
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+}
+
+/** Une partie au chrono écoulé n'est plus une partie : on l'oublie. */
+function partieTerminee(session) {
+  return !!(session && session.expiresAt && new Date(session.expiresAt) <= new Date());
+}
+
+function oublierPartie() {
+  try {
+    localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(VISITES_KEY);
+  } catch (e) {}
 }
 
 function getSession() {

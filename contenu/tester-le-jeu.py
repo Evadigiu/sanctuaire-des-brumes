@@ -160,11 +160,11 @@ with sync_playwright() as pw:
              len(diag) == 1 and diag[0]["categorie"] == "bug"
              and "Bornes visitées en mémoire : non" in diag[0]["message"]
              and len(diag[0]["message"]) <= 500, str(diag))
-    page.fill("#codeReprise", "NEUF0000"); page.click("#validerReprise")
+    verifier("demarrer est propose", page.is_visible("#versAccueil"))
+    page.fill("#codeReprise", "zzzz"); page.click("#validerReprise")
     page.wait_for_timeout(200)
-    verifier("code jamais active : refuse, pas ouvert",
-             page.is_visible("#erreurReprise") and page.evaluate(
-               "localStorage.getItem('sdb_session')") is None)
+    verifier("code inconnu : message, on reste",
+             page.is_visible("#erreurReprise") and "/index.html" not in page.url)
     page.fill("#codeReprise", " k7npx4rt "); page.click("#validerReprise")
     page.wait_for_timeout(600)
     verifier("partie retrouvee, toujours sur la borne",
@@ -173,6 +173,81 @@ with sync_playwright() as pw:
              page.eval_on_selector_all(".ecran", "e=>e.filter(x=>!x.hidden).length") == 1
              and not page.is_visible("#codeReprise"))
     verifier("le passage est enregistre", len(page.evaluate("window.__scans")) == 1)
+    page.close()
+
+    # Code jamais active, saisi sur une borne : ce groupe n'a pas demarre.
+    # On l'envoie a l'accueil avec son code, sans rien activer en route.
+    page = nav.new_page(); page.add_init_script(sans_partie)
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E02"]))
+    page.wait_for_timeout(300)
+    page.fill("#codeReprise", "NEUF0000"); page.click("#validerReprise")
+    page.wait_for_timeout(500)
+    verifier("code neuf : renvoye a l'accueil", "/index.html?code=NEUF0000" in page.url, page.url)
+    verifier("code neuf : deja saisi a l'accueil",
+             page.input_value("#codeInput") == "NEUF0000")
+    verifier("code neuf : rien d'active en route",
+             page.evaluate("localStorage.getItem('sdb_session')") is None)
+    page.close()
+
+    # Le cas signale sur le terrain : un essai precedent a laisse une partie
+    # au chrono ecoule, puis on scanne directement le QR du commissaire. La
+    # borne renvoyait a l'accueil avec « session terminee » : impossible de
+    # demarrer depuis le QR.
+    print("\nUne ancienne partie expiree, puis le QR de la premiere borne")
+    page = nav.new_page(); page.add_init_script(sans_partie)
+    page.add_init_script("""
+      if (!sessionStorage.getItem("pose")) { sessionStorage.setItem("pose", "1");
+        localStorage.setItem("sdb_session", JSON.stringify({ codeId:"vieux", code:"TEST01",
+          direction:"horaire", expiresAt:"2020-01-01T00:00:00Z" }));
+        localStorage.setItem("sdb_visites", JSON.stringify(["E01","E02","E03","E04"])); }
+    """)
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E01"]))
+    page.wait_for_timeout(300)
+    verifier("on reste sur la borne", "/index.html" not in page.url, page.url)
+    verifier("demarrer est propose", page.is_visible("#versAccueil"))
+    verifier("l'ancienne partie est oubliee",
+             page.evaluate("localStorage.getItem('sdb_session') === null"
+                           " && localStorage.getItem('sdb_visites') === null"))
+    verifier("pas de diagnostic pour un depart normal",
+             len(page.evaluate("window.__signalements")) == 0)
+    page.click("#versAccueil"); page.wait_for_timeout(300)
+    verifier("le bouton mene a l'accueil", page.url.endswith("/index.html"), page.url)
+    verifier("aucun message d'erreur a l'accueil",
+             not page.is_visible("#errorBox.visible"))
+    page.close()
+
+    # Un vrai billet au temps ecoule : on ne l'invite pas a redemarrer.
+    page = nav.new_page(); page.add_init_script(sans_partie)
+    page.add_init_script("""
+      localStorage.setItem("sdb_session", JSON.stringify({ codeId:"c9", code:"K7NPX4RT",
+        direction:"horaire", expiresAt:"2020-01-01T00:00:00Z" }));
+    """)
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E01"]))
+    page.wait_for_timeout(300)
+    verifier("vrai billet expire : enquete terminee",
+             page.is_visible("#partieTerminee") and not page.is_visible("#versAccueil"))
+    verifier("vrai billet expire : aucun ecran de jeu",
+             page.eval_on_selector_all(".ecran:not(#partieTerminee)", "e=>e.length") == 0)
+    verifier("vrai billet expire : aucun passage enregistre",
+             len(page.evaluate("window.__scans")) == 0)
+    page.close()
+
+    # Une nouvelle partie efface les bornes visitees par la precedente.
+    page = nav.new_page(); page.add_init_script(sans_partie)
+    page.add_init_script("""
+      if (!sessionStorage.getItem("pose")) { sessionStorage.setItem("pose", "1");
+        localStorage.setItem("sdb_session", JSON.stringify({ codeId:"vieux", code:"X",
+          direction:"horaire", expiresAt:"2020-01-01T00:00:00Z" }));
+        localStorage.setItem("sdb_visites", JSON.stringify(["E01","E02","E03"])); }
+    """)
+    page.goto("http://127.0.0.1:%d/index.html" % PORT)
+    page.wait_for_timeout(200)
+    page.click("#versSaisie")
+    page.fill("#participantName", "Eva"); page.fill("#nbJoueurs", "2")
+    page.fill("#codeInput", "K7NPX4RT"); page.check("#acceptRules")
+    page.click("#startBtn"); page.wait_for_timeout(300)
+    verifier("nouvelle partie : anciennes visites effacees",
+             page.evaluate("localStorage.getItem('sdb_visites')") is None)
     page.close()
 
     # Le raccourci ne doit exister que pour les codes de test
