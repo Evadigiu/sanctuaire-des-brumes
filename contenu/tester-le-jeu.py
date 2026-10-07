@@ -187,6 +187,22 @@ with sync_playwright() as pw:
     # « precedent » de son telephone.
     # La lettre s'affichait des le scan : le joueur recevait la reponse avant
     # d'avoir leve les yeux. Elle passe derriere une question.
+    # Le cahier met "/" dans une case pour dire « rien ici ». Le generateur
+    # fabriquait quand meme l'ecran : une carte vide, deux boutons, et un
+    # Suivant a appuyer pour rien.
+    print("\nAucune borne n'affiche d'ecran vide")
+    vides = []
+    for code, page_borne in PARC["pages"].items():
+        page = nav.new_page(); page.add_init_script(init("horaire"))
+        page.goto("http://127.0.0.1:%d/%s" % (PORT, page_borne))
+        page.wait_for_timeout(250)
+        n = page.evaluate("""() => [...document.querySelectorAll('.ecran')].filter(
+              e => !e.querySelector('video, audio, img, input, p')).length""")
+        if n: vides.append("%s (%d)" % (code, n))
+        page.close()
+    verifier("toutes les bornes ont du contenu partout",
+             not vides, ", ".join(vides))
+
     print("\nL'enclos des loups ne donne plus la lettre d'emblee")
     for reponse, doit_voir in (("[data-indice-non]", True), ("[data-suivant]", False)):
         page = nav.new_page(); page.add_init_script(init("horaire"))

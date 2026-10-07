@@ -255,6 +255,30 @@ def fusionner_legendes(code, lg):
     return restant
 
 
+def ecran_vide(code, etape, lg):
+    """Un ecran qui n'aurait rien a montrer.
+
+    Le cahier met "/" dans une case pour dire « rien ici ». Le generateur
+    n'ecrivait alors pas de texte, mais fabriquait quand meme l'ecran : le
+    joueur tombait sur une carte vide avec deux boutons, et devait appuyer
+    sur Suivant pour rien. On ne le fabrique plus.
+
+    Un ecran qui porte un media, une epreuve, une legende, un plan ou une
+    note de chantier a du contenu, meme sans texte.
+    """
+    if lg["texte"] and lg["texte"] != "/":            return False
+    if lg.get("legende"):                             return False
+    if re.search(r"vid[ée]o|audio", lg["ecran"], re.I): return False
+    if "aller ensuite" in lg["ecran"].lower():        return False
+    if code in APPEL_AUDIO and lg["n"] == 1:          return False
+    if code in EPREUVE_REPONSE and lg["n"] == 3:      return False
+    if code in NON_CONSTRUIT and lg["n"] == 3:        return False
+    if etape["lettre"] and etape["lettre"] not in ("-", "/") and lg["n"] == 1 \
+       and code not in EPREUVE_REPONSE and code not in CONFIRMATION_INDICE:
+        return False
+    return True
+
+
 def bloc_confirmation(lettre):
     """L'ecran qui demande au joueur s'il a trouve, avant de lui dire."""
     return "\n".join([
@@ -477,6 +501,7 @@ for c in PAGES:
     et = etapes[c]
     lg = sorted(lignes.get(c, []), key=lambda x: (x["n"], x["sens"]))
     lg = fusionner_legendes(c, lg)
+    lg = [x for x in lg if not ecran_vide(c, et, x)]
     communs = [x for x in lg if x["sens"] == "les deux"]
     sorties = {s: [x for x in lg if x["sens"] == "sens " + s.lower()] for s in ("A", "B")}
 
