@@ -18,8 +18,8 @@ le jeu si le QR refuse de se lire.
 | E01 | LE COMMISSAIRE JEAN | Jardin des pivoines | 1 | 1 | **8055** | `https://enquete.pomelolab.fr/8055/` |
 | E02 | LA COLLÈGUE SOIGNEUSE | Bureau des soignants | 2 | 8 | **1965** | `https://enquete.pomelolab.fr/1965/` |
 | E16 | Greg, version sens B | au milieu | — | 2 | **8017** | `https://enquete.pomelolab.fr/8017/` |
-| E03 | Indice : les cameras de surveillance | Aire de pique-nique, face aux ours polaires | 3 | 7 | **3215** | `https://enquete.pomelolab.fr/3215/` |
-| E04 | Indice : les jumelles, la carcasse | Enclos des loups | 4 | 9 | **3208** | `https://enquete.pomelolab.fr/3208/` |
+| E03 | SOPHIE, CHEFFE DE LA SÉCURITÉ | Aire de pique-nique, face aux ours polaires | 3 | 7 | **3215** | `https://enquete.pomelolab.fr/3215/` |
+| E04 | L'ENCLOS DES LOUPS | Enclos des loups | 4 | 9 | **3208** | `https://enquete.pomelolab.fr/3208/` |
 | E05 | LA PASSANTE | Au dessus de l'enclos des loups | 5 | 10 | **6120** | `https://enquete.pomelolab.fr/6120/` |
 | E06 | QUIZ ANIMALIER | Panthère de l'amour | 6 | 11 | **8048** | `https://enquete.pomelolab.fr/8048/` |
 | E07 | VÉTÉRINAIRE | Forêt | 7 | 12 | **7157** | `https://enquete.pomelolab.fr/7157/` |
