@@ -194,7 +194,10 @@ POSTERS = {}
 # ------------------------------------------------------------
 CHEMINS = {
  ("E01", "A"): "chemin-e01-a.webp",
- ("E02", "A"): "chemin-e02-a.webp",
+ # ("E02", "A"): a refaire. L'ancien plan menait a la salle de seminaire,
+ #                 or la borne des cameras est passee a l'aire de pique-nique
+ #                 le 07/10/2026. Un plan faux envoie les joueurs ailleurs :
+ #                 mieux vaut aucun plan en attendant le nouveau.
 }
 
 

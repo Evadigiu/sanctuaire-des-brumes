@@ -333,7 +333,7 @@ with sync_playwright() as pw:
 
     print("\nDepuis l'ecran de sortie, on peut remonter jusqu'a la video")
     page = nav.new_page(); page.add_init_script(init("horaire"))
-    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E02"]))
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E01"]))
     page.wait_for_timeout(400)
     for _ in range(6):
         b = page.query_selector(".ecran:not([hidden]) [data-suivant]")

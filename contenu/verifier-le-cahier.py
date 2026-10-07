@@ -58,6 +58,7 @@ def main():
         if not c: continue
         textes.setdefault(c, []).append({
             "sens": propre(r[2]).lower(), "ecran": propre(r[3]), "texte": propre(r[5]),
+            "titre": propre(r[1]),
         })
 
     pb, av = [], []
@@ -141,6 +142,19 @@ def main():
             ec = t["ecran"].lower()
             if "video" in ec or "vidéo" in ec or "finish" in ec: continue
             av.append("%s : ecran \"%s\" sans texte." % (c, t["ecran"]))
+
+    # Le titre de la borne figure dans les DEUX onglets : colonne "Nom de
+    # l'etape" du Parcours, et colonne "Etape" des Textes. Seul le premier
+    # s'affiche dans le jeu. Renommer dans le second ne change donc rien, et
+    # rien ne le dit : on a deja perdu une matinee la-dessus.
+    for c, lignes in textes.items():
+        if c not in etapes: continue
+        vus = {t["titre"] for t in lignes if t["titre"]}
+        ecarts = {v for v in vus if v != etapes[c]["nom"]}
+        if ecarts:
+            av.append("%s : le titre differe entre les deux onglets. Parcours dit \"%s\", "
+                      "Textes dit \"%s\". C'est le Parcours qui s'affiche dans le jeu."
+                      % (c, etapes[c]["nom"], '", "'.join(sorted(ecarts))))
 
     # ---------- rapport ----------
     print("=" * 78)
