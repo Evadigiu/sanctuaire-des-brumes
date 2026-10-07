@@ -117,6 +117,20 @@ FICHIER = {c: "%d/" % secours[c] for c in PAGES}
 # ============================================================
 EPREUVE_REPONSE = {"E08": ("11", "S")}   # etape -> (bonne reponse, lettre debloquee)
 APPEL_AUDIO     = {"E12"}
+
+# ------------------------------------------------------------
+# LES BORNES OU L'ON CHERCHE AVANT DE SAVOIR
+#
+# Sur ces bornes, la lettre s'affichait des le scan : le joueur recevait la
+# reponse avant d'avoir leve les yeux, et l'enigme posee juste au-dessus
+# devenait decorative.
+#
+# La lettre passe donc derriere une question. Qui a trouve repond oui et
+# continue ; qui n'a pas trouve repond non et obtient la lettre. On ne
+# bloque personne : un groupe coince devant un enclos de loups un dimanche
+# de novembre abandonne, il ne cherche pas plus longtemps.
+# ------------------------------------------------------------
+CONFIRMATION_INDICE = {"E04"}
 # ============================================================
 # LES MEDIAS (videos et audio)
 #
@@ -238,6 +252,27 @@ def fusionner_legendes(code, lg):
     return restant
 
 
+def bloc_confirmation(lettre):
+    """L'ecran qui demande au joueur s'il a trouve, avant de lui dire."""
+    return "\n".join([
+        '<section class="ecran card" data-confirmation hidden>',
+        '  <p>Avez-vous bien trouvé l\'indice caché ?</p>',
+        '  <div data-indice-choix>',
+        '    <button data-suivant>Oui</button>',
+        '    <button class="btn-secondary" data-indice-non>Non, montrez-le moi</button>',
+        '  </div>',
+        '  <div data-indice-revele hidden>',
+        '    <div class="card indice">',
+        '      <div class="eyebrow">Vous avez trouvé une lettre</div>',
+        '      <p class="lettre">%s</p>' % e(lettre),
+        '    </div>',
+        '    <button data-suivant>Suivant</button>',
+        '  </div>',
+        '  <button class="btn-secondary" data-retour>Revenir en arrière</button>',
+        '</section>',
+    ])
+
+
 def bloc_ecran(etape, lg, dernier, sens_attr):
     """Un ecran = une carte. sens_attr vaut None, 'A' ou 'B'."""
     c, lib, txt = etape["code"], lg["ecran"], lg["texte"]
@@ -297,7 +332,8 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
         h.append('    <div class="eyebrow">Vous avez trouvé une lettre</div>')
         h.append('    <p class="lettre">%s</p>' % e(lettre))
         h.append('  </div>')
-    elif etape["lettre"] and etape["lettre"] not in ("-", "/") and lg["n"] == 1 and c not in EPREUVE_REPONSE:
+    elif (etape["lettre"] and etape["lettre"] not in ("-", "/") and lg["n"] == 1
+          and c not in EPREUVE_REPONSE and c not in CONFIRMATION_INDICE):
         h.append('  <div class="card indice">')
         h.append('    <div class="eyebrow">Vous avez trouvé une lettre</div>')
         h.append('    <p class="lettre">%s</p>' % e(etape["lettre"]))
@@ -445,6 +481,9 @@ for c in PAGES:
     for i, x in enumerate(communs):
         dernier = (i == len(communs) - 1) and not (sorties["A"] or sorties["B"])
         blocs.append(bloc_ecran(et, x, dernier, None))
+    if c in CONFIRMATION_INDICE and et["lettre"]:
+        blocs.append(bloc_confirmation(et["lettre"]))
+
     for s in ("A", "B"):
         for x in sorties[s]:
             suite = et["suite" + s]
