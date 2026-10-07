@@ -185,6 +185,32 @@ with sync_playwright() as pw:
     # retour. C'est pourtant celui ou le joueur reste le plus longtemps : une
     # fois arrive la, il ne pouvait plus revoir la video sans le bouton
     # « precedent » de son telephone.
+    # La lettre s'affichait des le scan : le joueur recevait la reponse avant
+    # d'avoir leve les yeux. Elle passe derriere une question.
+    print("\nL'enclos des loups ne donne plus la lettre d'emblee")
+    for reponse, doit_voir in (("[data-indice-non]", True), ("[data-suivant]", False)):
+        page = nav.new_page(); page.add_init_script(init("horaire"))
+        page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E04"]))
+        page.wait_for_timeout(400)
+        libelle = "Non" if doit_voir else "Oui"
+        verifier("%s : pas de lettre au premier ecran" % libelle,
+                 page.query_selector(".ecran:not([hidden]) .lettre") is None)
+        page.click(".ecran:not([hidden]) [data-suivant]"); page.wait_for_timeout(200)
+        verifier("%s : la question est posee" % libelle,
+                 "trouvé l'indice" in (page.text_content(".ecran:not([hidden])") or ""))
+        verifier("%s : la lettre est encore cachee" % libelle,
+                 not page.is_visible(".ecran:not([hidden]) .lettre"))
+        page.click(".ecran:not([hidden]) " + reponse); page.wait_for_timeout(250)
+        if doit_voir:
+            verifier("Non : la lettre R apparait",
+                     page.is_visible(".ecran:not([hidden]) .lettre")
+                     and (page.text_content(".ecran:not([hidden]) .lettre") or "").strip() == "R")
+        else:
+            verifier("Oui : on passe a la suite sans la lettre",
+                     page.query_selector(".ecran:not([hidden]) .plan-chemin") is not None
+                     or "Où aller" in (page.text_content(".ecran:not([hidden])") or ""))
+        page.close()
+
     print("\nDepuis l'ecran de sortie, on peut remonter jusqu'a la video")
     page = nav.new_page(); page.add_init_script(init("horaire"))
     page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E02"]))

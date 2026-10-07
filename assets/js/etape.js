@@ -119,6 +119,7 @@ function demarrerEtape() {
     }
   }
 
+  brancherConfirmationIndice();
   afficher(courant);
   brancherSecours();
   brancherRetourAMaBorne();
@@ -195,6 +196,27 @@ function afficherProgression(sens) {
   if (compte) compte.textContent = n + " / " + total;
 
   zone.hidden = false;
+}
+
+/**
+ * L'écran qui demande au joueur s'il a trouvé l'indice avant de le lui
+ * donner. « Oui » se comporte comme un bouton Suivant ordinaire ; « Non »
+ * révèle la lettre, puis laisse continuer.
+ *
+ * On ne bloque jamais : un groupe coincé devant un enclos un dimanche de
+ * novembre abandonne, il ne cherche pas plus longtemps.
+ */
+function brancherConfirmationIndice() {
+  document.querySelectorAll("[data-confirmation]").forEach(zone => {
+    const non    = zone.querySelector("[data-indice-non]");
+    const choix  = zone.querySelector("[data-indice-choix]");
+    const revele = zone.querySelector("[data-indice-revele]");
+    if (!non || !choix || !revele) return;
+    non.addEventListener("click", () => {
+      choix.hidden = true;
+      revele.hidden = false;
+    });
+  });
 }
 
 function epreuveReponse(idChamp, idBouton, bonneReponse, idResultat) {
