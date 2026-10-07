@@ -25,7 +25,7 @@ insert into qr_points (label, type) values
   ('LE COMMISSAIRE JEAN', 'temoin')                     ,  -- E01, Jardin des pivoines
   ('LA COLLÈGUE SOIGNEUSE', 'temoin')                   ,  -- E02, Bureau des soignants
   ('Greg, version sens B', 'temoin')                    ,  -- E16, au milieu
-  ('Indice : les cameras de surveillance', 'side_quest'),  -- E03, Salle de seminaire
+  ('Indice : les cameras de surveillance', 'side_quest'),  -- E03, Aire de pique-nique, face aux ours polaires
   ('Indice : les jumelles, la carcasse', 'side_quest')  ,  -- E04, Enclos des loups
   ('LA PASSANTE', 'temoin')                             ,  -- E05, Au dessus de l'enclos des loups
   ('QUIZ ANIMALIER', 'side_quest')                      ,  -- E06, Panthère de l'amour
