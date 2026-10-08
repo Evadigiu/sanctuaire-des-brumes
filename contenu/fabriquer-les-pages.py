@@ -170,6 +170,23 @@ APPEL_AUDIO     = {"E12"}
 # de novembre abandonne, il ne cherche pas plus longtemps.
 # ------------------------------------------------------------
 CONFIRMATION_INDICE = {"E04"}
+
+# ------------------------------------------------------------
+# LE TEMPS DE REPONSE DU QUIZ
+#
+# Une question apparait, le groupe a ce nombre de secondes pour repondre,
+# puis elle se verrouille et montre la bonne reponse. Elle reste affichee
+# jusqu'a l'arrivee de la suivante, qui la remplace.
+#
+# Ce compte a rebours suit le temps de la VIDEO, pas l'horloge du telephone.
+# Sur le reseau d'un parc, une video qui se recharge aurait sinon mange les
+# dix secondes sans que personne ait rien lu.
+#
+# Consequence a surveiller dans le cahier : deux questions separees de moins
+# de SECONDES_POUR_REPONDRE + 3 se coupent la parole. verifier-le-cahier.py
+# le signale.
+# ------------------------------------------------------------
+SECONDES_POUR_REPONDRE = 10
 # ============================================================
 # LES MEDIAS (videos et audio)
 #
@@ -344,20 +361,29 @@ def bloc_quiz(code, lettre):
     """Les questions affichees SOUS la video, pendant qu'elle tourne.
 
     Elles sont toutes dans la page des le depart, mais cachees : etape.js
-    les devoile une par une selon la minute de la video.
+    n'en montre qu'une a la fois, celle que la video vient d'atteindre. La
+    suivante remplace la precedente.
 
-    Chaque question revelee RESTE a l'ecran. On aurait pu la remplacer par
-    la suivante, c'etait plus propre a regarder ; mais un groupe de quatre
-    qui discute aurait vu sa question disparaitre au milieu de la phrase.
-    Elles s'empilent donc, et personne ne perd sa question.
+    Chaque question a SECONDES_POUR_REPONDRE secondes. Passe ce delai elle
+    se verrouille et montre la bonne reponse : un groupe qui n'a pas eu le
+    temps perd le point, mais apprend quand meme quelque chose. C'est un
+    quiz pedagogique, le silence serait une occasion perdue.
     """
-    h = ['<div class="quiz" data-quiz hidden>']
+    h = ['<div class="quiz" data-quiz data-delai="%d" hidden>' % SECONDES_POUR_REPONDRE]
     for i, q in enumerate(quiz[code]):
         h.append('  <div class="quiz-question" data-question data-t="%d" '
                  'data-bonne="%d" hidden>' % (q["t"], q["bonne"]))
         h.append('    <div class="quiz-numero">Question %d sur %d</div>'
                  % (i + 1, len(quiz[code])))
         h.append('    <p class="quiz-intitule">%s</p>' % e(q["question"]))
+        # Le compte a rebours. La barre se vide, le nombre dit combien il
+        # reste : la barre se lit sans lire, le nombre leve le doute sur un
+        # ecran de telephone au soleil.
+        h.append('    <div class="quiz-chrono" data-chrono>')
+        h.append('      <div class="quiz-chrono-barre"><span></span></div>')
+        h.append('      <div class="quiz-chrono-reste" data-reste>%d s</div>'
+                 % SECONDES_POUR_REPONDRE)
+        h.append('    </div>')
         for n, prop in enumerate(q["props"]):
             h.append('    <button class="quiz-prop" data-prop="%d">%s</button>'
                      % (n, e(prop)))

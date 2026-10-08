@@ -34,10 +34,14 @@
        MEDIA_BASE. Ne jamais mettre la vidéo dans le dépôt. -->
   <video controls playsinline class="video-paysage" data-quiz-video poster=""><source src="" type="video/mp4">
   Votre navigateur ne supporte pas la vidéo.</video>
-<div class="quiz" data-quiz hidden>
+<div class="quiz" data-quiz data-delai="10" hidden>
   <div class="quiz-question" data-question data-t="15" data-bonne="2" hidden>
     <div class="quiz-numero">Question 1 sur 3</div>
     <p class="quiz-intitule">EXEMPLE — Combien de temps dort une panthère de l&#x27;Amour par jour ?</p>
+    <div class="quiz-chrono" data-chrono>
+      <div class="quiz-chrono-barre"><span></span></div>
+      <div class="quiz-chrono-reste" data-reste>10 s</div>
+    </div>
     <button class="quiz-prop" data-prop="0">6 heures</button>
     <button class="quiz-prop" data-prop="1">12 heures</button>
     <button class="quiz-prop" data-prop="2">18 heures</button>
@@ -46,6 +50,10 @@
   <div class="quiz-question" data-question data-t="48" data-bonne="0" hidden>
     <div class="quiz-numero">Question 2 sur 3</div>
     <p class="quiz-intitule">EXEMPLE — Que mange-t-elle en priorité dans la nature ?</p>
+    <div class="quiz-chrono" data-chrono>
+      <div class="quiz-chrono-barre"><span></span></div>
+      <div class="quiz-chrono-reste" data-reste>10 s</div>
+    </div>
     <button class="quiz-prop" data-prop="0">Des cerfs</button>
     <button class="quiz-prop" data-prop="1">Des poissons</button>
     <button class="quiz-prop" data-prop="2">Des baies</button>
@@ -54,6 +62,10 @@
   <div class="quiz-question" data-question data-t="80" data-bonne="0" hidden>
     <div class="quiz-numero">Question 3 sur 3</div>
     <p class="quiz-intitule">EXEMPLE — Combien en reste-t-il à l&#x27;état sauvage ?</p>
+    <div class="quiz-chrono" data-chrono>
+      <div class="quiz-chrono-barre"><span></span></div>
+      <div class="quiz-chrono-reste" data-reste>10 s</div>
+    </div>
     <button class="quiz-prop" data-prop="0">Moins de 150</button>
     <button class="quiz-prop" data-prop="1">Environ 3 000</button>
     <button class="quiz-prop" data-prop="2">Plus de 10 000</button>

@@ -382,17 +382,21 @@ function brancherConfirmationIndice() {
  * tout l'intérêt, et c'est pour ça que cette vidéo reste dans la page au
  * lieu de partir en plein écran.
  *
+ * Une question à la fois : la suivante remplace la précédente. Le groupe a
+ * dix secondes pour répondre, après quoi la question se verrouille et
+ * montre la bonne réponse — il perd le point, mais il apprend quand même.
+ *
  * Trois décisions qui ne sautent pas aux yeux :
  *
- * 1. Les questions s'EMPILENT au lieu de se remplacer. Un groupe de quatre
- *    qui discute ne doit pas voir sa question disparaître au milieu de la
- *    phrase parce que la vidéo a avancé.
+ * 1. Tout le minutage vient du temps de la VIDÉO, jamais de l'horloge du
+ *    téléphone. Sur le réseau d'un parc, une vidéo qui se recharge aurait
+ *    sinon mangé les dix secondes sans que personne ait rien lu. Contrepartie
+ *    assumée : un groupe qui met la vidéo en pause arrête aussi le chrono.
  *
- * 2. L'affichage est recalculé à chaque battement depuis le temps de la
- *    vidéo, et jamais déclenché « une fois pour toutes ». Un joueur qui
- *    revient en arrière dans la vidéo retrouve donc l'écran cohérent, et
- *    une lecture qui saute (le réseau d'un parc saute) ne perd aucune
- *    question au passage.
+ * 2. L'affichage est recalculé à chaque battement depuis ce temps, et jamais
+ *    déclenché « une fois pour toutes ». Un joueur qui revient en arrière
+ *    dans la vidéo retrouve donc l'écran cohérent, et une lecture qui saute
+ *    ne perd aucune question au passage.
  *
  * 3. Le bouton « Suivant » attend la fin du quiz, SAUF si la vidéo refuse
  *    de se charger. Une vidéo muette ne doit jamais enfermer un groupe.
@@ -409,98 +413,138 @@ function brancherQuizVideo() {
   const suivant   = ecran && ecran.querySelector("[data-quiz-suivant]");
   if (!questions.length) return;
 
+  const DELAI = parseFloat(zone.getAttribute("data-delai")) || 10;
   let justes = 0, repondues = 0, fini = false;
+
+  const depart   = q => parseFloat(q.getAttribute("data-t"));
+  const echeance = q => depart(q) + DELAI;
+  const close    = q => q.hasAttribute("data-repondu") || q.hasAttribute("data-expiree");
+
+  /** Bloque les propositions et souligne la bonne. */
+  function verrouiller(q) {
+    const bonne = parseInt(q.getAttribute("data-bonne"), 10);
+    q.querySelectorAll(".quiz-prop").forEach((b, m) => {
+      b.disabled = true;
+      if (m === bonne) b.classList.add("est-bonne");
+    });
+    const chrono = q.querySelector("[data-chrono]");
+    if (chrono) chrono.hidden = true;
+  }
+
+  function direVerdict(q, texte, classe) {
+    const v = q.querySelector("[data-verdict]");
+    if (!v) return;
+    v.textContent = texte;
+    v.className = "quiz-verdict " + classe;
+    v.hidden = false;
+  }
 
   // --- Répondre à une question ---------------------------------------
   questions.forEach(q => {
     const bonne = parseInt(q.getAttribute("data-bonne"), 10);
-    const props = Array.from(q.querySelectorAll(".quiz-prop"));
-    const verdict = q.querySelector("[data-verdict]");
-
-    props.forEach((bouton, n) => {
+    q.querySelectorAll(".quiz-prop").forEach((bouton, n) => {
       bouton.addEventListener("click", () => {
-        if (q.hasAttribute("data-repondu")) return;   // une seule réponse
+        if (close(q)) return;            // une seule réponse, et pas après l'heure
         q.setAttribute("data-repondu", "");
         repondues++;
-
-        props.forEach((autre, m) => {
-          autre.disabled = true;
-          if (m === bonne) autre.classList.add("est-bonne");
-        });
+        verrouiller(q);
+        bouton.classList.add("est-choisie");
         if (n === bonne) {
           justes++;
-          bouton.classList.add("est-choisie");
-          if (verdict) {
-            verdict.textContent = "Bonne réponse.";
-            verdict.className = "quiz-verdict quiz-juste";
-            verdict.hidden = false;
-          }
+          direVerdict(q, "Bonne réponse.", "quiz-juste");
         } else {
-          bouton.classList.add("est-fausse", "est-choisie");
-          if (verdict) {
-            verdict.textContent = "Ce n'était pas la bonne réponse.";
-            verdict.className = "quiz-verdict quiz-faux";
-            verdict.hidden = false;
-          }
+          bouton.classList.add("est-fausse");
+          direVerdict(q, "Ce n'était pas la bonne réponse.", "quiz-faux");
         }
         majScore();
-        if (repondues === questions.length) {
-          terminer();
-          // La lettre est la récompense, et elle arrive sous le pli. On y
-          // emmène le groupe — mais seulement maintenant, quand il a fini :
-          // déplacer l'écran pendant qu'il délibère sur une question serait
-          // le contraire d'un service.
-          if (bilan) { try { bilan.scrollIntoView({ behavior: "smooth",
-                                                    block: "nearest" }); }
-                       catch (e) { } }
-        }
+        if (repondues === questions.length) finir();
       });
     });
   });
 
+  /* Le compte à rebours d'une question, et sa fin.
+     Rien n'est déclenché par un minuteur : on relit le temps de la vidéo et
+     on en déduit l'état. Une vidéo qui se recharge fige donc le compte à
+     rebours au lieu de le laisser filer dans le vide. */
+  function majChrono(q, t) {
+    const reste  = Math.max(0, echeance(q) - t);
+    const chrono = q.querySelector("[data-chrono]");
+
+    if (reste <= 0 && !close(q)) {
+      q.setAttribute("data-expiree", "");
+      verrouiller(q);
+      // On nomme la bonne réponse plutôt que de la désigner : « elle est
+      // soulignée » suppose qu'on repère un trait vert sur un téléphone en
+      // plein jour, et la question disparaît dans quelques secondes.
+      const bonne = q.querySelectorAll(".quiz-prop")[
+                      parseInt(q.getAttribute("data-bonne"), 10)];
+      direVerdict(q, "Temps écoulé. La bonne réponse était « "
+                   + (bonne ? bonne.textContent : "") + " ».", "quiz-faux");
+      return;
+    }
+    if (close(q) || !chrono) return;
+
+    chrono.hidden = false;
+    const barre = chrono.querySelector(".quiz-chrono-barre span");
+    const texte = chrono.querySelector("[data-reste]");
+    if (barre) barre.style.width = (reste / DELAI * 100) + "%";
+    if (texte) texte.textContent = Math.ceil(reste) + " s";
+    chrono.classList.toggle("quiz-chrono-urgent", reste <= 3);
+  }
+
   // --- Dérouler les questions au rythme de la vidéo -------------------
   function majAffichage() {
+    // Une fois le bilan tombé, la vidéo peut continuer à battre la mesure :
+    // elle ne doit plus faire réapparaître de question derrière la lettre.
+    if (fini) return;
     const t = video ? video.currentTime : 0;
-    questions.forEach(q => {
-      if (q.hidden && t >= parseFloat(q.getAttribute("data-t"))) {
-        q.hidden = false;
-        // block: "nearest" ne bouge l'écran que si la question est hors
-        // de vue : la vidéo ne saute pas sous les yeux du joueur à chaque
-        // nouvelle question.
-        try { q.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
-        catch (e) { }
-      }
-    });
+    // La question en cours est la dernière que la vidéo ait atteinte. Les
+    // autres disparaissent : c'est le parti pris du jeu, une question à la
+    // fois, et tant pis pour qui n'a pas levé les yeux.
+    let courante = null;
+    questions.forEach(q => { if (t >= depart(q)) courante = q; });
+
+    questions.forEach(q => { q.hidden = (q !== courante); });
+    if (courante) majChrono(courante, t);
+
+    // Toutes les questions sont passées et leur délai est écoulé : il n'y a
+    // plus rien à attendre de la vidéo, le bilan peut tomber.
+    const derniere = questions[questions.length - 1];
+    if (t >= echeance(derniere)) finir();
   }
 
   /* Le compte des bonnes réponses.
 
      Il se recalcule à chaque réponse, y compris APRÈS l'affichage du bilan.
-     Sans cela, un groupe qui laisse la vidéo se terminer avant de répondre
-     aux dernières questions voit son score figé à ce moment-là : il répond
-     juste, le jeu lui dit « bonne réponse », et le total ne bouge pas. */
+     Sans cela, un groupe qui répond à la dernière question au moment où le
+     bilan s'affiche voit son score figé : le jeu lui dit « bonne réponse »,
+     et le total ne bouge pas. */
   function majScore() {
     if (!score) return;
-    if (repondues === questions.length && justes === questions.length) {
-      score.textContent = "Sans faute : " + justes + " bonnes réponses sur "
-                        + questions.length + ".";
+    const n = questions.length;
+    if (justes === n) {
+      score.textContent = "Sans faute : " + justes + " bonnes réponses sur " + n + ".";
       return;
     }
     const pluriel = justes > 1 ? "s" : "";
     score.textContent = "Vous avez " + justes + " bonne" + pluriel
-                      + " réponse" + pluriel + " sur " + questions.length
-                      + (repondues === questions.length ? "." : " pour l'instant.");
+                      + " réponse" + pluriel + " sur " + n + ".";
   }
 
-  function terminer() {
+  function finir() {
     if (fini) return;
     fini = true;
-    // Toutes les questions sont révélées : un groupe qui a tout répondu
-    // avant la fin de la vidéo ne doit pas rater les dernières, et un
-    // groupe que la vidéo a devancé doit pouvoir finir de répondre.
-    questions.forEach(q => { q.hidden = false; });
+    questions.forEach(q => {
+      if (!close(q)) { q.setAttribute("data-expiree", ""); verrouiller(q); }
+      q.hidden = true;
+    });
     majScore();
-    if (bilan) bilan.hidden = false;
+    if (bilan) {
+      bilan.hidden = false;
+      // La lettre est la récompense, et elle arrive sous le pli.
+      try { bilan.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
+      catch (e) { }
+    }
     libererSuivant();
   }
 
@@ -512,13 +556,16 @@ function brancherQuizVideo() {
      Ce chemin-là n'est pas un cas d'école : tant que le fichier n'est pas
      chargé chez l'hébergeur, c'est le comportement normal de la borne. Et
      le jour du jeu, une vidéo qui ne descend pas sur le réseau d'un parc
-     est l'incident le plus probable de tous. On montre alors les questions
-     et la sortie, plutôt que de laisser un groupe devant un rectangle noir
-     avec un bouton « Suivant » invisible. */
+     est l'incident le plus probable de tous. On montre alors la première
+     question sans compte à rebours — il n'y a plus d'horloge pour le faire
+     courir — et la sortie, plutôt que de laisser un groupe devant un
+     rectangle noir avec un bouton « Suivant » invisible. */
   let filet = null;
   function ouvrirSansVideo() {
     zone.hidden = false;
-    questions.forEach(q => { q.hidden = false; });
+    questions[0].hidden = false;
+    const chrono = questions[0].querySelector("[data-chrono]");
+    if (chrono) chrono.hidden = true;
     libererSuivant();
   }
 
@@ -537,8 +584,8 @@ function brancherQuizVideo() {
     try { video.load(); } catch (e) { }
     // Dernier filet, si rien ne se produit du tout — ni lecture, ni erreur.
     // Celui-ci ne montre PAS les questions : un groupe qui n'a pas encore
-    // appuyé sur lecture ne doit pas les voir arriver toutes les trois d'un
-    // coup. Il rend seulement la sortie, pour que personne ne reste enfermé.
+    // appuyé sur lecture ne doit pas voir le quiz démarrer sans lui. Il rend
+    // seulement la sortie, pour que personne ne reste enfermé.
     filet = setTimeout(libererSuivant, 25000);
 
     // Le cadre d'attente est un 16/9 ; dès que les vraies dimensions sont
@@ -546,6 +593,7 @@ function brancherQuizVideo() {
     video.addEventListener("loadedmetadata", () => {
       video.style.aspectRatio = "auto";
     }, { once: true });
+
     // Les questions n'apparaissent qu'à la lecture : avant d'appuyer sur
     // play, l'écran ne doit pas être un mur de questions sans contexte.
     video.addEventListener("play", () => {
@@ -555,7 +603,7 @@ function brancherQuizVideo() {
     });
     video.addEventListener("timeupdate", majAffichage);
     video.addEventListener("seeked", majAffichage);
-    video.addEventListener("ended", terminer);
+    video.addEventListener("ended", finir);
     video.addEventListener("error", ouvrirSansVideo);
   } else {
     ouvrirSansVideo();

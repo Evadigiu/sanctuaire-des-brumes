@@ -198,13 +198,36 @@ def main():
             if "EXEMPLE" in propre(r[2]).upper():
                 av.append("%s : question d'exemple encore en place, a remplacer." % ou)
             if sec is not None:
-                if sec in vus.get(c, set()):
-                    av.append("%s : deux questions a la meme seconde (%s). "
-                              "Elles s'afficheront en meme temps." % (ou, t))
-                vus.setdefault(c, set()).add(sec)
+                vus.setdefault(c, []).append((sec, i, t))
             if sec == 0:
                 av.append("%s : question annoncee a 0:00, donc visible avant "
                           "que la video ait rien montre." % ou)
+
+        # Une question laisse DELAI secondes pour repondre, puis montre la
+        # bonne reponse. Si la suivante arrive avant, elle coupe la parole :
+        # le groupe n'a pas eu ses dix secondes, et il ne verra jamais la
+        # reponse. Ca ne se voit pas a la fabrication, seulement sur place.
+        DELAI, LECTURE = 10, 3
+        for c, liste in vus.items():
+            liste.sort()
+            for (s1, i1, t1), (s2, i2, t2) in zip(liste, liste[1:]):
+                ecart = s2 - s1
+                if ecart == 0:
+                    pb.append("onglet Quiz, lignes %d et %d : deux questions a "
+                              "%s. Il n'en restera qu'une." % (i1, i2, t1))
+                elif ecart < DELAI + LECTURE:
+                    av.append("onglet Quiz, lignes %d et %d : seulement %d s "
+                              "entre %s et %s. Il en faut %d (les %d s pour "
+                              "repondre, plus le temps de lire la bonne "
+                              "reponse)." % (i1, i2, ecart, t1, t2,
+                                             DELAI + LECTURE, DELAI))
+            # La derniere question a besoin du meme repit avant la fin de la
+            # video. On ne connait pas sa duree ici, donc on le rappelle.
+            dernier = liste[-1]
+            av.append("onglet Quiz : la derniere question de %s apparait a %s. "
+                      "Verifier qu'il reste au moins %d s de video apres, "
+                      "sinon le groupe n'aura pas ses %d s." 
+                      % (c, dernier[2], DELAI + LECTURE, DELAI))
 
         # Une borne annoncee comme quiz mais sans aucune question part en
         # silence : l'ecran s'ouvre, la video tourne, et rien ne vient.

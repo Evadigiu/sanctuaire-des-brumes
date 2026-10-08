@@ -386,6 +386,42 @@ video {
 .quiz-prop.est-fausse { border-color: var(--red); }
 .quiz-prop.est-choisie { font-weight: 700; }
 
+/* Le compte a rebours de la question. La barre se lit d'un coup d'oeil,
+   le nombre leve le doute sur un ecran de telephone en plein jour. Les
+   trois dernieres secondes passent au rouge : c'est le seul moment du jeu
+   ou l'on presse quelqu'un, autant que ca se voie. */
+.quiz-chrono {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.quiz-chrono-barre {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--hair);
+  overflow: hidden;
+}
+.quiz-chrono-barre span {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: var(--gold);
+  /* La video ne donne son temps que quatre fois par seconde : sans cette
+     transition, la barre avancerait par a-coups visibles. */
+  transition: width 0.25s linear, background 0.2s;
+}
+.quiz-chrono-reste {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--fog);
+  min-width: 3.2em;
+  text-align: right;
+}
+.quiz-chrono-urgent .quiz-chrono-barre span { background: var(--red); }
+.quiz-chrono-urgent .quiz-chrono-reste { color: var(--red); }
+
 .quiz-verdict { margin: 12px 0 0; font-size: 0.9rem; }
 .quiz-juste { color: var(--green); }
 .quiz-faux  { color: var(--red); }
