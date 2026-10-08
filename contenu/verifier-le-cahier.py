@@ -8,7 +8,7 @@ tableur se contredit lui-meme.
 
     python3 contenu/verifier-le-cahier.py
 """
-import os, sys, unicodedata
+import os, re, sys, unicodedata
 from openpyxl import load_workbook
 
 FICHIER = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -22,6 +22,24 @@ def sans_accent(t):
     doivent se reconnaitre, sinon une faute d'accent masque une erreur reelle."""
     d = unicodedata.normalize("NFKD", t.lower())
     return "".join(c for c in d if not unicodedata.combining(c))
+
+def delai_de_reponse():
+    """Le nombre de secondes laissees au groupe, lu dans le generateur.
+
+    Cette valeur est ecrite a un seul endroit, SECONDES_POUR_REPONDRE en haut
+    de fabriquer-les-pages.py. La recopier ici reviendrait a avoir deux
+    verites : le jour ou l'une change, ce fichier annoncerait tranquillement
+    un ecart minimum qui n'est plus le bon.
+    """
+    chemin = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                          "fabriquer-les-pages.py")
+    m = re.search(r"^SECONDES_POUR_REPONDRE\s*=\s*(\d+)",
+                  open(chemin, encoding="utf-8").read(), re.M)
+    if not m:
+        sys.exit("SECONDES_POUR_REPONDRE est introuvable dans "
+                 "contenu/fabriquer-les-pages.py.")
+    return int(m.group(1))
+
 
 def code_dans(txt):
     """Extrait le code d'etape (E07, E11B...) d'une cellule 'Suite en sens X'."""
@@ -227,7 +245,7 @@ def main():
             # bonne reponse. Si la suivante arrive avant, elle coupe la parole :
             # le groupe n'a pas eu ses dix secondes, et il ne verra jamais la
             # reponse. Ca ne se voit pas a la fabrication, seulement sur place.
-            DELAI, LECTURE = 10, 3
+            DELAI, LECTURE = delai_de_reponse(), 3
             for c, liste in vus.items():
                 liste.sort()
                 for (s1, i1, t1), (s2, i2, t2) in zip(liste, liste[1:]):

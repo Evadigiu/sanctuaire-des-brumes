@@ -209,11 +209,15 @@ CONFIRMATION_INDICE = {"E04"}
 # Sur le reseau d'un parc, une video qui se recharge aurait sinon mange les
 # dix secondes sans que personne ait rien lu.
 #
+# Les minutes du cahier marquent le DEBUT du son a reconnaitre. Le compte a
+# rebours part donc pendant que le son joue : treize secondes couvrent le son
+# lui-meme, la lecture des quatre propositions, et l'accord du groupe.
+#
 # Consequence a surveiller dans le cahier : deux questions separees de moins
 # de SECONDES_POUR_REPONDRE + 3 se coupent la parole. verifier-le-cahier.py
-# le signale.
+# le signale, et il lit cette valeur-ci pour ne jamais en annoncer une autre.
 # ------------------------------------------------------------
-SECONDES_POUR_REPONDRE = 10
+SECONDES_POUR_REPONDRE = 13
 # ============================================================
 # LES MEDIAS (videos et audio)
 #

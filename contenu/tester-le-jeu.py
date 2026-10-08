@@ -611,12 +611,12 @@ with sync_playwright() as pw:
     question = lambda i: page.locator("[data-question]").nth(i)
 
     # --- La premiere question, et une mauvaise reponse ------------------
-    avancer(T[0] + DELAI / 2)
+    avancer(T[0] + 5)
     e2 = etat()
     verifier("la premiere question apparait a son heure",
              e2["ouverte"] == 0 and e2["nbOuvertes"] == 1, str(e2))
-    verifier("son compte a rebours annonce la moitie du delai",
-             e2["chrono"] and e2["reste"] == "%d s" % (DELAI / 2), str(e2))
+    verifier("son compte a rebours decompte le delai du cahier",
+             e2["chrono"] and e2["reste"] == "%d s" % (DELAI - 5), str(e2))
 
     faux = 0 if plan["bonnes"][0] != 0 else 1
     question(0).locator(".quiz-prop").nth(faux).click()
