@@ -29,11 +29,10 @@
   <h1>QUIZ ANIMALIER</h1>
 <section class="ecran card" hidden>
   <!-- cahier : 1. Vidéo n°1 Sabri et Arez -->
-  <!-- Vidéo pas encore intégrée : ajouter le fichier dans
-       MEDIAS (contenu/fabriquer-les-pages.py) et renseigner
-       MEDIA_BASE. Ne jamais mettre la vidéo dans le dépôt. -->
-  <video controls playsinline class="video-paysage" data-quiz-video poster=""><source src="" type="video/mp4">
-  Votre navigateur ne supporte pas la vidéo.</video>
+  <video controls playsinline preload="none" class="video-paysage" data-quiz-video poster="">
+    <source src="https://sanctuaire-brumes.b-cdn.net/quiz-animalier-hwqbca.mp4" type="video/mp4">
+    <p>Votre navigateur ne lit pas cette vidéo. Prévenez un membre de l'équipe sur place.</p>
+  </video>
 <div class="quiz" data-quiz data-delai="13" hidden>
   <div class="quiz-question" data-question data-t="35" data-bonne="0" hidden>
     <div class="quiz-numero">Question 1 sur 8</div>
