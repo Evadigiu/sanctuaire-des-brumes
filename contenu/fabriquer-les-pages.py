@@ -261,16 +261,21 @@ MEDIA_BASE = "https://sanctuaire-brumes.b-cdn.net"
 MEDIAS = {
  "E01": "le-commissaire-jean-79swb7.mp4",
  "E02": "la-collegue-soigneuse-8bdz93.mp4",
- # "E03": "la-videosurveillance-yag6qs.mp4",
+ "E03": "la-videosurveillance-yag6qs.mp4",
  "E05": "la-passante-qri7tr.mp4",
  "E06": "quiz-animalier-hwqbca.mp4",
  # "E07": "le-veterinaire-66ckyk.mp4",
- # "E09": "greg-sens-a-sj7kmm.mp4",
- # "E10": "bill-t87isj.mp4",
+ "E09": "greg-sens-a-sj7kmm.mp4",
+ "E10": "bill-t87isj.mp4",
  # "E12": "appel-du-commissaire-bm7fpb.mp3",
  # "E14": "le-botaniste-acanpa.mp4",
  # "E15": "la-serre-f4bxez.mp4",
- # "E16": "greg-sens-b-wuwfvp.mp4",
+ # Greg ne dit pas autre chose selon le sens par lequel on arrive : les
+ # deux bornes portent la meme legende et renvoient toutes deux vers
+ # Bill. Une seule video, donc, servie aux deux endroits. Ce ne sont pas
+ # les memes bornes pour autant : chacune a son QR code, dans un coin
+ # different du parc, pour que chaque sens croise Greg au bon moment.
+ "E16": "greg-sens-a-sj7kmm.mp4",
 }
 
 POSTERS = {}
