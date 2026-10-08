@@ -156,6 +156,86 @@ def main():
                       "Textes dit \"%s\". C'est le Parcours qui s'affiche dans le jeu."
                       % (c, etapes[c]["nom"], '", "'.join(sorted(ecarts))))
 
+    # ---------- l'onglet Quiz ----------
+    # Un quiz mal rempli ne se voit pas a la fabrication : la page se
+    # construit, et c'est le joueur qui decouvre une question sans bonne
+    # reponse, ou trois questions qui s'affichent toutes a la meme seconde.
+    if "Quiz" in wb.sheetnames:
+        vus = {}
+        for i, r in enumerate(wb["Quiz"].iter_rows(min_row=3, values_only=True), start=3):
+            c = propre(r[0])
+            if not c and not any(propre(x) for x in r): continue
+            ou = "onglet Quiz, ligne %d" % i
+            if c not in etapes:
+                pb.append("%s : le code \"%s\" ne correspond a aucune etape." % (ou, c))
+                continue
+            t = propre(r[1])
+            sec = None
+            if t:
+                try:
+                    sec = 0
+                    for m in [x for x in t.replace("'", ":").replace("h", ":").split(":") if x.strip()]:
+                        sec = sec * 60 + int(float(m))
+                except ValueError:
+                    sec = None
+            if sec is None:
+                pb.append("%s : \"%s\" ne se lit pas comme un temps. "
+                          "Ecrire 1:20 pour une minute vingt." % (ou, t))
+            if not propre(r[2]):
+                pb.append("%s : pas de question." % ou)
+            props = [propre(x) for x in r[3:6] if propre(x)]
+            if len(props) < 2:
+                pb.append("%s : il faut au moins deux propositions, il y en a %d."
+                          % (ou, len(props)))
+            bonne = propre(r[6])
+            try:
+                n = int(float(bonne))
+            except ValueError:
+                n = 0
+            if not 1 <= n <= len(props):
+                pb.append("%s : la bonne reponse doit etre un numero entre 1 et %d, "
+                          "la case dit \"%s\"." % (ou, max(len(props), 1), bonne))
+            if "EXEMPLE" in propre(r[2]).upper():
+                av.append("%s : question d'exemple encore en place, a remplacer." % ou)
+            if sec is not None:
+                vus.setdefault(c, []).append((sec, i, t))
+            if sec == 0:
+                av.append("%s : question annoncee a 0:00, donc visible avant "
+                          "que la video ait rien montre." % ou)
+
+        # Une question laisse DELAI secondes pour repondre, puis montre la
+        # bonne reponse. Si la suivante arrive avant, elle coupe la parole :
+        # le groupe n'a pas eu ses dix secondes, et il ne verra jamais la
+        # reponse. Ca ne se voit pas a la fabrication, seulement sur place.
+        DELAI, LECTURE = 10, 3
+        for c, liste in vus.items():
+            liste.sort()
+            for (s1, i1, t1), (s2, i2, t2) in zip(liste, liste[1:]):
+                ecart = s2 - s1
+                if ecart == 0:
+                    pb.append("onglet Quiz, lignes %d et %d : deux questions a "
+                              "%s. Il n'en restera qu'une." % (i1, i2, t1))
+                elif ecart < DELAI + LECTURE:
+                    av.append("onglet Quiz, lignes %d et %d : seulement %d s "
+                              "entre %s et %s. Il en faut %d (les %d s pour "
+                              "repondre, plus le temps de lire la bonne "
+                              "reponse)." % (i1, i2, ecart, t1, t2,
+                                             DELAI + LECTURE, DELAI))
+            # La derniere question a besoin du meme repit avant la fin de la
+            # video. On ne connait pas sa duree ici, donc on le rappelle.
+            dernier = liste[-1]
+            av.append("onglet Quiz : la derniere question de %s apparait a %s. "
+                      "Verifier qu'il reste au moins %d s de video apres, "
+                      "sinon le groupe n'aura pas ses %d s." 
+                      % (c, dernier[2], DELAI + LECTURE, DELAI))
+
+        # Une borne annoncee comme quiz mais sans aucune question part en
+        # silence : l'ecran s'ouvre, la video tourne, et rien ne vient.
+        for c, et in etapes.items():
+            if "quiz" in sans_accent(et["nom"]) and c not in vus:
+                pb.append("%s (%s) : borne annoncee comme un quiz, mais aucune "
+                          "question dans l'onglet Quiz." % (c, et["nom"]))
+
     # ---------- rapport ----------
     print("=" * 78)
     print("VERIFICATION DU CAHIER DE CONTENU")

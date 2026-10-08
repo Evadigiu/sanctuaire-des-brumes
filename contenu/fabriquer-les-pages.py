@@ -55,6 +55,45 @@ for r in par.iter_rows(min_row=3, values_only=True):
         v = propre(r[i])
         if v.isdigit(): ordre[s][c] = int(v)
 
+# ------------------------------------------------------------
+# LE QUIZ QUI SUIT UNE VIDEO
+#
+# Les questions s'affichent SOUS la video pendant qu'elle tourne, chacune
+# au moment indique dans le cahier. Le joueur repond sans arreter la
+# lecture : c'est tout l'interet, et c'est pour cela que cette video ne
+# part pas en plein ecran comme les autres (elle cacherait les reponses).
+#
+# Une question reste affichee jusqu'a l'arrivee de la suivante. Un groupe
+# qui discute n'est donc pas puni par une fenetre de trois secondes.
+# ------------------------------------------------------------
+def en_secondes(v):
+    """"0:48" ou "1:20" -> un nombre de secondes."""
+    t = propre(v).replace("'", ":").replace("h", ":")
+    if not t: return None
+    morceaux = [m for m in t.split(":") if m.strip() != ""]
+    try: morceaux = [int(float(m)) for m in morceaux]
+    except ValueError: return None
+    sec = 0
+    for m in morceaux: sec = sec * 60 + m
+    return sec
+
+quiz = {}
+if "Quiz" in wb.sheetnames:
+    for r in wb["Quiz"].iter_rows(min_row=3, values_only=True):
+        c = propre(r[0])
+        t = en_secondes(r[1])
+        question = propre(r[2])
+        props = [propre(x) for x in r[3:6] if propre(x)]
+        if not (c and question and props): continue
+        try: bonne = int(float(propre(r[6]))) - 1
+        except (ValueError, TypeError): bonne = 0
+        quiz.setdefault(c, []).append({
+            "t": t or 0, "question": question, "props": props,
+            "bonne": max(0, min(bonne, len(props) - 1)),
+        })
+    for c in quiz:
+        quiz[c].sort(key=lambda q: q["t"])
+
 lignes = {}
 for r in tex.iter_rows(min_row=3, values_only=True):
     c = propre(r[0])
@@ -131,6 +170,23 @@ APPEL_AUDIO     = {"E12"}
 # de novembre abandonne, il ne cherche pas plus longtemps.
 # ------------------------------------------------------------
 CONFIRMATION_INDICE = {"E04"}
+
+# ------------------------------------------------------------
+# LE TEMPS DE REPONSE DU QUIZ
+#
+# Une question apparait, le groupe a ce nombre de secondes pour repondre,
+# puis elle se verrouille et montre la bonne reponse. Elle reste affichee
+# jusqu'a l'arrivee de la suivante, qui la remplace.
+#
+# Ce compte a rebours suit le temps de la VIDEO, pas l'horloge du telephone.
+# Sur le reseau d'un parc, une video qui se recharge aurait sinon mange les
+# dix secondes sans que personne ait rien lu.
+#
+# Consequence a surveiller dans le cahier : deux questions separees de moins
+# de SECONDES_POUR_REPONDRE + 3 se coupent la parole. verifier-le-cahier.py
+# le signale.
+# ------------------------------------------------------------
+SECONDES_POUR_REPONDRE = 10
 # ============================================================
 # LES MEDIAS (videos et audio)
 #
@@ -274,7 +330,8 @@ def ecran_vide(code, etape, lg):
     if code in EPREUVE_REPONSE and lg["n"] == 3:      return False
     if code in NON_CONSTRUIT and lg["n"] == 3:        return False
     if etape["lettre"] and etape["lettre"] not in ("-", "/") and lg["n"] == 1 \
-       and code not in EPREUVE_REPONSE and code not in CONFIRMATION_INDICE:
+       and code not in EPREUVE_REPONSE and code not in CONFIRMATION_INDICE \
+       and code not in quiz:
         return False
     return True
 
@@ -298,6 +355,54 @@ def bloc_confirmation(lettre):
         '  <button class="btn-secondary" data-retour>Revenir en arrière</button>',
         '</section>',
     ])
+
+
+def bloc_quiz(code, lettre):
+    """Les questions affichees SOUS la video, pendant qu'elle tourne.
+
+    Elles sont toutes dans la page des le depart, mais cachees : etape.js
+    n'en montre qu'une a la fois, celle que la video vient d'atteindre. La
+    suivante remplace la precedente.
+
+    Chaque question a SECONDES_POUR_REPONDRE secondes. Passe ce delai elle
+    se verrouille et montre la bonne reponse : un groupe qui n'a pas eu le
+    temps perd le point, mais apprend quand meme quelque chose. C'est un
+    quiz pedagogique, le silence serait une occasion perdue.
+    """
+    h = ['<div class="quiz" data-quiz data-delai="%d" hidden>' % SECONDES_POUR_REPONDRE]
+    for i, q in enumerate(quiz[code]):
+        h.append('  <div class="quiz-question" data-question data-t="%d" '
+                 'data-bonne="%d" hidden>' % (q["t"], q["bonne"]))
+        h.append('    <div class="quiz-numero">Question %d sur %d</div>'
+                 % (i + 1, len(quiz[code])))
+        h.append('    <p class="quiz-intitule">%s</p>' % e(q["question"]))
+        # Le compte a rebours. La barre se vide, le nombre dit combien il
+        # reste : la barre se lit sans lire, le nombre leve le doute sur un
+        # ecran de telephone au soleil.
+        h.append('    <div class="quiz-chrono" data-chrono>')
+        h.append('      <div class="quiz-chrono-barre"><span></span></div>')
+        h.append('      <div class="quiz-chrono-reste" data-reste>%d s</div>'
+                 % SECONDES_POUR_REPONDRE)
+        h.append('    </div>')
+        for n, prop in enumerate(q["props"]):
+            h.append('    <button class="quiz-prop" data-prop="%d">%s</button>'
+                     % (n, e(prop)))
+        h.append('    <p class="quiz-verdict" data-verdict hidden></p>')
+        h.append('  </div>')
+
+    h.append('  <div class="quiz-bilan" data-bilan hidden>')
+    h.append('    <p data-score></p>')
+    if lettre and lettre not in ("-", "/"):
+        # La lettre est donnee quel que soit le score. Le quiz est la pour
+        # faire regarder la video et apprendre quelque chose, pas pour
+        # arreter l'enquete de ceux qui ont mal repondu.
+        h.append('    <div class="card indice">')
+        h.append('      <div class="eyebrow">Vous avez trouvé une lettre</div>')
+        h.append('      <p class="lettre">%s</p>' % e(lettre))
+        h.append('    </div>')
+    h.append('  </div>')
+    h.append('</div>')
+    return "\n".join(h)
 
 
 def bloc_ecran(etape, lg, dernier, sens_attr):
@@ -325,8 +430,17 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
             # Pas de "playsinline" : cet attribut demande justement a iOS de
             # rester dans la page. Sans lui, la video part d'elle-meme en
             # plein ecran sur iPhone, et etape.js s'en charge sur Android.
-            h.append('  <video controls preload="none" poster="%s">'
-                     % e(poster))
+            # La video d'un quiz ne part PAS en plein ecran : elle cacherait
+            # les questions, qui sont tout l'interet de l'ecran. Elle est
+            # filmee en paysage, donc "playsinline" pour qu'iOS la laisse
+            # dans la page, et un cadre 16/9 au lieu du 9/16 des temoignages.
+            if c in quiz:
+                h.append('  <video controls playsinline preload="none" '
+                         'class="video-paysage" data-quiz-video poster="%s">'
+                         % e(poster))
+            else:
+                h.append('  <video controls preload="none" poster="%s">'
+                         % e(poster))
             h.append('    <source src="%s/%s" type="video/mp4">' % (MEDIA_BASE, e(fichier)))
             h.append('    <p>Votre navigateur ne lit pas cette vidéo. '
                      'Prévenez un membre de l\'équipe sur place.</p>')
@@ -335,7 +449,9 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
             h.append('  <!-- Vidéo pas encore intégrée : ajouter le fichier dans')
             h.append('       MEDIAS (contenu/fabriquer-les-pages.py) et renseigner')
             h.append('       MEDIA_BASE. Ne jamais mettre la vidéo dans le dépôt. -->')
-            h.append('  <video controls playsinline poster=""><source src="" type="video/mp4">')
+            cls = ' class="video-paysage" data-quiz-video' if c in quiz else ''
+            h.append('  <video controls playsinline%s poster="">'
+                     '<source src="" type="video/mp4">' % cls)
             h.append('  Votre navigateur ne supporte pas la vidéo.</video>')
     if c in APPEL_AUDIO and lg["n"] == 1:
         h.append('  <button id="decrocher" class="btn-appel">Décrocher</button>')
@@ -346,6 +462,9 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
 
     if lg.get("legende"):
         h.append('  <p class="witness-name">%s</p>' % e(lg["legende"]))
+
+    if c in quiz and est_media:
+        h.append(bloc_quiz(c, etape["lettre"]))
 
     if txt and txt != "/":
         for p in [x.strip() for x in txt.split("\n") if x.strip()]:
@@ -360,7 +479,8 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
         h.append('    <p class="lettre">%s</p>' % e(lettre))
         h.append('  </div>')
     elif (etape["lettre"] and etape["lettre"] not in ("-", "/") and lg["n"] == 1
-          and c not in EPREUVE_REPONSE and c not in CONFIRMATION_INDICE):
+          and c not in EPREUVE_REPONSE and c not in CONFIRMATION_INDICE
+          and c not in quiz):
         h.append('  <div class="card indice">')
         h.append('    <div class="eyebrow">Vous avez trouvé une lettre</div>')
         h.append('    <p class="lettre">%s</p>' % e(etape["lettre"]))
@@ -403,7 +523,15 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
         # sans passer par le bouton « precedent » du telephone.
         h.append('  <button class="btn-secondary" data-retour>Revenir en arrière</button>')
     else:
-        h.append('  <button data-suivant>Suivant</button>')
+        # Sur l'ecran d'un quiz, "Suivant" est cache au depart. Pose sous la
+        # premiere question, il invitait a sauter le quiz avant de l'avoir vu.
+        # etape.js le rend des que le quiz est fini, et aussi des que la video
+        # refuse de se charger : une video muette ne doit jamais enfermer un
+        # groupe sur une borne.
+        if c in quiz and est_media:
+            h.append('  <button data-suivant data-quiz-suivant hidden>Suivant</button>')
+        else:
+            h.append('  <button data-suivant>Suivant</button>')
         h.append('  <button class="btn-secondary" data-retour>Revenir en arrière</button>')
     h.append('</section>')
     return "\n".join(h)

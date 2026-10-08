@@ -145,6 +145,7 @@ function demarrerEtape() {
   }
 
   brancherConfirmationIndice();
+  brancherQuizVideo();
   afficher(courant);
   brancherSecours();
   brancherRetourAMaBorne();
@@ -296,7 +297,9 @@ function signalerPartieIntrouvable() {
  * on ne bloque jamais la lecture pour une question de confort.
  */
 function pleinEcranALaLecture() {
-  document.querySelectorAll("video").forEach(video => {
+  // La vidéo d'un quiz est exclue : en plein écran elle recouvrirait les
+  // questions, qui sont justement ce qu'on vient faire sur cette borne.
+  document.querySelectorAll("video:not([data-quiz-video])").forEach(video => {
     // La feuille de style donne d'avance au cadre la forme d'une video de
     // telephone, pour qu'il ne soit pas ecrase avant lecture. Des que les
     // vraies dimensions sont connues, on lui rend sa liberte : une video
@@ -369,6 +372,242 @@ function brancherConfirmationIndice() {
       revele.hidden = false;
     });
   });
+}
+
+/**
+ * LE QUIZ QUI SUIT UNE VIDÉO (la borne Sabri & Arez).
+ *
+ * La vidéo tourne en haut de l'écran, et les questions apparaissent en
+ * dessous au fil des minutes. Le joueur répond pendant la lecture : c'est
+ * tout l'intérêt, et c'est pour ça que cette vidéo reste dans la page au
+ * lieu de partir en plein écran.
+ *
+ * Une question à la fois : la suivante remplace la précédente. Le groupe a
+ * dix secondes pour répondre, après quoi la question se verrouille et
+ * montre la bonne réponse — il perd le point, mais il apprend quand même.
+ *
+ * Trois décisions qui ne sautent pas aux yeux :
+ *
+ * 1. Tout le minutage vient du temps de la VIDÉO, jamais de l'horloge du
+ *    téléphone. Sur le réseau d'un parc, une vidéo qui se recharge aurait
+ *    sinon mangé les dix secondes sans que personne ait rien lu. Contrepartie
+ *    assumée : un groupe qui met la vidéo en pause arrête aussi le chrono.
+ *
+ * 2. L'affichage est recalculé à chaque battement depuis ce temps, et jamais
+ *    déclenché « une fois pour toutes ». Un joueur qui revient en arrière
+ *    dans la vidéo retrouve donc l'écran cohérent, et une lecture qui saute
+ *    ne perd aucune question au passage.
+ *
+ * 3. Le bouton « Suivant » attend la fin du quiz, SAUF si la vidéo refuse
+ *    de se charger. Une vidéo muette ne doit jamais enfermer un groupe.
+ */
+function brancherQuizVideo() {
+  const zone = document.querySelector("[data-quiz]");
+  if (!zone) return;
+
+  const ecran     = zone.closest(".ecran");
+  const video     = ecran && ecran.querySelector("video");
+  const questions = Array.from(zone.querySelectorAll("[data-question]"));
+  const bilan     = zone.querySelector("[data-bilan]");
+  const score     = bilan && bilan.querySelector("[data-score]");
+  const suivant   = ecran && ecran.querySelector("[data-quiz-suivant]");
+  if (!questions.length) return;
+
+  const DELAI = parseFloat(zone.getAttribute("data-delai")) || 10;
+  let justes = 0, repondues = 0, fini = false;
+
+  const depart   = q => parseFloat(q.getAttribute("data-t"));
+  const echeance = q => depart(q) + DELAI;
+  const close    = q => q.hasAttribute("data-repondu") || q.hasAttribute("data-expiree");
+
+  /** Bloque les propositions et souligne la bonne. */
+  function verrouiller(q) {
+    const bonne = parseInt(q.getAttribute("data-bonne"), 10);
+    q.querySelectorAll(".quiz-prop").forEach((b, m) => {
+      b.disabled = true;
+      if (m === bonne) b.classList.add("est-bonne");
+    });
+    const chrono = q.querySelector("[data-chrono]");
+    if (chrono) chrono.hidden = true;
+  }
+
+  function direVerdict(q, texte, classe) {
+    const v = q.querySelector("[data-verdict]");
+    if (!v) return;
+    v.textContent = texte;
+    v.className = "quiz-verdict " + classe;
+    v.hidden = false;
+  }
+
+  // --- Répondre à une question ---------------------------------------
+  questions.forEach(q => {
+    const bonne = parseInt(q.getAttribute("data-bonne"), 10);
+    q.querySelectorAll(".quiz-prop").forEach((bouton, n) => {
+      bouton.addEventListener("click", () => {
+        if (close(q)) return;            // une seule réponse, et pas après l'heure
+        q.setAttribute("data-repondu", "");
+        repondues++;
+        verrouiller(q);
+        bouton.classList.add("est-choisie");
+        if (n === bonne) {
+          justes++;
+          direVerdict(q, "Bonne réponse.", "quiz-juste");
+        } else {
+          bouton.classList.add("est-fausse");
+          direVerdict(q, "Ce n'était pas la bonne réponse.", "quiz-faux");
+        }
+        majScore();
+        if (repondues === questions.length) finir();
+      });
+    });
+  });
+
+  /* Le compte à rebours d'une question, et sa fin.
+     Rien n'est déclenché par un minuteur : on relit le temps de la vidéo et
+     on en déduit l'état. Une vidéo qui se recharge fige donc le compte à
+     rebours au lieu de le laisser filer dans le vide. */
+  function majChrono(q, t) {
+    const reste  = Math.max(0, echeance(q) - t);
+    const chrono = q.querySelector("[data-chrono]");
+
+    if (reste <= 0 && !close(q)) {
+      q.setAttribute("data-expiree", "");
+      verrouiller(q);
+      // On nomme la bonne réponse plutôt que de la désigner : « elle est
+      // soulignée » suppose qu'on repère un trait vert sur un téléphone en
+      // plein jour, et la question disparaît dans quelques secondes.
+      const bonne = q.querySelectorAll(".quiz-prop")[
+                      parseInt(q.getAttribute("data-bonne"), 10)];
+      direVerdict(q, "Temps écoulé. La bonne réponse était « "
+                   + (bonne ? bonne.textContent : "") + " ».", "quiz-faux");
+      return;
+    }
+    if (close(q) || !chrono) return;
+
+    chrono.hidden = false;
+    const barre = chrono.querySelector(".quiz-chrono-barre span");
+    const texte = chrono.querySelector("[data-reste]");
+    if (barre) barre.style.width = (reste / DELAI * 100) + "%";
+    if (texte) texte.textContent = Math.ceil(reste) + " s";
+    chrono.classList.toggle("quiz-chrono-urgent", reste <= 3);
+  }
+
+  // --- Dérouler les questions au rythme de la vidéo -------------------
+  function majAffichage() {
+    // Une fois le bilan tombé, la vidéo peut continuer à battre la mesure :
+    // elle ne doit plus faire réapparaître de question derrière la lettre.
+    if (fini) return;
+    const t = video ? video.currentTime : 0;
+    // La question en cours est la dernière que la vidéo ait atteinte. Les
+    // autres disparaissent : c'est le parti pris du jeu, une question à la
+    // fois, et tant pis pour qui n'a pas levé les yeux.
+    let courante = null;
+    questions.forEach(q => { if (t >= depart(q)) courante = q; });
+
+    questions.forEach(q => { q.hidden = (q !== courante); });
+    if (courante) majChrono(courante, t);
+
+    // Toutes les questions sont passées et leur délai est écoulé : il n'y a
+    // plus rien à attendre de la vidéo, le bilan peut tomber.
+    const derniere = questions[questions.length - 1];
+    if (t >= echeance(derniere)) finir();
+  }
+
+  /* Le compte des bonnes réponses.
+
+     Il se recalcule à chaque réponse, y compris APRÈS l'affichage du bilan.
+     Sans cela, un groupe qui répond à la dernière question au moment où le
+     bilan s'affiche voit son score figé : le jeu lui dit « bonne réponse »,
+     et le total ne bouge pas. */
+  function majScore() {
+    if (!score) return;
+    const n = questions.length;
+    if (justes === n) {
+      score.textContent = "Sans faute : " + justes + " bonnes réponses sur " + n + ".";
+      return;
+    }
+    const pluriel = justes > 1 ? "s" : "";
+    score.textContent = "Vous avez " + justes + " bonne" + pluriel
+                      + " réponse" + pluriel + " sur " + n + ".";
+  }
+
+  function finir() {
+    if (fini) return;
+    fini = true;
+    questions.forEach(q => {
+      if (!close(q)) { q.setAttribute("data-expiree", ""); verrouiller(q); }
+      q.hidden = true;
+    });
+    majScore();
+    if (bilan) {
+      bilan.hidden = false;
+      // La lettre est la récompense, et elle arrive sous le pli.
+      try { bilan.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
+      catch (e) { }
+    }
+    libererSuivant();
+  }
+
+  function libererSuivant() {
+    if (suivant) suivant.hidden = false;
+  }
+
+  /* Le quiz sans sa vidéo.
+     Ce chemin-là n'est pas un cas d'école : tant que le fichier n'est pas
+     chargé chez l'hébergeur, c'est le comportement normal de la borne. Et
+     le jour du jeu, une vidéo qui ne descend pas sur le réseau d'un parc
+     est l'incident le plus probable de tous. On montre alors la première
+     question sans compte à rebours — il n'y a plus d'horloge pour le faire
+     courir — et la sortie, plutôt que de laisser un groupe devant un
+     rectangle noir avec un bouton « Suivant » invisible. */
+  let filet = null;
+  function ouvrirSansVideo() {
+    zone.hidden = false;
+    questions[0].hidden = false;
+    const chrono = questions[0].querySelector("[data-chrono]");
+    if (chrono) chrono.hidden = true;
+    libererSuivant();
+  }
+
+  if (video) {
+    // Si le fichier n'existe pas, le navigateur ne le signale pas sur la
+    // vidéo mais sur la balise <source>, et cette erreur-là ne remonte pas :
+    // d'où l'écoute en phase de capture, seule façon de l'entendre.
+    ecran.addEventListener("error", e => {
+      if (e.target && e.target.tagName === "SOURCE") ouvrirSansVideo();
+    }, true);
+    // Et il faut encore la provoquer : le navigateur a déjà cherché la vidéo
+    // pendant la lecture de la page, bien avant que ce script existe, donc
+    // cette erreur est passée sans témoin. load() refait la recherche, cette
+    // fois devant nous. Avec preload="none", elle ne télécharge rien : elle
+    // se contente de vérifier qu'il y a bien un fichier à aller chercher.
+    try { video.load(); } catch (e) { }
+    // Dernier filet, si rien ne se produit du tout — ni lecture, ni erreur.
+    // Celui-ci ne montre PAS les questions : un groupe qui n'a pas encore
+    // appuyé sur lecture ne doit pas voir le quiz démarrer sans lui. Il rend
+    // seulement la sortie, pour que personne ne reste enfermé.
+    filet = setTimeout(libererSuivant, 25000);
+
+    // Le cadre d'attente est un 16/9 ; dès que les vraies dimensions sont
+    // connues, la vidéo reprend sa forme exacte, sans bandes noires.
+    video.addEventListener("loadedmetadata", () => {
+      video.style.aspectRatio = "auto";
+    }, { once: true });
+
+    // Les questions n'apparaissent qu'à la lecture : avant d'appuyer sur
+    // play, l'écran ne doit pas être un mur de questions sans contexte.
+    video.addEventListener("play", () => {
+      if (filet) { clearTimeout(filet); filet = null; }
+      zone.hidden = false;
+      majAffichage();
+    });
+    video.addEventListener("timeupdate", majAffichage);
+    video.addEventListener("seeked", majAffichage);
+    video.addEventListener("ended", finir);
+    video.addEventListener("error", ouvrirSansVideo);
+  } else {
+    ouvrirSansVideo();
+  }
 }
 
 function epreuveReponse(idChamp, idBouton, bonneReponse, idResultat) {

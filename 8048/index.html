@@ -32,19 +32,54 @@
   <!-- Vidéo pas encore intégrée : ajouter le fichier dans
        MEDIAS (contenu/fabriquer-les-pages.py) et renseigner
        MEDIA_BASE. Ne jamais mettre la vidéo dans le dépôt. -->
-  <video controls playsinline poster=""><source src="" type="video/mp4">
+  <video controls playsinline class="video-paysage" data-quiz-video poster=""><source src="" type="video/mp4">
   Votre navigateur ne supporte pas la vidéo.</video>
-  <div class="card indice">
-    <div class="eyebrow">Vous avez trouvé une lettre</div>
-    <p class="lettre">I</p>
+<div class="quiz" data-quiz data-delai="10" hidden>
+  <div class="quiz-question" data-question data-t="15" data-bonne="2" hidden>
+    <div class="quiz-numero">Question 1 sur 3</div>
+    <p class="quiz-intitule">EXEMPLE — Combien de temps dort une panthère de l&#x27;Amour par jour ?</p>
+    <div class="quiz-chrono" data-chrono>
+      <div class="quiz-chrono-barre"><span></span></div>
+      <div class="quiz-chrono-reste" data-reste>10 s</div>
+    </div>
+    <button class="quiz-prop" data-prop="0">6 heures</button>
+    <button class="quiz-prop" data-prop="1">12 heures</button>
+    <button class="quiz-prop" data-prop="2">18 heures</button>
+    <p class="quiz-verdict" data-verdict hidden></p>
   </div>
-  <button data-suivant>Suivant</button>
-  <button class="btn-secondary" data-retour>Revenir en arrière</button>
-</section>
-<section class="ecran card" hidden>
-  <!-- cahier : 3. Texte ou epreuve -->
-  <p>QUIZ À METTRE EN PLACE en même temps que le tournage de la vidéo</p>
-  <button data-suivant>Suivant</button>
+  <div class="quiz-question" data-question data-t="48" data-bonne="0" hidden>
+    <div class="quiz-numero">Question 2 sur 3</div>
+    <p class="quiz-intitule">EXEMPLE — Que mange-t-elle en priorité dans la nature ?</p>
+    <div class="quiz-chrono" data-chrono>
+      <div class="quiz-chrono-barre"><span></span></div>
+      <div class="quiz-chrono-reste" data-reste>10 s</div>
+    </div>
+    <button class="quiz-prop" data-prop="0">Des cerfs</button>
+    <button class="quiz-prop" data-prop="1">Des poissons</button>
+    <button class="quiz-prop" data-prop="2">Des baies</button>
+    <p class="quiz-verdict" data-verdict hidden></p>
+  </div>
+  <div class="quiz-question" data-question data-t="80" data-bonne="0" hidden>
+    <div class="quiz-numero">Question 3 sur 3</div>
+    <p class="quiz-intitule">EXEMPLE — Combien en reste-t-il à l&#x27;état sauvage ?</p>
+    <div class="quiz-chrono" data-chrono>
+      <div class="quiz-chrono-barre"><span></span></div>
+      <div class="quiz-chrono-reste" data-reste>10 s</div>
+    </div>
+    <button class="quiz-prop" data-prop="0">Moins de 150</button>
+    <button class="quiz-prop" data-prop="1">Environ 3 000</button>
+    <button class="quiz-prop" data-prop="2">Plus de 10 000</button>
+    <p class="quiz-verdict" data-verdict hidden></p>
+  </div>
+  <div class="quiz-bilan" data-bilan hidden>
+    <p data-score></p>
+    <div class="card indice">
+      <div class="eyebrow">Vous avez trouvé une lettre</div>
+      <p class="lettre">I</p>
+    </div>
+  </div>
+</div>
+  <button data-suivant data-quiz-suivant hidden>Suivant</button>
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
 </section>
 <section class="ecran card" data-sens="A" hidden>
