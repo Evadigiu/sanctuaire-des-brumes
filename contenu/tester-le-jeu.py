@@ -558,12 +558,13 @@ with sync_playwright() as pw:
     plan = page.evaluate("""() => {
       const z = document.querySelector("[data-quiz]");
       return { delai: parseFloat(z.getAttribute("data-delai")),
+               verdict: parseFloat(z.getAttribute("data-verdict-delai")),
                t: Array.from(z.querySelectorAll("[data-question]"))
                        .map(q => parseFloat(q.getAttribute("data-t"))),
                bonnes: Array.from(z.querySelectorAll("[data-question]"))
                        .map(q => parseInt(q.getAttribute("data-bonne"), 10)) };
     }""")
-    N, DELAI, T = len(plan["t"]), plan["delai"], plan["t"]
+    N, DELAI, T, VERDICT = len(plan["t"]), plan["delai"], plan["t"], plan["verdict"]
     verifier("le cahier fournit au moins trois questions", N >= 3, str(N))
 
     etat = lambda: page.evaluate("""(n) => {
@@ -581,6 +582,7 @@ with sync_playwright() as pw:
                // borne elle se merite au bout du quiz, pas au scan.
                lettreVue: Array.from(document.querySelectorAll(".lettre"))
                                .some(x => x.offsetParent !== null),
+               attente: !z.querySelector("[data-attente]").hidden,
                reste: ouverte < 0 ? "" :
                       qs[ouverte].querySelector("[data-reste]").textContent,
                chrono: ouverte >= 0 &&
@@ -604,6 +606,7 @@ with sync_playwright() as pw:
     e1 = etat()
     verifier("la lecture ouvre le quiz, sans question",
              e1["zone"] and e1["nbOuvertes"] == 0, str(e1))
+    verifier("et l'ecran invite a ecouter", e1["attente"], str(e1))
     verifier("la video du quiz ne part pas en plein ecran", not e1["pleinEcran"])
 
     avancer = lambda t, ev="timeupdate": page.evaluate(
@@ -639,6 +642,24 @@ with sync_playwright() as pw:
              detail["bloquees"] and detail["bonneMontree"], str(detail))
     verifier("le compte a rebours disparait une fois repondu", detail["chrono"])
 
+    # LE CHOIX D'EVA : la question ne traine pas sous la video. Elle laisse
+    # le verdict quelques secondes, puis s'efface et rend l'oreille au son.
+    # SECONDES_DE_VERDICT a zero est un reglage valable : la question
+    # disparait alors des la reponse. Le dire plutot que de faire passer
+    # une verification qui ne verifie plus rien.
+    if VERDICT >= 2:
+        avancer(T[0] + 5 + VERDICT - 1)
+        verifier("le verdict reste le temps d'etre lu",
+                 etat()["ouverte"] == 0, str(etat()))
+    else:
+        print("   %-38s (SECONDES_DE_VERDICT = %g)"
+              % ("le verdict ne s'attarde pas", VERDICT))
+    avancer(T[0] + 5 + VERDICT + 1)
+    e2b = etat()
+    verifier("puis la question s'efface",
+             e2b["nbOuvertes"] == 0 and not e2b["bilan"], str(e2b))
+    verifier("et l'ecran invite a ecouter la suivante", e2b["attente"], str(e2b))
+
     # --- LE CHOIX D'EVA : une question a la fois ------------------------
     avancer(T[1] + 1)
     e3 = etat()
@@ -667,6 +688,12 @@ with sync_playwright() as pw:
     # Repondre apres l'heure ne rapporte rien.
     question(1).locator(".quiz-prop").nth(plan["bonnes"][1]).dispatch_event("click")
 
+    # La question expiree s'efface elle aussi, une fois sa reponse lue.
+    avancer(T[1] + DELAI + VERDICT + 1)
+    e4b = etat()
+    verifier("la question expiree s'efface a son tour",
+             e4b["nbOuvertes"] == 0 and e4b["attente"], str(e4b))
+
     # Un joueur qui revient en arriere dans la video retrouve la question
     # de ce moment-la, dans l'etat ou il l'a laissee.
     avancer(T[0] + 1, "seeked")
@@ -686,6 +713,8 @@ with sync_playwright() as pw:
     fin = etat()
     verifier("le quiz fini, le bilan s'affiche",
              fin["bilan"] and fin["nbOuvertes"] == 0, str(fin))
+    verifier("l'invitation a ecouter disparait avec le bilan",
+             not fin["attente"], str(fin))
     verifier("une seule bonne reponse comptee sur %d" % N,
              ("1 bonne réponse sur %d" % N) in fin["score"], fin["score"])
     verifier("la lettre est donnee a la fin",
@@ -706,6 +735,8 @@ with sync_playwright() as pw:
              sans["zone"] and sans["ouverte"] == 0 and sans["nbOuvertes"] == 1,
              str(sans))
     verifier("sans compte a rebours, faute d'horloge", not sans["chrono"], str(sans))
+    verifier("et sans invitation a ecouter, la question reste",
+             not sans["attente"], str(sans))
     verifier("la sortie reste accessible", sans["suivant"], str(sans))
     page.close()
 

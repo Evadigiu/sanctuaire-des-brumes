@@ -413,7 +413,9 @@ function brancherQuizVideo() {
   const suivant   = ecran && ecran.querySelector("[data-quiz-suivant]");
   if (!questions.length) return;
 
-  const DELAI = parseFloat(zone.getAttribute("data-delai")) || 10;
+  const DELAI   = parseFloat(zone.getAttribute("data-delai")) || 10;
+  const VERDICT = parseFloat(zone.getAttribute("data-verdict-delai")) || 0;
+  const attente = zone.querySelector("[data-attente]");
   let justes = 0, repondues = 0, fini = false;
 
   const depart   = q => parseFloat(q.getAttribute("data-t"));
@@ -446,6 +448,9 @@ function brancherQuizVideo() {
       bouton.addEventListener("click", () => {
         if (close(q)) return;            // une seule réponse, et pas après l'heure
         q.setAttribute("data-repondu", "");
+        // L'instant de la vidéo, pas celui du téléphone : le verdict doit
+        // rester le même temps à l'écran même si la lecture se recharge.
+        q.setAttribute("data-close-t", video ? video.currentTime : 0);
         repondues++;
         verrouiller(q);
         bouton.classList.add("est-choisie");
@@ -472,6 +477,7 @@ function brancherQuizVideo() {
 
     if (reste <= 0 && !close(q)) {
       q.setAttribute("data-expiree", "");
+      q.setAttribute("data-close-t", echeance(q));
       verrouiller(q);
       // On nomme la bonne réponse plutôt que de la désigner : « elle est
       // soulignée » suppose qu'on repère un trait vert sur un téléphone en
@@ -504,8 +510,16 @@ function brancherQuizVideo() {
     let courante = null;
     questions.forEach(q => { if (t >= depart(q)) courante = q; });
 
+    // Le délai écoulé, on laisse le verdict quelques secondes puis la
+    // question s'efface : une question morte qui traîne quarante secondes
+    // sous la vidéo détourne l'oreille de ce qu'il y a à entendre.
+    if (courante) {
+      majChrono(courante, t);
+      const closeT = parseFloat(courante.getAttribute("data-close-t"));
+      if (!isNaN(closeT) && t >= closeT + VERDICT) courante = null;
+    }
     questions.forEach(q => { q.hidden = (q !== courante); });
-    if (courante) majChrono(courante, t);
+    if (attente) attente.hidden = !!courante;
 
     // Toutes les questions sont passées et leur délai est écoulé : il n'y a
     // plus rien à attendre de la vidéo, le bilan peut tomber.
@@ -539,6 +553,7 @@ function brancherQuizVideo() {
       q.hidden = true;
     });
     majScore();
+    if (attente) attente.hidden = true;
     if (bilan) {
       bilan.hidden = false;
       // La lettre est la récompense, et elle arrive sous le pli.
@@ -563,6 +578,7 @@ function brancherQuizVideo() {
   let filet = null;
   function ouvrirSansVideo() {
     zone.hidden = false;
+    if (attente) attente.hidden = true;
     questions[0].hidden = false;
     const chrono = questions[0].querySelector("[data-chrono]");
     if (chrono) chrono.hidden = true;

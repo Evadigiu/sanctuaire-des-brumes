@@ -23,22 +23,25 @@ def sans_accent(t):
     d = unicodedata.normalize("NFKD", t.lower())
     return "".join(c for c in d if not unicodedata.combining(c))
 
-def delai_de_reponse():
-    """Le nombre de secondes laissees au groupe, lu dans le generateur.
+def reglages_du_quiz():
+    """Les deux durees du quiz, lues dans le generateur.
 
-    Cette valeur est ecrite a un seul endroit, SECONDES_POUR_REPONDRE en haut
-    de fabriquer-les-pages.py. La recopier ici reviendrait a avoir deux
+    Elles sont ecrites a un seul endroit, en haut de
+    fabriquer-les-pages.py. Les recopier ici reviendrait a avoir deux
     verites : le jour ou l'une change, ce fichier annoncerait tranquillement
     un ecart minimum qui n'est plus le bon.
     """
     chemin = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                           "fabriquer-les-pages.py")
-    m = re.search(r"^SECONDES_POUR_REPONDRE\s*=\s*(\d+)",
-                  open(chemin, encoding="utf-8").read(), re.M)
-    if not m:
-        sys.exit("SECONDES_POUR_REPONDRE est introuvable dans "
-                 "contenu/fabriquer-les-pages.py.")
-    return int(m.group(1))
+    source = open(chemin, encoding="utf-8").read()
+    valeurs = []
+    for nom in ("SECONDES_POUR_REPONDRE", "SECONDES_DE_VERDICT"):
+        m = re.search(r"^%s\s*=\s*(\d+)" % nom, source, re.M)
+        if not m:
+            sys.exit("%s est introuvable dans "
+                     "contenu/fabriquer-les-pages.py." % nom)
+        valeurs.append(int(m.group(1)))
+    return valeurs
 
 
 def code_dans(txt):
@@ -245,7 +248,7 @@ def main():
             # bonne reponse. Si la suivante arrive avant, elle coupe la parole :
             # le groupe n'a pas eu ses dix secondes, et il ne verra jamais la
             # reponse. Ca ne se voit pas a la fabrication, seulement sur place.
-            DELAI, LECTURE = delai_de_reponse(), 3
+            DELAI, LECTURE = reglages_du_quiz()
             for c, liste in vus.items():
                 liste.sort()
                 for (s1, i1, t1), (s2, i2, t2) in zip(liste, liste[1:]):
@@ -256,9 +259,10 @@ def main():
                     elif ecart < DELAI + LECTURE:
                         av.append("onglet Quiz, lignes %d et %d : seulement %d s "
                                   "entre %s et %s. Il en faut %d (les %d s pour "
-                                  "repondre, plus le temps de lire la bonne "
-                                  "reponse)." % (i1, i2, ecart, t1, t2,
-                                                 DELAI + LECTURE, DELAI))
+                                  "repondre, plus les %d s ou la bonne reponse "
+                                  "reste affichee)."
+                                  % (i1, i2, ecart, t1, t2,
+                                     DELAI + LECTURE, DELAI, LECTURE))
                 dernier = liste[-1]
                 av.append("onglet Quiz : la derniere question de %s apparait a %s. "
                           "La video doit durer au moins %s, sinon le groupe "
