@@ -77,16 +77,43 @@ def en_secondes(v):
     for m in morceaux: sec = sec * 60 + m
     return sec
 
+def colonnes_du_quiz(ws):
+    """Ou se trouve chaque colonne de l'onglet Quiz.
+
+    On les cherche par leur titre au lieu de compter les cases. Le jour ou
+    une cinquieme proposition est ajoutee, ou une colonne deplacee, le
+    generateur suit sans qu'on y touche — et il le dit clairement si un
+    titre manque, plutot que de lire la mauvaise case en silence.
+    """
+    titres = {}
+    for i, c in enumerate(ws[2]):
+        t = slug(propre(c.value))
+        if t: titres[t] = i
+    manquant = [n for n in ("code", "apparait-a", "question") if n not in titres]
+    bonne = next((i for t, i in titres.items() if t.startswith("bonne")), None)
+    if bonne is None: manquant.append("bonne reponse")
+    if manquant:
+        sys.exit("Onglet Quiz : colonne(s) introuvable(s) : %s. "
+                 "Verifier la ligne 2 du tableur." % ", ".join(manquant))
+    props = sorted(i for t, i in titres.items() if t.startswith("proposition"))
+    if not props:
+        sys.exit("Onglet Quiz : aucune colonne \"Proposition N\".")
+    return titres["code"], titres["apparait-a"], titres["question"], props, bonne
+
+
 quiz = {}
 if "Quiz" in wb.sheetnames:
-    for r in wb["Quiz"].iter_rows(min_row=3, values_only=True):
-        c = propre(r[0])
-        t = en_secondes(r[1])
-        question = propre(r[2])
-        props = [propre(x) for x in r[3:6] if propre(x)]
+    ws = wb["Quiz"]
+    cCode, cT, cQ, cProps, cBonne = colonnes_du_quiz(ws)
+    for r in ws.iter_rows(min_row=3, values_only=True):
+        def case(i): return propre(r[i]) if i < len(r) else ""
+        c = case(cCode)
+        t = en_secondes(case(cT))
+        question = case(cQ)
+        props = [case(i) for i in cProps if case(i)]
         if not (c and question and props): continue
-        try: bonne = int(float(propre(r[6]))) - 1
-        except (ValueError, TypeError): bonne = 0
+        try: bonne = int(float(case(cBonne))) - 1
+        except ValueError: bonne = 0
         quiz.setdefault(c, []).append({
             "t": t or 0, "question": question, "props": props,
             "bonne": max(0, min(bonne, len(props) - 1)),
@@ -182,11 +209,15 @@ CONFIRMATION_INDICE = {"E04"}
 # Sur le reseau d'un parc, une video qui se recharge aurait sinon mange les
 # dix secondes sans que personne ait rien lu.
 #
+# Les minutes du cahier marquent le DEBUT du son a reconnaitre. Le compte a
+# rebours part donc pendant que le son joue : treize secondes couvrent le son
+# lui-meme, la lecture des quatre propositions, et l'accord du groupe.
+#
 # Consequence a surveiller dans le cahier : deux questions separees de moins
 # de SECONDES_POUR_REPONDRE + 3 se coupent la parole. verifier-le-cahier.py
-# le signale.
+# le signale, et il lit cette valeur-ci pour ne jamais en annoncer une autre.
 # ------------------------------------------------------------
-SECONDES_POUR_REPONDRE = 10
+SECONDES_POUR_REPONDRE = 13
 # ============================================================
 # LES MEDIAS (videos et audio)
 #

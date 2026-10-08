@@ -536,12 +536,13 @@ with sync_playwright() as pw:
     # lecture par une horloge qu'on avance a la main. Le test devient
     # instantane et reproductible, et il verifie exactement le contrat.
     #
+    # Aucune minute n'est ecrite en dur : elles sont lues dans la page.
+    # Le cahier peut changer de questions, d'horaires ou de nombre de
+    # propositions sans que ce test devienne faux sans prevenir.
+    #
     # La balise <source> est retiree de la page avant chargement, sinon le
     # navigateur signale un fichier introuvable (la video n'est pas encore
     # chez l'hebergeur) et le filet de securite ouvrirait le quiz d'un coup.
-    #
-    # Les trois questions d'exemple sont a 0:15, 0:48 et 1:20, avec dix
-    # secondes pour repondre : elles expirent donc a 0:25, 0:58 et 1:30.
     # ------------------------------------------------------------
     print("\nE06 : le quiz se deroule au rythme de la video")
     page = nav.new_page(); page.add_init_script(init("horaire"))
@@ -554,13 +555,25 @@ with sync_playwright() as pw:
     page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E06"]))
     page.wait_for_timeout(300)
 
-    etat = lambda: page.evaluate("""() => {
+    plan = page.evaluate("""() => {
+      const z = document.querySelector("[data-quiz]");
+      return { delai: parseFloat(z.getAttribute("data-delai")),
+               t: Array.from(z.querySelectorAll("[data-question]"))
+                       .map(q => parseFloat(q.getAttribute("data-t"))),
+               bonnes: Array.from(z.querySelectorAll("[data-question]"))
+                       .map(q => parseInt(q.getAttribute("data-bonne"), 10)) };
+    }""")
+    N, DELAI, T = len(plan["t"]), plan["delai"], plan["t"]
+    verifier("le cahier fournit au moins trois questions", N >= 3, str(N))
+
+    etat = lambda: page.evaluate("""(n) => {
       const z = document.querySelector("[data-quiz]");
       const qs = Array.from(z.querySelectorAll("[data-question]"));
       const b  = z.querySelector("[data-bilan]");
       const s  = document.querySelector("[data-quiz-suivant]");
-      const ouverte = qs.find(q => !q.hidden);
-      return { zone: !z.hidden, visibles: qs.map(q => !q.hidden),
+      const ouverte = qs.findIndex(q => !q.hidden);
+      return { zone: !z.hidden, nbOuvertes: qs.filter(q => !q.hidden).length,
+               ouverte: ouverte,
                bilan: !b.hidden, score: b.querySelector("[data-score]").textContent,
                lettre: (b.querySelector(".lettre") || {}).textContent || "",
                suivant: !!s && !s.hidden, pleinEcran: !!document.fullscreenElement,
@@ -568,16 +581,16 @@ with sync_playwright() as pw:
                // borne elle se merite au bout du quiz, pas au scan.
                lettreVue: Array.from(document.querySelectorAll(".lettre"))
                                .some(x => x.offsetParent !== null),
-               reste: ouverte ? ouverte.querySelector("[data-reste]").textContent : "",
-               chrono: ouverte ? !ouverte.querySelector("[data-chrono]").hidden : false };
-    }""")
+               reste: ouverte < 0 ? "" :
+                      qs[ouverte].querySelector("[data-reste]").textContent,
+               chrono: ouverte >= 0 &&
+                       !qs[ouverte].querySelector("[data-chrono]").hidden };
+    }""", N)
 
+    e0 = etat()
     verifier("rien avant la lecture",
-             etat() == {"zone": False, "visibles": [False, False, False],
-                        "bilan": False, "score": "", "lettre": "I",
-                        "suivant": False, "pleinEcran": False,
-                        "lettreVue": False, "reste": "", "chrono": False},
-             str(etat()))
+             not e0["zone"] and e0["nbOuvertes"] == 0 and not e0["bilan"]
+             and not e0["suivant"] and not e0["lettreVue"], str(e0))
 
     # Une horloge a la place de la lecture.
     page.evaluate("""() => {
@@ -590,86 +603,93 @@ with sync_playwright() as pw:
     }""")
     e1 = etat()
     verifier("la lecture ouvre le quiz, sans question",
-             e1["zone"] and e1["visibles"] == [False, False, False], str(e1))
-    verifier("la video du quiz ne part pas en plein ecran",
-             not e1["pleinEcran"])
+             e1["zone"] and e1["nbOuvertes"] == 0, str(e1))
+    verifier("la video du quiz ne part pas en plein ecran", not e1["pleinEcran"])
 
-    page.evaluate("window.__avancer(20)")
+    avancer = lambda t, ev="timeupdate": page.evaluate(
+        "([t, e]) => window.__avancer(t, e)", [t, ev])
+    question = lambda i: page.locator("[data-question]").nth(i)
+
+    # --- La premiere question, et une mauvaise reponse ------------------
+    avancer(T[0] + 5)
     e2 = etat()
-    verifier("a 0:20, la question 1 apparait",
-             e2["visibles"] == [True, False, False], str(e2["visibles"]))
-    verifier("et son compte a rebours annonce 5 s",
-             e2["chrono"] and e2["reste"] == "5 s", str(e2))
+    verifier("la premiere question apparait a son heure",
+             e2["ouverte"] == 0 and e2["nbOuvertes"] == 1, str(e2))
+    verifier("son compte a rebours decompte le delai du cahier",
+             e2["chrono"] and e2["reste"] == "%d s" % (DELAI - 5), str(e2))
 
-    # Mauvaise reponse : la bonne est montree, et on ne peut pas se reprendre.
-    q1 = page.locator("[data-question]").nth(0)
-    q1.locator(".quiz-prop").nth(0).click()
-    # Deuxieme clic sur la bonne reponse : il doit rester sans effet. Le
+    faux = 0 if plan["bonnes"][0] != 0 else 1
+    question(0).locator(".quiz-prop").nth(faux).click()
+    # Deuxieme clic, sur la bonne cette fois : il doit rester sans effet. Le
     # bouton est desactive, donc on force l'evenement a la main — c'est bien
     # le verrou du code qu'on teste, pas celui du navigateur.
-    q1.locator(".quiz-prop").nth(2).dispatch_event("click")
-    detail = page.evaluate("""() => {
+    question(0).locator(".quiz-prop").nth(plan["bonnes"][0]).dispatch_event("click")
+    detail = page.evaluate("""(bonne) => {
       const q = document.querySelectorAll("[data-question]")[0];
       const p = q.querySelectorAll(".quiz-prop");
       return { verdict: q.querySelector("[data-verdict]").textContent,
                cachee: q.querySelector("[data-verdict]").hidden,
                bloquees: Array.from(p).every(b => b.disabled),
-               bonneMontree: p[2].classList.contains("est-bonne"),
+               bonneMontree: p[bonne].classList.contains("est-bonne"),
                chrono: q.querySelector("[data-chrono]").hidden };
-    }""")
+    }""", plan["bonnes"][0])
     verifier("mauvaise reponse : le verdict s'affiche",
              not detail["cachee"] and "pas la bonne" in detail["verdict"], str(detail))
     verifier("la bonne reponse est montree, les boutons bloques",
              detail["bloquees"] and detail["bonneMontree"], str(detail))
-    verifier("le compte a rebours disparait une fois repondu",
-             detail["chrono"], str(detail))
+    verifier("le compte a rebours disparait une fois repondu", detail["chrono"])
 
-    # LE CHOIX D'EVA : une question a la fois. La suivante efface la
-    # precedente, meme si le groupe n'y a pas touche.
-    page.evaluate("window.__avancer(50)")
-    verifier("a 0:50, la question 2 REMPLACE la question 1",
-             etat()["visibles"] == [False, True, False], str(etat()["visibles"]))
+    # --- LE CHOIX D'EVA : une question a la fois ------------------------
+    avancer(T[1] + 1)
+    e3 = etat()
+    verifier("la question suivante REMPLACE la precedente",
+             e3["ouverte"] == 1 and e3["nbOuvertes"] == 1, str(e3))
 
     # Dix secondes et personne n'a repondu : la question se verrouille et
-    # montre la bonne reponse. On perd le point, pas la lecon.
-    page.evaluate("window.__avancer(59)")
-    expiree = page.evaluate("""() => {
+    # nomme la bonne reponse. On perd le point, pas la lecon.
+    avancer(T[1] + DELAI + 1)
+    expiree = page.evaluate("""(bonne) => {
       const q = document.querySelectorAll("[data-question]")[1];
       const p = q.querySelectorAll(".quiz-prop");
       return { verdict: q.querySelector("[data-verdict]").textContent,
                bloquees: Array.from(p).every(b => b.disabled),
-               bonneMontree: p[0].classList.contains("est-bonne"),
+               bonneMontree: p[bonne].classList.contains("est-bonne"),
+               nommee: q.querySelector("[data-verdict]").textContent
+                        .includes(p[bonne].textContent),
                chrono: q.querySelector("[data-chrono]").hidden };
-    }""")
-    verifier("passe 10 s, la question expire et montre la reponse",
+    }""", plan["bonnes"][1])
+    verifier("passe le delai, la question expire",
              "Temps écoulé" in expiree["verdict"] and expiree["bloquees"]
              and expiree["bonneMontree"] and expiree["chrono"], str(expiree))
+    verifier("et elle nomme la bonne reponse plutot que la designer",
+             expiree["nommee"], expiree["verdict"])
 
-    # Et repondre apres l'heure ne rapporte rien.
-    page.locator("[data-question]").nth(1).locator(".quiz-prop").nth(0) \
-        .dispatch_event("click")
+    # Repondre apres l'heure ne rapporte rien.
+    question(1).locator(".quiz-prop").nth(plan["bonnes"][1]).dispatch_event("click")
 
     # Un joueur qui revient en arriere dans la video retrouve la question
     # de ce moment-la, dans l'etat ou il l'a laissee.
-    page.evaluate("window.__avancer(22, 'seeked')")
+    avancer(T[0] + 1, "seeked")
+    e4 = etat()
     verifier("retour en arriere : on retrouve la question de ce moment",
-             etat()["visibles"] == [True, False, False], str(etat()["visibles"]))
+             e4["ouverte"] == 0 and e4["nbOuvertes"] == 1, str(e4))
 
-    page.evaluate("window.__avancer(85)")
-    verifier("a 1:25, la question 3 est seule a l'ecran",
-             etat()["visibles"] == [False, False, True], str(etat()["visibles"]))
-    page.locator("[data-question]").nth(2).locator(".quiz-prop").nth(0).click()
+    # --- La derniere question, bien repondue ----------------------------
+    avancer(T[N - 1] + 1)
+    e5 = etat()
+    verifier("la derniere question est seule a l'ecran",
+             e5["ouverte"] == N - 1 and e5["nbOuvertes"] == 1, str(e5))
+    question(N - 1).locator(".quiz-prop").nth(plan["bonnes"][N - 1]).click()
 
-    # La derniere question est passee et son delai est ecoule : plus rien
-    # a attendre de la video, le bilan tombe.
-    page.evaluate("window.__avancer(92)")
+    # Son delai ecoule, plus rien a attendre de la video : le bilan tombe.
+    avancer(T[N - 1] + DELAI + 1)
     fin = etat()
     verifier("le quiz fini, le bilan s'affiche",
-             fin["bilan"] and fin["visibles"] == [False, False, False], str(fin))
-    verifier("la reponse donnee apres l'heure ne compte pas",
-             "1 bonne réponse sur 3" in fin["score"], fin["score"])
-    verifier("la lettre I est donnee a la fin",
-             fin["lettre"] == "I" and fin["lettreVue"], str(fin))
+             fin["bilan"] and fin["nbOuvertes"] == 0, str(fin))
+    verifier("une seule bonne reponse comptee sur %d" % N,
+             ("1 bonne réponse sur %d" % N) in fin["score"], fin["score"])
+    verifier("la lettre est donnee a la fin",
+             fin["lettre"] and fin["lettreVue"], str(fin))
     verifier("et seulement alors, Suivant apparait", fin["suivant"], str(fin))
     page.close()
 
@@ -683,7 +703,8 @@ with sync_playwright() as pw:
     page.wait_for_timeout(500)
     sans = etat()
     verifier("le quiz s'ouvre malgre tout",
-             sans["zone"] and sans["visibles"] == [True, False, False], str(sans))
+             sans["zone"] and sans["ouverte"] == 0 and sans["nbOuvertes"] == 1,
+             str(sans))
     verifier("sans compte a rebours, faute d'horloge", not sans["chrono"], str(sans))
     verifier("la sortie reste accessible", sans["suivant"], str(sans))
     page.close()
