@@ -218,6 +218,17 @@ CONFIRMATION_INDICE = {"E04"}
 # le signale, et il lit cette valeur-ci pour ne jamais en annoncer une autre.
 # ------------------------------------------------------------
 SECONDES_POUR_REPONDRE = 13
+
+# Combien de temps le verdict reste affiche, une fois la reponse donnee ou
+# le delai ecoule. Passe ce temps la question s'efface, et l'ecran invite a
+# ecouter le son suivant : une question morte qui traine quarante secondes
+# sous une video detourne l'oreille de ce qu'il y a a entendre.
+#
+# Ce compte part de la REPONSE, pas du depart de la question. A zero, la
+# question disparaitrait pile a la treizieme seconde, et celui qui repond a
+# la douzieme verrait son verdict une seconde : il ne saurait meme pas s'il
+# a eu juste.
+SECONDES_DE_VERDICT = 4
 # ============================================================
 # LES MEDIAS (videos et audio)
 #
@@ -399,8 +410,16 @@ def bloc_quiz(code, lettre):
     se verrouille et montre la bonne reponse : un groupe qui n'a pas eu le
     temps perd le point, mais apprend quand meme quelque chose. C'est un
     quiz pedagogique, le silence serait une occasion perdue.
+
+    Le verdict reste SECONDES_DE_VERDICT secondes, puis la question
+    s'efface et l'ecran invite a ecouter la suivante.
     """
-    h = ['<div class="quiz" data-quiz data-delai="%d" hidden>' % SECONDES_POUR_REPONDRE]
+    h = ['<div class="quiz" data-quiz data-delai="%d" data-verdict-delai="%d" hidden>'
+         % (SECONDES_POUR_REPONDRE, SECONDES_DE_VERDICT)]
+    # Entre deux questions, l'ecran ne doit pas etre vide : un groupe qui ne
+    # voit plus rien se demande si son telephone a laché, au lieu d'ecouter.
+    h.append('  <p class="quiz-attente" data-attente hidden>'
+             'Écoutez bien, une question va suivre.</p>')
     for i, q in enumerate(quiz[code]):
         h.append('  <div class="quiz-question" data-question data-t="%d" '
                  'data-bonne="%d" hidden>' % (q["t"], q["bonne"]))

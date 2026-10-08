@@ -344,6 +344,15 @@ video {
    ------------------------------------------------------------ */
 .quiz { margin-bottom: 4px; }
 
+/* Entre deux questions. Discret : ce n'est pas une information, c'est la
+   preuve que le telephone n'a pas laché. */
+.quiz-attente {
+  color: var(--fog);
+  font-style: italic;
+  text-align: center;
+  margin: 18px 0 4px;
+}
+
 .quiz-question {
   border: 1px solid var(--hair);
   border-radius: 8px;
