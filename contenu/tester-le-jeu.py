@@ -11,7 +11,7 @@ passage, epreuve a reponse verifiee, et bornes de saisie du nombre de joueurs.
 Necessite Chromium. Le chemin ci-dessous est celui de l'environnement de
 developpement ; a adapter ailleurs.
 """
-import sys, os, threading, functools, http.server, socketserver
+import sys, os, re, threading, functools, http.server, socketserver
 from playwright.sync_api import sync_playwright
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -526,6 +526,132 @@ with sync_playwright() as pw:
     page.click("#validerSecours"); page.wait_for_timeout(400)
     attendue = "http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E01"])
     verifier("ouvre bien la borne du commissaire", page.url == attendue, page.url)
+    page.close()
+
+    # ------------------------------------------------------------
+    # LE QUIZ QUI SUIT LA VIDEO (borne Sabri & Arez)
+    #
+    # On ne lit pas de vraie video ici : le code du quiz ne connait de la
+    # video que son currentTime et ses evenements. On remplace donc la
+    # lecture par une horloge qu'on avance a la main. Le test devient
+    # instantane et reproductible, et il verifie exactement le contrat.
+    #
+    # La balise <source> est retiree de la page avant chargement, sinon le
+    # navigateur signale un fichier introuvable (la video n'est pas encore
+    # chez l'hebergeur) et le filet de securite ouvrirait tout d'un coup.
+    # ------------------------------------------------------------
+    print("\nE06 : le quiz se deroule au rythme de la video")
+    page = nav.new_page(); page.add_init_script(init("horaire"))
+    def sans_source(route):
+        page_e06 = open(os.path.join(RACINE, PARC["pages"]["E06"], "index.html"),
+                        encoding="utf-8").read()
+        route.fulfill(status=200, content_type="text/html; charset=utf-8",
+                      body=re.sub(r"<source[^>]*>", "", page_e06))
+    page.route("**/%s/**" % PARC["pages"]["E06"].rstrip("/"), sans_source)
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E06"]))
+    page.wait_for_timeout(300)
+
+    etat = lambda: page.evaluate("""() => {
+      const z = document.querySelector("[data-quiz]");
+      const qs = Array.from(z.querySelectorAll("[data-question]"));
+      const b  = z.querySelector("[data-bilan]");
+      const s  = document.querySelector("[data-quiz-suivant]");
+      return { zone: !z.hidden, visibles: qs.map(q => !q.hidden),
+               bilan: !b.hidden, score: b.querySelector("[data-score]").textContent,
+               lettre: (b.querySelector(".lettre") || {}).textContent || "",
+               suivant: !!s && !s.hidden, pleinEcran: !!document.fullscreenElement,
+               // La lettre ne doit pas etre lisible a l'arrivee : sur cette
+               // borne elle se merite au bout du quiz, pas au scan.
+               lettreVue: Array.from(document.querySelectorAll(".lettre"))
+                               .some(x => x.offsetParent !== null) };
+    }""")
+
+    verifier("rien avant la lecture",
+             etat() == {"zone": False, "visibles": [False, False, False],
+                        "bilan": False, "score": "", "lettre": "I",
+                        "suivant": False, "pleinEcran": False,
+                        "lettreVue": False}, str(etat()))
+
+    # Une horloge a la place de la lecture.
+    page.evaluate("""() => {
+      const v = document.querySelector("[data-quiz-video]");
+      window.__t = 0;
+      Object.defineProperty(v, "currentTime", { get: () => window.__t });
+      window.__avancer = (t, ev) => { window.__t = t;
+        v.dispatchEvent(new Event(ev || "timeupdate")); };
+      v.dispatchEvent(new Event("play"));
+    }""")
+    e1 = etat()
+    verifier("la lecture ouvre le quiz, sans question",
+             e1["zone"] and e1["visibles"] == [False, False, False], str(e1))
+    verifier("la video du quiz ne part pas en plein ecran",
+             not e1["pleinEcran"])
+
+    page.evaluate("window.__avancer(20)")
+    verifier("a 0:20, la question 1 apparait",
+             etat()["visibles"] == [True, False, False], str(etat()["visibles"]))
+
+    # Mauvaise reponse : la bonne est montree, et on ne peut pas se reprendre.
+    q1 = page.locator("[data-question]").nth(0)
+    q1.locator(".quiz-prop").nth(0).click()
+    # Deuxieme clic sur la bonne reponse : il doit rester sans effet. Le
+    # bouton est desactive, donc on force l'evenement a la main — c'est bien
+    # le verrou du code qu'on teste, pas celui du navigateur.
+    q1.locator(".quiz-prop").nth(2).dispatch_event("click")
+    detail = page.evaluate("""() => {
+      const q = document.querySelectorAll("[data-question]")[0];
+      const p = q.querySelectorAll(".quiz-prop");
+      return { verdict: q.querySelector("[data-verdict]").textContent,
+               cachee: q.querySelector("[data-verdict]").hidden,
+               bloquees: Array.from(p).every(b => b.disabled),
+               bonneMontree: p[2].classList.contains("est-bonne") };
+    }""")
+    verifier("mauvaise reponse : le verdict s'affiche",
+             not detail["cachee"] and "pas la bonne" in detail["verdict"], str(detail))
+    verifier("la bonne reponse est montree, les boutons bloques",
+             detail["bloquees"] and detail["bonneMontree"], str(detail))
+
+    page.evaluate("window.__avancer(50)")
+    verifier("a 0:50, la question 2 s'ajoute SANS effacer la 1",
+             etat()["visibles"] == [True, True, False], str(etat()["visibles"]))
+
+    # Un joueur qui revient en arriere dans la video ne perd rien.
+    page.evaluate("window.__avancer(5, 'seeked')")
+    verifier("retour en arriere : aucune question ne disparait",
+             etat()["visibles"] == [True, True, False], str(etat()["visibles"]))
+
+    page.evaluate("window.__avancer(85)")
+    page.locator("[data-question]").nth(1).locator(".quiz-prop").nth(0).click()
+
+    # La video se termine AVANT que le groupe ait repondu a la derniere
+    # question. C'est le cas le plus frequent : quatre personnes qui
+    # discutent sont plus lentes qu'un montage. Le bilan s'affiche alors,
+    # et il doit continuer a compter les reponses qui arrivent apres.
+    page.evaluate("window.__avancer(95, 'ended')")
+    avant = etat()
+    verifier("video finie avant la derniere reponse : le bilan s'affiche",
+             avant["bilan"] and "pour l'instant" in avant["score"], str(avant))
+    page.locator("[data-question]").nth(2).locator(".quiz-prop").nth(0).click()
+    fin = etat()
+    verifier("tout repondu : le bilan s'affiche", fin["bilan"], str(fin))
+    verifier("le score compte la reponse arrivee apres la video",
+             "2 bonnes réponses sur 3." in fin["score"], fin["score"])
+    verifier("la lettre I est donnee a la fin",
+             fin["lettre"] == "I" and fin["lettreVue"], str(fin))
+    verifier("et seulement alors, Suivant apparait", fin["suivant"], str(fin))
+    page.close()
+
+    # Le cas du jour meme : la video n'est pas encore chez l'hebergeur. Le
+    # quiz doit s'ouvrir quand meme, et la sortie rester accessible — sinon
+    # le groupe est enferme sur la borne.
+    print("\nE06 : sans video, la borne reste jouable")
+    page = nav.new_page(); page.add_init_script(init("horaire"))
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E06"]))
+    page.wait_for_timeout(500)
+    sans = etat()
+    verifier("le quiz s'ouvre malgre tout",
+             sans["zone"] and all(sans["visibles"]), str(sans))
+    verifier("la sortie reste accessible", sans["suivant"], str(sans))
     page.close()
 
     nav.close()

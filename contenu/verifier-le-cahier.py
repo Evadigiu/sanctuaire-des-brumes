@@ -156,6 +156,63 @@ def main():
                       "Textes dit \"%s\". C'est le Parcours qui s'affiche dans le jeu."
                       % (c, etapes[c]["nom"], '", "'.join(sorted(ecarts))))
 
+    # ---------- l'onglet Quiz ----------
+    # Un quiz mal rempli ne se voit pas a la fabrication : la page se
+    # construit, et c'est le joueur qui decouvre une question sans bonne
+    # reponse, ou trois questions qui s'affichent toutes a la meme seconde.
+    if "Quiz" in wb.sheetnames:
+        vus = {}
+        for i, r in enumerate(wb["Quiz"].iter_rows(min_row=3, values_only=True), start=3):
+            c = propre(r[0])
+            if not c and not any(propre(x) for x in r): continue
+            ou = "onglet Quiz, ligne %d" % i
+            if c not in etapes:
+                pb.append("%s : le code \"%s\" ne correspond a aucune etape." % (ou, c))
+                continue
+            t = propre(r[1])
+            sec = None
+            if t:
+                try:
+                    sec = 0
+                    for m in [x for x in t.replace("'", ":").replace("h", ":").split(":") if x.strip()]:
+                        sec = sec * 60 + int(float(m))
+                except ValueError:
+                    sec = None
+            if sec is None:
+                pb.append("%s : \"%s\" ne se lit pas comme un temps. "
+                          "Ecrire 1:20 pour une minute vingt." % (ou, t))
+            if not propre(r[2]):
+                pb.append("%s : pas de question." % ou)
+            props = [propre(x) for x in r[3:6] if propre(x)]
+            if len(props) < 2:
+                pb.append("%s : il faut au moins deux propositions, il y en a %d."
+                          % (ou, len(props)))
+            bonne = propre(r[6])
+            try:
+                n = int(float(bonne))
+            except ValueError:
+                n = 0
+            if not 1 <= n <= len(props):
+                pb.append("%s : la bonne reponse doit etre un numero entre 1 et %d, "
+                          "la case dit \"%s\"." % (ou, max(len(props), 1), bonne))
+            if "EXEMPLE" in propre(r[2]).upper():
+                av.append("%s : question d'exemple encore en place, a remplacer." % ou)
+            if sec is not None:
+                if sec in vus.get(c, set()):
+                    av.append("%s : deux questions a la meme seconde (%s). "
+                              "Elles s'afficheront en meme temps." % (ou, t))
+                vus.setdefault(c, set()).add(sec)
+            if sec == 0:
+                av.append("%s : question annoncee a 0:00, donc visible avant "
+                          "que la video ait rien montre." % ou)
+
+        # Une borne annoncee comme quiz mais sans aucune question part en
+        # silence : l'ecran s'ouvre, la video tourne, et rien ne vient.
+        for c, et in etapes.items():
+            if "quiz" in sans_accent(et["nom"]) and c not in vus:
+                pb.append("%s (%s) : borne annoncee comme un quiz, mais aucune "
+                          "question dans l'onglet Quiz." % (c, et["nom"]))
+
     # ---------- rapport ----------
     print("=" * 78)
     print("VERIFICATION DU CAHIER DE CONTENU")
