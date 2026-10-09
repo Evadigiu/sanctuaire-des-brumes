@@ -72,6 +72,24 @@ PARC = _json.loads(open(os.path.join(RACINE, "assets/js/parcours.js")).read()
                    .split("const PARCOURS =", 1)[1].rstrip().rstrip(";"))
 
 echecs = []
+def nouvelle_page(nav):
+    """Une page de test qui ne va pas chercher les videos chez l'hebergeur.
+
+    Les pages portent l'adresse reelle des medias. Les telecharger n'apprend
+    rien sur le jeu : ca ralentit chaque chargement, ca depend du reseau, et
+    un jour ou l'hebergeur repond lentement des controles qui n'ont rien a
+    voir avec la video se mettent a echouer. C'est arrive.
+
+    On coupe donc court, explicitement. Les bornes sont ainsi testees dans
+    le pire cas, celui ou la video ne descend pas : c'est exactement la
+    situation du reseau d'un parc un dimanche de novembre.
+    """
+    page = nav.new_page()
+    page.route("**/*.mp4", lambda r: r.abort())
+    page.route("**/*.mp3", lambda r: r.abort())
+    return page
+
+
 def verifier(nom, condition, detail=""):
     print("   %-38s %s %s" % (nom, "OK " if condition else "ECHEC", "" if condition else detail))
     if not condition: echecs.append(nom)
@@ -84,7 +102,7 @@ with sync_playwright() as pw:
         (PARC["pages"]["E02"], "antihoraire", (8, 15), "sens B"),
         (PARC["pages"]["E09"], "antihoraire", None,    "borne de l'autre sens"),
     ]:
-        page = nav.new_page()
+        page = nouvelle_page(nav)
         page.add_init_script(init(sens))
         page.goto("http://127.0.0.1:%d/%s" % (PORT, fichier))
         page.wait_for_timeout(300)
@@ -146,7 +164,7 @@ with sync_playwright() as pw:
     # posent la session d'avance, et c'est pour cela qu'aucun ne l'a vu.
     print("\nUne borne ouverte dans un navigateur sans la partie")
     sans_partie = init("horaire").split('localStorage.setItem("sdb_session"')[0]
-    page = nav.new_page(); page.add_init_script(sans_partie)
+    page = nouvelle_page(nav); page.add_init_script(sans_partie)
     page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E02"]))
     page.wait_for_timeout(300)
     verifier("on reste sur la borne", "/index.html" not in page.url, page.url)
@@ -165,8 +183,14 @@ with sync_playwright() as pw:
     page.wait_for_timeout(200)
     verifier("code inconnu : message, on reste",
              page.is_visible("#erreurReprise") and "/index.html" not in page.url)
-    page.fill("#codeReprise", " k7npx4rt "); page.click("#validerReprise")
-    page.wait_for_timeout(600)
+    page.fill("#codeReprise", " k7npx4rt ")
+    # On attend le CHANGEMENT DE PAGE, pas un delai au juge. Une attente
+    # fixe apres un clic qui recharge la borne est une course : la machine
+    # est parfois lente, et deux controles sans rapport avec la reprise se
+    # mettaient a echouer une fois sur dix.
+    with page.expect_navigation():
+        page.click("#validerReprise")
+    page.wait_for_timeout(400)
     verifier("partie retrouvee, toujours sur la borne",
              page.url.endswith(PARC["pages"]["E02"]), page.url)
     verifier("la borne s'affiche",
@@ -177,11 +201,13 @@ with sync_playwright() as pw:
 
     # Code jamais active, saisi sur une borne : ce groupe n'a pas demarre.
     # On l'envoie a l'accueil avec son code, sans rien activer en route.
-    page = nav.new_page(); page.add_init_script(sans_partie)
+    page = nouvelle_page(nav); page.add_init_script(sans_partie)
     page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E02"]))
     page.wait_for_timeout(300)
-    page.fill("#codeReprise", "NEUF0000"); page.click("#validerReprise")
-    page.wait_for_timeout(500)
+    page.fill("#codeReprise", "NEUF0000")
+    with page.expect_navigation():
+        page.click("#validerReprise")
+    page.wait_for_timeout(400)
     verifier("code neuf : renvoye a l'accueil", "/index.html?code=NEUF0000" in page.url, page.url)
     verifier("code neuf : deja saisi a l'accueil",
              page.input_value("#codeInput") == "NEUF0000")
@@ -194,7 +220,7 @@ with sync_playwright() as pw:
     # borne renvoyait a l'accueil avec « session terminee » : impossible de
     # demarrer depuis le QR.
     print("\nUne ancienne partie expiree, puis le QR de la premiere borne")
-    page = nav.new_page(); page.add_init_script(sans_partie)
+    page = nouvelle_page(nav); page.add_init_script(sans_partie)
     page.add_init_script("""
       if (!sessionStorage.getItem("pose")) { sessionStorage.setItem("pose", "1");
         localStorage.setItem("sdb_session", JSON.stringify({ codeId:"vieux", code:"TEST01",
@@ -217,7 +243,7 @@ with sync_playwright() as pw:
     page.close()
 
     # Un vrai billet au temps ecoule : on ne l'invite pas a redemarrer.
-    page = nav.new_page(); page.add_init_script(sans_partie)
+    page = nouvelle_page(nav); page.add_init_script(sans_partie)
     page.add_init_script("""
       localStorage.setItem("sdb_session", JSON.stringify({ codeId:"c9", code:"K7NPX4RT",
         direction:"horaire", expiresAt:"2020-01-01T00:00:00Z" }));
@@ -233,7 +259,7 @@ with sync_playwright() as pw:
     page.close()
 
     # Une nouvelle partie efface les bornes visitees par la precedente.
-    page = nav.new_page(); page.add_init_script(sans_partie)
+    page = nouvelle_page(nav); page.add_init_script(sans_partie)
     page.add_init_script("""
       if (!sessionStorage.getItem("pose")) { sessionStorage.setItem("pose", "1");
         localStorage.setItem("sdb_session", JSON.stringify({ codeId:"vieux", code:"X",
@@ -253,7 +279,7 @@ with sync_playwright() as pw:
     # Le raccourci ne doit exister que pour les codes de test
     print("\nLe raccourci vers l'etape suivante")
     for code, attendu, libelle in [("TEST01", True, "code de test"), ("AB12CD", False, "vrai code")]:
-        page = nav.new_page()
+        page = nouvelle_page(nav)
         page.add_init_script(init("horaire").replace('code: "TEST"', 'code: "%s"' % code))
         page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E02"]))
         page.wait_for_timeout(250)
@@ -268,7 +294,7 @@ with sync_playwright() as pw:
 
     # L'epreuve a reponse verifiee
     print("\ne08 : l'epreuve du panneau d'empreintes")
-    page = nav.new_page(); page.add_init_script(init("horaire"))
+    page = nouvelle_page(nav); page.add_init_script(init("horaire"))
     page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E08"]))
     page.wait_for_timeout(300)
     page.query_selector(".ecran:not([hidden]) [data-suivant]").click(); page.wait_for_timeout(60)
@@ -282,7 +308,7 @@ with sync_playwright() as pw:
 
     # L'accueil : saisie a 1 joueur
     print("\nindex.html : demarrage en solo")
-    page = nav.new_page(); page.add_init_script(init("horaire"))
+    page = nouvelle_page(nav); page.add_init_script(init("horaire"))
     page.goto("http://127.0.0.1:%d/index.html" % PORT)
     page.wait_for_timeout(200)
     page.click("#versSaisie")
@@ -313,7 +339,7 @@ with sync_playwright() as pw:
     print("\nAucune borne n'affiche d'ecran vide")
     vides = []
     for code, page_borne in PARC["pages"].items():
-        page = nav.new_page(); page.add_init_script(init("horaire"))
+        page = nouvelle_page(nav); page.add_init_script(init("horaire"))
         page.goto("http://127.0.0.1:%d/%s" % (PORT, page_borne))
         page.wait_for_timeout(250)
         n = page.evaluate("""() => [...document.querySelectorAll('.ecran')].filter(
@@ -325,7 +351,7 @@ with sync_playwright() as pw:
 
     print("\nL'enclos des loups ne donne plus la lettre d'emblee")
     for reponse, doit_voir in (("[data-indice-non]", True), ("[data-suivant]", False)):
-        page = nav.new_page(); page.add_init_script(init("horaire"))
+        page = nouvelle_page(nav); page.add_init_script(init("horaire"))
         page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E04"]))
         page.wait_for_timeout(400)
         libelle = "Non" if doit_voir else "Oui"
@@ -348,7 +374,7 @@ with sync_playwright() as pw:
         page.close()
 
     print("\nDepuis l'ecran de sortie, on peut remonter jusqu'a la video")
-    page = nav.new_page(); page.add_init_script(init("horaire"))
+    page = nouvelle_page(nav); page.add_init_script(init("horaire"))
     page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E01"]))
     page.wait_for_timeout(400)
     for _ in range(6):
@@ -369,7 +395,7 @@ with sync_playwright() as pw:
     page.close()
 
     print("\nRevoir le temoignage precedent")
-    page = nav.new_page(); page.add_init_script(init("horaire"))
+    page = nouvelle_page(nav); page.add_init_script(init("horaire"))
 
     # On commence par PARCOURIR la borne du commissaire jusqu'a son dernier
     # ecran. C'est indispensable : chaque borne se souvient de l'ecran ou on
@@ -416,7 +442,7 @@ with sync_playwright() as pw:
 
     # Sur la borne de depart il n'y a rien avant : le bouton disparait plutot
     # que de rester la sans rien faire.
-    page = nav.new_page(); page.add_init_script(init("horaire"))
+    page = nouvelle_page(nav); page.add_init_script(init("horaire"))
     page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E01"]))
     page.wait_for_timeout(700)
     b0 = page.query_selector(".ecran:not([hidden]) [data-retour]")
@@ -433,7 +459,7 @@ with sync_playwright() as pw:
     # joueur doit pouvoir reprendre sans retaper son code, que le groupe a
     # peut-etre garde.
     print("\nindex.html : reprendre une enquete en cours")
-    page = nav.new_page(); page.add_init_script(init("horaire"))
+    page = nouvelle_page(nav); page.add_init_script(init("horaire"))
     page.add_init_script("""
       localStorage.setItem("sdb_session", JSON.stringify({ codeId:"c1", code:"TEST01",
         direction:"horaire", expiresAt: new Date(Date.now()+3600000).toISOString(),
@@ -449,7 +475,7 @@ with sync_playwright() as pw:
     page.close()
 
     # Une partie finie ne se reprend pas : le bouton n'a rien a faire la.
-    page = nav.new_page(); page.add_init_script(init("horaire"))
+    page = nouvelle_page(nav); page.add_init_script(init("horaire"))
     page.add_init_script("""
       localStorage.setItem("sdb_session", JSON.stringify({ codeId:"c1", code:"TEST01",
         direction:"horaire", expiresAt: "2020-01-01T00:00:00Z",
@@ -461,7 +487,7 @@ with sync_playwright() as pw:
     page.close()
 
     print("\nindex.html : les quatre champs sont obligatoires")
-    page = nav.new_page(); page.add_init_script(init("horaire"))
+    page = nouvelle_page(nav); page.add_init_script(init("horaire"))
     page.goto("http://127.0.0.1:%d/index.html" % PORT)
     page.wait_for_timeout(200)
     page.click("#versSaisie")
@@ -496,7 +522,7 @@ with sync_playwright() as pw:
     print("\nindex.html : l'ecran de depart n'ouvre plus la premiere borne")
     for code, attendu, libelle in [("TEST01", True, "code de test"),
                                    ("K7NPX4RT", False, "vrai code")]:
-        page = nav.new_page(); page.add_init_script(init("horaire"))
+        page = nouvelle_page(nav); page.add_init_script(init("horaire"))
         page.goto("http://127.0.0.1:%d/index.html" % PORT)
         page.wait_for_timeout(200)
         page.click("#versSaisie")
@@ -514,7 +540,7 @@ with sync_playwright() as pw:
     # Le nombre a quatre chiffres de l'affichette doit ouvrir la borne, et
     # sans empiler les dossiers : /8055/ et non /index.html/8055/.
     print("\nindex.html : le secours a quatre chiffres")
-    page = nav.new_page(); page.add_init_script(init("horaire"))
+    page = nouvelle_page(nav); page.add_init_script(init("horaire"))
     page.goto("http://127.0.0.1:%d/index.html" % PORT)
     page.wait_for_timeout(200)
     page.click("#versSaisie")
@@ -545,7 +571,7 @@ with sync_playwright() as pw:
     # chez l'hebergeur) et le filet de securite ouvrirait le quiz d'un coup.
     # ------------------------------------------------------------
     print("\nE06 : le quiz se deroule au rythme de la video")
-    page = nav.new_page(); page.add_init_script(init("horaire"))
+    page = nouvelle_page(nav); page.add_init_script(init("horaire"))
     def sans_source(route):
         page_e06 = open(os.path.join(RACINE, PARC["pages"]["E06"], "index.html"),
                         encoding="utf-8").read()
@@ -722,12 +748,18 @@ with sync_playwright() as pw:
     verifier("et seulement alors, Suivant apparait", fin["suivant"], str(fin))
     page.close()
 
-    # Le cas du jour meme : la video n'est pas encore chez l'hebergeur. La
-    # borne doit rester jouable, et la sortie accessible — sinon le groupe
-    # est enferme. Sans video il n'y a plus d'horloge, donc pas de compte
-    # a rebours : on montre la premiere question, sans minuteur.
-    print("\nE06 : sans video, la borne reste jouable")
-    page = nav.new_page(); page.add_init_script(init("horaire"))
+    # La video ne descend pas : fichier absent chez l'hebergeur, ou reseau
+    # du parc qui lache en pleine partie. La borne doit rester jouable et la
+    # sortie accessible, sinon le groupe est enferme. Sans video il n'y a
+    # plus d'horloge, donc pas de compte a rebours : on montre la premiere
+    # question, sans minuteur.
+    #
+    # La coupure est provoquee ici (nouvelle_page bloque les .mp4), et non
+    # subie : ce controle passait jusqu'ici parce que le reseau de la
+    # machine de developpement refuse l'hebergeur. Ailleurs il aurait
+    # echoue sans rien reveler du jeu.
+    print("\nE06 : si la video ne se charge pas, la borne reste jouable")
+    page = nouvelle_page(nav); page.add_init_script(init("horaire"))
     page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E06"]))
     page.wait_for_timeout(500)
     sans = etat()

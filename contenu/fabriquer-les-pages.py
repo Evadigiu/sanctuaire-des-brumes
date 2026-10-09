@@ -268,7 +268,7 @@ MEDIAS = {
  "E09": "greg-sens-a-sj7kmm.mp4",
  "E10": "bill-t87isj.mp4",
  # "E12": "appel-du-commissaire-bm7fpb.mp3",
- # "E14": "le-botaniste-acanpa.mp4",
+ "E14": "le-botaniste-acanpa.mp4",
  # "E15": "la-serre-f4bxez.mp4",
  # Greg ne dit pas autre chose selon le sens par lequel on arrive : les
  # deux bornes portent la meme legende et renvoient toutes deux vers
