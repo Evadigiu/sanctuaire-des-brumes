@@ -169,14 +169,22 @@ function proposerDeRetrouverLaPartie(ancienneTrouvee) {
   if (timer) timer.remove();
   brancherSecours();
 
+  // L'accueil, en emportant la borne qu'on vient de scanner. Elle sert a
+  // renvoyer le groupe ici meme une fois sa partie ouverte, au lieu de lui
+  // demander de rescanner le QR code qu'il a sous les yeux. L'accueil ne
+  // la suit que si c'est la premiere borne de son sens : c'est lui qui
+  // decide, pas la borne.
+  const codeBorne = document.body.getAttribute("data-etape") || "";
   const accueil = BASE_PATH + "index.html";
+  const accueilDepuisIci = accueil
+        + (codeBorne ? "?borne=" + encodeURIComponent(codeBorne) : "");
   const bloc = document.createElement("section");
   bloc.className = "ecran card";
   bloc.id = "retrouverPartie";
   bloc.innerHTML =
     '<div class="ecran-titre">Votre enquête commence à l\'accueil</div>'
     + '<p>Pour démarrer, munissez-vous du code inscrit sur votre billet.</p>'
-    + '<a href="' + accueil + '" class="btn" id="versAccueil">Démarrer l\'enquête</a>'
+    + '<a href="' + accueilDepuisIci + '" class="btn" id="versAccueil">Démarrer l\'enquête</a>' 
     + '<p class="muted">Votre enquête est déjà en cours ? Saisissez votre code '
     + 'pour la retrouver ici.</p>'
     + '<label for="codeReprise">Le code de votre billet</label>'
@@ -202,7 +210,8 @@ function proposerDeRetrouverLaPartie(ancienneTrouvee) {
     // Un code jamais activé : le groupe n'a pas encore démarré. On l'envoie
     // à l'accueil avec son code déjà saisi, plutôt que de lui opposer un refus.
     if (result.pasCommencee) {
-      window.location.href = accueil + "?code=" + encodeURIComponent(champ.value.trim());
+      window.location.href = accueil + "?code=" + encodeURIComponent(champ.value.trim())
+                          + (codeBorne ? "&borne=" + encodeURIComponent(codeBorne) : "");
       return;
     }
 
