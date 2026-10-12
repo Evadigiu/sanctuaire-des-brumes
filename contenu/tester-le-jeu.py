@@ -148,8 +148,14 @@ with sync_playwright() as pw:
         total = page.eval_on_selector_all(".ecran", "e=>e.length")
         vus = 1
         while vus < 15:
+            # Une question bonus n'offre « Continuer » qu'une fois repondu :
+            # c'est le principe, on ne passe pas devant sans la voir. Le
+            # promeneur repond donc, n'importe quoi fera l'affaire.
+            bonus = page.query_selector(
+                ".ecran:not([hidden])[data-popquiz] [data-bonus-prop]")
+            if bonus: bonus.click(); page.wait_for_timeout(60)
             b = page.query_selector(".ecran:not([hidden]) [data-suivant]")
-            if not b: break
+            if not b or not b.is_visible(): break
             b.click(); page.wait_for_timeout(60); vus += 1
         verifier("tous les ecrans parcourus", vus == total, "%d sur %d" % (vus, total))
         sortie = page.query_selector(".ecran:not([hidden]) a.btn")
@@ -664,6 +670,100 @@ with sync_playwright() as pw:
     page.click("#validerSecours"); page.wait_for_timeout(400)
     attendue = "http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E01"])
     verifier("ouvre bien la borne du commissaire", page.url == attendue, page.url)
+    page.close()
+
+    # ------------------------------------------------------------
+    # LES QUESTIONS BONUS
+    #
+    # Elles surgissent sans QR code. Une seule tentative : qui repond juste
+    # du premier coup gagne un indice que les autres n'auront pas. On ne
+    # bloque jamais — une mauvaise reponse coute l'indice, pas la suite.
+    #
+    # Rien n'est ecrit en dur : on lit la bonne reponse dans la page, donc
+    # le cahier peut changer de question sans rendre ce test faux.
+    # ------------------------------------------------------------
+    print("\nLes questions bonus")
+
+    def ouvrir_bonus(code):
+        pg = nouvelle_page(nav); pg.add_init_script(init("horaire"))
+        pg.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"][code]))
+        pg.wait_for_timeout(400)
+        return pg
+
+    def etat_bonus(pg):
+        return pg.evaluate("""() => {
+          const z = document.querySelector("[data-popquiz]");
+          if (!z) return null;
+          const p = Array.from(z.querySelectorAll("[data-bonus-prop]"));
+          const s = z.querySelector("[data-bonus-suivant]");
+          return { bonne: parseInt(z.getAttribute("data-bonne"), 10),
+                   nbProps: p.length,
+                   bloquees: p.every(b => b.disabled),
+                   gagne: !z.querySelector("[data-bonus-gagne]").hidden,
+                   rate: !z.querySelector("[data-bonus-rate]").hidden,
+                   suivant: !!s && !s.hidden,
+                   visible: !z.hidden,
+                   consigne: z.querySelector(".popquiz-consigne").textContent };
+        }""")
+
+    # La question de Sophie arrive AU SCAN : c'est le premier ecran.
+    page = ouvrir_bonus("E03")
+    e = etat_bonus(page)
+    verifier("la question bonus s'affiche des le scan",
+             e and e["visible"] and e["nbProps"] == 4, str(e))
+    verifier("la consigne est celle d'Eva",
+             "indice supplémentaire" in e["consigne"], e["consigne"])
+    verifier("rien n'est revele avant de repondre",
+             not e["gagne"] and not e["rate"], str(e))
+    verifier("et on ne peut pas passer outre", not e["suivant"], str(e))
+
+    # Bonne reponse : l'indice tombe.
+    page.locator("[data-bonus-prop]").nth(e["bonne"]).click()
+    page.wait_for_timeout(200)
+    juste = etat_bonus(page)
+    verifier("bonne reponse : l'indice est donne",
+             juste["gagne"] and not juste["rate"], str(juste))
+    verifier("les propositions se verrouillent", juste["bloquees"], str(juste))
+    verifier("et la suite s'ouvre", juste["suivant"], str(juste))
+
+    # Un second clic ne doit rien changer : une seule tentative.
+    faux_n = 0 if e["bonne"] != 0 else 1
+    page.locator("[data-bonus-prop]").nth(faux_n).dispatch_event("click")
+    page.wait_for_timeout(150)
+    apres = etat_bonus(page)
+    verifier("un second clic ne retire pas l'indice",
+             apres["gagne"] and not apres["rate"], str(apres))
+    page.close()
+
+    # Mauvaise reponse : pas d'indice, mais la borne continue.
+    page = ouvrir_bonus("E03")
+    e = etat_bonus(page)
+    page.locator("[data-bonus-prop]").nth(0 if e["bonne"] != 0 else 1).click()
+    page.wait_for_timeout(200)
+    rate = etat_bonus(page)
+    verifier("mauvaise reponse : pas d'indice",
+             rate["rate"] and not rate["gagne"], str(rate))
+    verifier("mais la borne reste jouable", rate["suivant"], str(rate))
+    page.click("[data-bonus-suivant]"); page.wait_for_timeout(200)
+    verifier("et on passe bien a la suite",
+             page.eval_on_selector_all(
+                 ".ecran:not([hidden])[data-popquiz]", "e=>e.length") == 0)
+    page.close()
+
+    # Chez Greg, la question vient APRES le temoignage, avant le chemin.
+    page = ouvrir_bonus("E09")
+    verifier("chez Greg, la question n'arrive pas au scan",
+             page.eval_on_selector_all(
+                 ".ecran:not([hidden])[data-popquiz]", "e=>e.length") == 0)
+    for _ in range(6):
+        b = page.query_selector(".ecran:not([hidden]) [data-suivant]")
+        if not b or not b.is_visible(): break
+        b.click(); page.wait_for_timeout(120)
+        if page.eval_on_selector_all(
+               ".ecran:not([hidden])[data-popquiz]", "e=>e.length"): break
+    verifier("mais elle arrive avant l'ecran du chemin",
+             page.eval_on_selector_all(
+                 ".ecran:not([hidden])[data-popquiz]", "e=>e.length") == 1)
     page.close()
 
     # ------------------------------------------------------------

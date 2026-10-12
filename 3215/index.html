@@ -27,6 +27,23 @@
     <div class="progression-compte"></div>
   </div>
   <h1>SOPHIE, CHEFFE DE LA SÉCURITÉ</h1>
+<section class="ecran card popquiz" data-popquiz data-bonne="2" hidden>
+  <div class="ecran-titre">Question bonus</div>
+  <p class="popquiz-consigne">Question Bonus : répondez correctement à la question suivante pour gagner un indice supplémentaire.</p>
+  <p class="popquiz-question">Sous son épais pelage blanc, de quelle couleur est la peau de l&#x27;ours polaire ?</p>
+  <div data-bonus-choix>
+    <button class="quiz-prop" data-bonus-prop="0">Rose</button>
+    <button class="quiz-prop" data-bonus-prop="1">Blanche</button>
+    <button class="quiz-prop" data-bonus-prop="2">Noire</button>
+    <button class="quiz-prop" data-bonus-prop="3">Grise</button>
+  </div>
+  <div class="card indice" data-bonus-gagne hidden>
+    <p>Félicitations ! Voici votre indice : le Talkie Walkie des soigneurs est branché sur un circuit fermé, seuls les membres de l&#x27;équipe du zoo peuvent l&#x27;utiliser.</p>
+  </div>
+  <p class="quiz-verdict quiz-faux" data-bonus-rate hidden>Mauvaise réponse. Ne vous inquiétez pas, d&#x27;autres questions surprises vous seront proposées plus tard.</p>
+  <button data-suivant data-bonus-suivant hidden>Continuer</button>
+  <button class="btn-secondary" data-retour>Revenir en arrière</button>
+</section>
 <section class="ecran card" hidden>
   <!-- cahier : 1. Vidéo de Sophie -->
   <video controls preload="none" poster="">

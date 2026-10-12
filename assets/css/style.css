@@ -335,6 +335,29 @@ video {
   z-index: 2;
 }
 
+/* La question bonus. Elle doit se distinguer d'un ecran ordinaire au
+   premier coup d'oeil : c'est une surprise, pas une etape. */
+.popquiz { border-color: var(--gold); }
+.popquiz-consigne {
+  color: var(--gold-bright);
+  font-size: 0.95rem;
+  border-bottom: 1px solid var(--hair);
+  padding-bottom: 12px;
+}
+.popquiz-question { font-weight: 700; margin-bottom: 4px; }
+.popquiz .quiz-prop { width: 100%; }
+
+/* La question bonus. Elle doit se distinguer d'un ecran ordinaire au
+   premier coup d'oeil : c'est une surprise, pas une etape de plus. */
+.popquiz { border-color: var(--gold); }
+.popquiz-consigne {
+  color: var(--gold-bright);
+  font-size: 0.95rem;
+  border-bottom: 1px solid var(--hair);
+  padding-bottom: 12px;
+}
+.popquiz-question { font-weight: 700; margin-bottom: 4px; }
+
 /* ------------------------------------------------------------
    LE QUIZ QUI SUIT LA VIDEO
 

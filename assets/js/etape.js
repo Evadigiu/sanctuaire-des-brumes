@@ -145,6 +145,7 @@ function demarrerEtape() {
   }
 
   brancherConfirmationIndice();
+  brancherQuestionBonus();
   brancherQuizVideo();
   afficher(courant);
   brancherSecours();
@@ -379,6 +380,46 @@ function brancherConfirmationIndice() {
     non.addEventListener("click", () => {
       choix.hidden = true;
       revele.hidden = false;
+    });
+  });
+}
+
+/**
+ * LA QUESTION BONUS.
+ *
+ * Elle surgit sans QR code, au milieu du parcours. Une seule tentative :
+ * qui répond juste du premier coup gagne un indice que les autres n'auront
+ * pas. On ne bloque jamais — une mauvaise réponse coûte l'indice, pas la
+ * suite du jeu.
+ *
+ * Les deux issues sont écrites d'avance dans la page. Le téléphone n'a donc
+ * rien à demander à personne au moment de répondre, et la borne reste juste
+ * même si le réseau du parc tombe entre-temps.
+ *
+ * Le bouton « Continuer » n'apparaît qu'après la réponse. Posé sous les
+ * propositions dès l'arrivée, il inviterait à sauter la question, et donc à
+ * perdre l'indice sans savoir qu'il existait.
+ */
+function brancherQuestionBonus() {
+  document.querySelectorAll("[data-popquiz]").forEach(zone => {
+    const bonne   = parseInt(zone.getAttribute("data-bonne"), 10);
+    const gagne   = zone.querySelector("[data-bonus-gagne]");
+    const rate    = zone.querySelector("[data-bonus-rate]");
+    const suivant = zone.querySelector("[data-bonus-suivant]");
+    const props   = Array.from(zone.querySelectorAll("[data-bonus-prop]"));
+    if (!props.length || isNaN(bonne)) return;
+
+    let repondu = false;
+    props.forEach((bouton, n) => {
+      bouton.addEventListener("click", () => {
+        if (repondu) return;        // une seule tentative, c'est la règle
+        repondu = true;
+        props.forEach(b => { b.disabled = true; });
+        bouton.classList.add("est-choisie", n === bonne ? "est-bonne" : "est-fausse");
+        const issue = (n === bonne) ? gagne : rate;
+        if (issue) issue.hidden = false;
+        if (suivant) suivant.hidden = false;
+      });
     });
   });
 }

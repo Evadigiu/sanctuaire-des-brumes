@@ -37,6 +37,23 @@
   <button data-suivant>Suivant</button>
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
 </section>
+<section class="ecran card popquiz" data-popquiz data-bonne="0" hidden>
+  <div class="ecran-titre">Question bonus</div>
+  <p class="popquiz-consigne">Question Bonus : répondez correctement à la question suivante pour gagner un indice supplémentaire.</p>
+  <p class="popquiz-question">Pourquoi des industriels mulhousiens ont-ils créé ce parc en 1868 ?</p>
+  <div data-bonus-choix>
+    <button class="quiz-prop" data-bonus-prop="0">Pour offrir un lieu de détente à leurs ouvriers</button>
+    <button class="quiz-prop" data-bonus-prop="1">Pour recueillir les animaux d&#x27;un cirque en faillite</button>
+    <button class="quiz-prop" data-bonus-prop="2">Pour y élever des animaux de ferme</button>
+    <button class="quiz-prop" data-bonus-prop="3">Pour en faire une réserve de chasse</button>
+  </div>
+  <div class="card indice" data-bonus-gagne hidden>
+    <p>Félicitations ! Voici votre indice : Cet interrogatoire était un peu suspect, n&#x27;est-ce pas ? Je me demande si Greg est digne de confiance.</p>
+  </div>
+  <p class="quiz-verdict quiz-faux" data-bonus-rate hidden>Mauvaise réponse. Ne vous inquiétez pas, d&#x27;autres questions surprises vous seront proposées plus tard.</p>
+  <button data-suivant data-bonus-suivant hidden>Continuer</button>
+  <button class="btn-secondary" data-retour>Revenir en arrière</button>
+</section>
 <section class="ecran card" data-sens="A" hidden>
   <div class="ecran-titre">Où aller ensuite</div>
   <p>Rendez-vous dans la grande volière pour interroger Bill.</p>

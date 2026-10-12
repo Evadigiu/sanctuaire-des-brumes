@@ -27,6 +27,23 @@
     <div class="progression-compte"></div>
   </div>
   <h1>VÉTÉRINAIRE</h1>
+<section class="ecran card popquiz" data-popquiz data-bonne="1" hidden>
+  <div class="ecran-titre">Question bonus</div>
+  <p class="popquiz-consigne">Question Bonus : répondez correctement à la question suivante pour gagner un indice supplémentaire.</p>
+  <p class="popquiz-question">Dans une meute de loups du Canada, qui décide du moment de la chasse ?</p>
+  <div data-bonus-choix>
+    <button class="quiz-prop" data-bonus-prop="0">Le loup le plus fort</button>
+    <button class="quiz-prop" data-bonus-prop="1">Le couple de parents</button>
+    <button class="quiz-prop" data-bonus-prop="2">Le plus vieux loup</button>
+    <button class="quiz-prop" data-bonus-prop="3">Chacun à tour de rôle</button>
+  </div>
+  <div class="card indice" data-bonus-gagne hidden>
+    <p>Félicitations ! Voici votre indice : Un intrus s&#x27;est introduit dans le Parc Zoologique &amp; Botanique cette nuit et peut semer la zizanie dans votre enquête.</p>
+  </div>
+  <p class="quiz-verdict quiz-faux" data-bonus-rate hidden>Mauvaise réponse. Ne vous inquiétez pas, d&#x27;autres questions surprises vous seront proposées plus tard.</p>
+  <button data-suivant data-bonus-suivant hidden>Continuer</button>
+  <button class="btn-secondary" data-retour>Revenir en arrière</button>
+</section>
 <section class="ecran card" hidden>
   <!-- cahier : 1. Vidéo de Sandra -->
   <video controls preload="none" poster="">
