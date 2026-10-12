@@ -335,6 +335,8 @@ video {
   z-index: 2;
 }
 
+.petite-note { font-size: 0.85rem; margin-top: 8px; }
+
 /* Les photos posees dans une borne : l'empreinte, l'appel, le sac. */
 .photo-borne {
   width: 100%;
@@ -369,6 +371,8 @@ video {
 }
 .popquiz-question { font-weight: 700; margin-bottom: 4px; }
 .popquiz .quiz-prop { width: 100%; }
+
+.petite-note { font-size: 0.85rem; margin-top: 8px; }
 
 /* Les photos posees dans une borne : l'empreinte, l'appel, le sac. */
 .photo-borne {

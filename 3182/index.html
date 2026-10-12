@@ -96,6 +96,14 @@
       </select>
       <label for="messageProbleme">Quelques mots (facultatif)</label>
       <textarea id="messageProbleme" rows="3" maxlength="500" placeholder="Ce que vous avez constaté"></textarea>
+      <!-- Ce champ libre finit dans le tableau de bord, qui n'a pas de
+           vraie serrure : sa page verifie un mot de passe dans le
+           navigateur du visiteur, ce qui ne protege rien. On ne peut pas
+           y mettre une vraie authentification a quelques jours de
+           l'ouverture ; on peut, en revanche, eviter qu'on y depose un
+           nom et un numero de telephone. -->
+      <p class="muted petite-note">Inutile d'indiquer votre nom ou votre
+        numéro : un membre de l'équipe vient vers vous.</p>
       <button id="envoyerProbleme">Envoyer</button>
     </div>
     <p class="muted" id="retourProbleme" hidden></p>
