@@ -36,8 +36,21 @@
 <section class="ecran card" hidden>
   <!-- cahier : 3. Texte ou epreuve -->
   <p>Veuillez nous donner les conclusions de votr enquête. Qu&#x27;est arrivé à Isabelle ?</p>
-  <!-- A CONSTRUIRE : Le champ de conclusions jugé par une IA reste à construire. Il ne peut pas fonctionner tant que les tables quiz_responses et conclusions n'ont aucune règle d'accès dans Supabase : les réponses seraient rejetées en silence. -->
-  <p class="a-construire">Le champ de conclusions jugé par une IA reste à construire. Il ne peut pas fonctionner tant que les tables quiz_responses et conclusions n&#x27;ont aucune règle d&#x27;accès dans Supabase : les réponses seraient rejetées en silence.</p>
+  <textarea id="conclusions" rows="6" placeholder="Racontez ce qui est arrivé à Isabelle."></textarea>
+  <button id="validerConclusions">Rendre mon enquête</button>
+  <p class="quiz-verdict quiz-faux" id="conclusionsVides" hidden>Écrivez quelques mots avant de rendre votre enquête.</p>
+  <div class="card indice denouement" data-denouement="Bon" hidden>
+    <div class="eyebrow">Vous avez élucidé le mystère</div>
+    <p>C&#x27;est exactement cela. Isabelle a bu la tisane à la valériane de son collègue botaniste. Prise d&#x27;une grande fatigue, elle est retournée à la serre pour lui dire que le dosage était bien trop fort — et s&#x27;y est endormie. Personne n&#x27;a disparu, personne n&#x27;a été enlevé : elle dormait, à deux pas de tout le monde.</p>
+  </div>
+  <div class="card indice denouement" data-denouement="Moyen" hidden>
+    <div class="eyebrow">Vous brûlez</div>
+    <p>Vous tenez le bon fil : la tisane du botaniste est bien à l&#x27;origine de tout. Mais il n&#x27;a empoisonné personne. Le dosage de valériane était trop fort, Isabelle s&#x27;est sentie épuisée, elle est retournée à la serre pour le lui dire, et s&#x27;y est endormie. Une maladresse, pas un crime.</p>
+  </div>
+  <div class="card indice denouement" data-denouement="Mauvais" hidden>
+    <div class="eyebrow">L&#x27;enquête reste ouverte</div>
+    <p>Ce n&#x27;est pas ce qui s&#x27;est passé. Isabelle n&#x27;a pas été enlevée, et personne ne lui a voulu de mal. Elle a bu la tisane à la valériane du botaniste, dont le dosage était bien trop fort. Épuisée, elle est retournée à la serre pour l&#x27;avertir, et s&#x27;y est endormie. Elle dormait, à deux pas de vous, pendant que vous la cherchiez.</p>
+  </div>
   <!-- Note du cahier de contenu : Champ IA pour donner ses conclusions -->
   <button data-suivant>Suivant</button>
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
@@ -98,6 +111,7 @@
 <script src="../assets/js/etape.js"></script>
 <script>
   demarrerEtape();
+  jugerLesConclusions("conclusions", "validerConclusions", [{"nom": "Bon", "attendus": "tisane|valeriane|infusion|plante;endorm|sommeil|assoupi|dort|dormi;serre", "interdits": "tuee|assassin|meurtre|cadavre|kidnapp|enlevee|enleve par"}, {"nom": "Moyen", "attendus": "empoisonn|poison|intoxi|drogu|tisane|valeriane", "interdits": "tuee|assassin|meurtre|cadavre|kidnapp|enlevee|enleve par"}, {"nom": "Mauvais", "attendus": "", "interdits": ""}]);
 </script>
 
 </body>

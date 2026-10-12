@@ -788,6 +788,96 @@ with sync_playwright() as pw:
     page.close()
 
     # ------------------------------------------------------------
+    # LA FIN DE L'ENQUETE
+    #
+    # Le joueur ecrit librement ce qui est arrive a Isabelle, et le jeu
+    # cherche dans sa phrase les idees attendues. Aucune intelligence
+    # artificielle : le jugement porte sur des mots, et un test ecrit dans
+    # la page ne tombe pas en panne un dimanche a 15 h.
+    #
+    # On verifie surtout qu'il est INDULGENT. Un enfant de neuf ans qui tape
+    # sur le telephone de sa mere ecrit sans accents, en majuscules, avec
+    # des fautes. Trois heures d'enquete ne doivent pas se jouer la-dessus.
+    # ------------------------------------------------------------
+    print("\ne15 : les conclusions et les trois fins")
+
+    def rendre(texte):
+        pg = nouvelle_page(nav); pg.add_init_script(init("horaire"))
+        pg.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E15"]))
+        pg.wait_for_timeout(300)
+        while not pg.is_visible("#conclusions"):
+            b = pg.query_selector(".ecran:not([hidden]) [data-suivant]")
+            if not b or not b.is_visible(): break
+            b.click(); pg.wait_for_timeout(100)
+        pg.fill("#conclusions", texte)
+        pg.click("#validerConclusions"); pg.wait_for_timeout(200)
+        fin = pg.evaluate("""() => {
+          const d = Array.from(document.querySelectorAll("[data-denouement]"))
+                         .filter(x => !x.hidden);
+          return { nb: d.length,
+                   nom: d.length ? d[0].getAttribute("data-denouement") : null,
+                   vide: !document.getElementById("conclusionsVides").hidden }; }""")
+        pg.close()
+        return fin
+
+    CAS = [
+      ("Isabelle a bu la tisane à la valériane du botaniste, elle était "
+       "fatiguée et elle s'est endormie dans la serre.", "Bon",
+       "la bonne conclusion donne la bonne fin"),
+      ("isabelle a bu une tizane a la valeriane et elle sest endormi dans "
+       "la serre", "Bon",
+       "sans accents ni orthographe, la bonne fin quand meme"),
+      ("ELLE A BU LA TISANE, S'EST ENDORMIE DANS LA SERRE", "Bon",
+       "en majuscules aussi"),
+      ("Le botaniste l'a empoisonnée avec sa tisane.", "Moyen",
+       "l'empoisonnement donne la fin intermediaire"),
+      ("Le botaniste l'a tuée et a caché le corps.", "Mauvais",
+       "le meurtre donne la mauvaise fin"),
+      ("Elle a bu la tisane, s'est endormie dans la serre, puis il l'a tuée.",
+       "Mauvais",
+       "un mot qui disqualifie l'emporte sur les bons mots"),
+      ("Elle est partie en vacances aux Maldives sans prévenir personne.",
+       "Mauvais",
+       "une conclusion inattendue recoit la fin par defaut"),
+      # Le cas qui a fait retirer « morte » des mots qui disqualifient : un
+      # groupe qui a tout compris ecrit volontiers la phrase a la forme
+      # negative. Les mots-cles ne voient pas la negation, et la meilleure
+      # conclusion du week-end aurait recu la pire des fins.
+      ("Elle n'est pas morte du tout ! Elle a bu la tisane à la valériane, "
+       "elle s'est endormie dans la serre.", "Bon",
+       "une negation ne fait pas basculer une bonne conclusion"),
+    ]
+    for texte, attendu, nom in CAS:
+        f = rendre(texte)
+        verifier(nom, f["nb"] == 1 and f["nom"] == attendu, str(f))
+
+    # Deux mots jetes ne sont pas une enquete.
+    f = rendre("sais pas")
+    verifier("un texte trop court ne rend rien",
+             f["nb"] == 0 and f["vide"], str(f))
+
+    # Et surtout : la fin s'affiche meme si la base ne repond pas. C'est le
+    # moment de l'enquete ou il faut le moins planter.
+    page = nouvelle_page(nav)
+    page.add_init_script(init("horaire").replace(
+        'rpc: async (nom, args) => {',
+        'rpc: async (nom, args) => { if (nom === "enregistrer_conclusions") '
+        'throw new Error("base injoignable");'))
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E15"]))
+    page.wait_for_timeout(300)
+    while not page.is_visible("#conclusions"):
+        b = page.query_selector(".ecran:not([hidden]) [data-suivant]")
+        if not b or not b.is_visible(): break
+        b.click(); page.wait_for_timeout(100)
+    page.fill("#conclusions",
+              "Elle a bu la tisane a la valeriane et s est endormie dans la serre")
+    page.click("#validerConclusions"); page.wait_for_timeout(300)
+    verifier("la base muette n'empeche pas la fin",
+             page.eval_on_selector_all(
+                 "[data-denouement]", "e=>e.filter(x=>!x.hidden).length") == 1)
+    page.close()
+
+    # ------------------------------------------------------------
     # LES QUESTIONS BONUS
     #
     # Elles surgissent sans QR code. Une seule tentative : qui repond juste

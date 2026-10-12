@@ -11,7 +11,7 @@ Les libelles de borne passes a logScan() sortent de la meme source que le
 SQL des bornes, donc ils ne peuvent pas diverger. C'etait tout l'interet
 de passer par un tableur.
 """
-import os, re, sys, unicodedata, html
+import os, re, sys, json, unicodedata, html
 from openpyxl import load_workbook
 
 ICI    = os.path.dirname(os.path.abspath(__file__))
@@ -173,6 +173,50 @@ if "Pop quiz" in wb.sheetnames:
             "bonne": max(0, min(bonne, len(props) - 1)),
             "indice": case(cI), "rate": case(cR),
         }
+
+# ------------------------------------------------------------
+# LES TROIS FINS DE L'ENQUETE
+#
+# Le joueur ecrit ses conclusions, et le jeu cherche dans sa phrase les
+# idees attendues. Pas d'intelligence artificielle : le jugement porte sur
+# des mots precis, et un test ecrit dans la page est instantane, gratuit,
+# ne depend d'aucune cle et ne tombe pas en panne un dimanche a 15 h.
+#
+# C'est aussi, de toute facon, le filet qu'il faudrait ecrire DERRIERE une
+# IA : trois heures d'enquete ne peuvent pas se terminer sur un ecran de
+# chargement parce qu'un service repond mal.
+#
+# Les fins sont essayees de haut en bas, la derniere servant de defaut.
+# ------------------------------------------------------------
+denouements = []
+if "Denouements" in wb.sheetnames:
+    ws = wb["Denouements"]
+    titres = {}
+    for i, c in enumerate(ws[2]):
+        t = slug(propre(c.value))
+        if t: titres[t] = i
+    manque = [n for n in ("rang", "nom", "mots-attendus", "mots-qui-disqualifient",
+                          "titre-affiche", "texte-du-denouement") if n not in titres]
+    if manque:
+        sys.exit("Onglet Denouements : colonne(s) introuvable(s) : %s."
+                 % ", ".join(manque))
+    for r in ws.iter_rows(min_row=3, values_only=True):
+        def case(i): return propre(r[i]) if i < len(r) else ""
+        if not case(titres["nom"]): continue
+        try: rang = int(float(case(titres["rang"])))
+        except ValueError: rang = 99
+        denouements.append({
+            "rang": rang, "nom": case(titres["nom"]),
+            "attendus": case(titres["mots-attendus"]),
+            "interdits": case(titres["mots-qui-disqualifient"]),
+            "titre": case(titres["titre-affiche"]),
+            "texte": case(titres["texte-du-denouement"]),
+        })
+    denouements.sort(key=lambda d: d["rang"])
+    if denouements and (denouements[-1]["attendus"] or denouements[-1]["interdits"]):
+        sys.exit("Onglet Denouements : la derniere fin sert de defaut, elle ne "
+                 "doit avoir ni mot attendu ni mot qui disqualifie. Sans elle, "
+                 "une conclusion inattendue ne recevrait aucune reponse.")
 
 lignes = {}
 for r in tex.iter_rows(min_row=3, values_only=True):
@@ -413,12 +457,10 @@ CHEMINS = {
 }
 
 
-NON_CONSTRUIT   = {
- "E14": "L'épreuve de conversion des 4 lettres en chiffres reste à construire.",
- "E15": "Le champ de conclusions jugé par une IA reste à construire. Il ne peut pas "
-        "fonctionner tant que les tables quiz_responses et conclusions n'ont aucune "
-        "règle d'accès dans Supabase : les réponses seraient rejetées en silence.",
-}
+# L'etape ou le joueur rend ses conclusions.
+CONCLUSIONS = "E15"
+
+NON_CONSTRUIT   = {}
 
 def e(t): return html.escape(t, quote=True)
 
@@ -729,6 +771,20 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
         h.append('    <p>Entrez dans la serre.</p>')
         h.append('  </div>')
 
+    if c == CONCLUSIONS and lg["n"] == 3 and denouements:
+        h.append('  <textarea id="conclusions" rows="6" '
+                 'placeholder="Racontez ce qui est arrivé à Isabelle."></textarea>')
+        h.append('  <button id="validerConclusions">Rendre mon enquête</button>')
+        h.append('  <p class="quiz-verdict quiz-faux" id="conclusionsVides" hidden>'
+                 'Écrivez quelques mots avant de rendre votre enquête.</p>')
+        for i, fin in enumerate(denouements):
+            h.append('  <div class="card indice denouement" data-denouement="%s" hidden>'
+                     % e(fin["nom"]))
+            h.append('    <div class="eyebrow">%s</div>' % e(fin["titre"]))
+            for par in [x.strip() for x in fin["texte"].split("\n") if x.strip()]:
+                h.append('    <p>%s</p>' % e(par))
+            h.append('  </div>')
+
     if c in NON_CONSTRUIT and lg["n"] == 3:
         h.append('  <!-- A CONSTRUIRE : %s -->' % NON_CONSTRUIT[c])
         h.append('  <p class="a-construire">%s</p>' % e(NON_CONSTRUIT[c]))
@@ -926,6 +982,11 @@ for c in PAGES:
         extra += '  galeriePhotos();\n'
     if c in CODE_CACHE:
         extra += '  codeATrouver("codeTrouve", "validerCode", "%s", "codeJuste", "codeACote");\n' % CODE_CACHE[c]
+    if c == CONCLUSIONS and denouements:
+        regles = [{"nom": f["nom"], "attendus": f["attendus"],
+                   "interdits": f["interdits"]} for f in denouements]
+        extra += ('  jugerLesConclusions("conclusions", "validerConclusions", '
+                  '%s);\n' % json.dumps(regles, ensure_ascii=False))
     if c in CODE_DEMANDE:
         extra += '  porteACode("codeSerre", "validerSerre", "%s", "serreOuverte", "serreACote", "codePerdu");\n' % CODE_DEMANDE[c] 
 
