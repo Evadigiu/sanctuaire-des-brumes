@@ -170,6 +170,33 @@ async function logScan(qrLabel) {
 }
 
 /**
+ * Garde la trace des conclusions rendues par un groupe.
+ *
+ * Elle passe par un guichet (rpc), comme les passages de bornes : le
+ * téléphone du joueur n'écrit jamais directement dans la base.
+ *
+ * Et elle ne fait JAMAIS échouer la fin du jeu. Si la base ne répond pas,
+ * on le note dans la console et le dénouement s'affiche quand même : c'est
+ * le moment de l'enquête où il faut le moins planter.
+ */
+async function enregistrerConclusions(texte, denouement) {
+  const session = getSession();
+  if (!session) return;
+  try {
+    const { data, error } = await supabaseClient.rpc("enregistrer_conclusions", {
+      p_code_id: session.codeId,
+      p_texte: String(texte).slice(0, 2000),
+      p_denouement: denouement,
+    });
+    if (error) console.warn("Conclusions non enregistrées :", error.message);
+    else if (!data || !data.ok)
+      console.warn("Conclusions refusées :", (data && data.message) || "raison inconnue");
+  } catch (e) {
+    console.warn("Conclusions non enregistrées :", e && e.message);
+  }
+}
+
+/**
  * Affiche un chrono décompte dans l'élément donné, à partir de la
  * date d'expiration de la session. Redirige en fin de temps.
  */

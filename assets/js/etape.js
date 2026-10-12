@@ -385,6 +385,69 @@ function brancherConfirmationIndice() {
 }
 
 /**
+ * LE JUGEMENT DES CONCLUSIONS.
+ *
+ * Le joueur écrit librement ce qui est arrivé à Isabelle, et le jeu
+ * cherche dans sa phrase les idées attendues.
+ *
+ * La comparaison est volontairement indulgente. Un enfant de neuf ans qui
+ * tape sur le téléphone de sa mère écrit « valeriane », « valérianne » ou
+ * « la tizane » : on retire donc les accents, on passe tout en minuscules,
+ * et on cherche des DÉBUTS de mots — « endorm » attrape endormie, endormi
+ * et s'endormait. Trois heures d'enquête ne doivent pas se jouer sur un
+ * accent.
+ *
+ * Les règles viennent du cahier, pas du code : les fins sont essayées de
+ * haut en bas et la dernière sert de défaut, donc une conclusion
+ * inattendue reçoit toujours une réponse.
+ */
+function sansAccent(t) {
+  return String(t || "").toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function jugerLesConclusions(idChamp, idBouton, regles) {
+  const champ = document.getElementById(idChamp);
+  const bouton = document.getElementById(idBouton);
+  const vides = document.getElementById("conclusionsVides");
+  if (!champ || !bouton || !regles || !regles.length) return;
+
+  /** Le texte contient-il l'une des façons de dire la même chose ? */
+  function contient(texte, groupe) {
+    return groupe.split("|").map(m => sansAccent(m).trim())
+                 .filter(Boolean)
+                 .some(m => texte.indexOf(m) !== -1);
+  }
+  function convient(texte, regle) {
+    const attendus = (regle.attendus || "").split(";").filter(g => g.trim());
+    const interdits = (regle.interdits || "").trim();
+    if (interdits && contient(texte, interdits)) return false;
+    return attendus.every(g => contient(texte, g));
+  }
+
+  bouton.addEventListener("click", () => {
+    const brut = champ.value.trim();
+    if (brut.length < 10) {           // deux mots jetés ne sont pas une enquête
+      if (vides) vides.hidden = false;
+      return;
+    }
+    if (vides) vides.hidden = true;
+    const texte = sansAccent(brut);
+    const fin = regles.find(r => convient(texte, r)) || regles[regles.length - 1];
+
+    document.querySelectorAll("[data-denouement]").forEach(d => {
+      d.hidden = (d.getAttribute("data-denouement") !== fin.nom);
+    });
+    champ.disabled = true;
+    bouton.disabled = true;
+    // On garde la trace de ce qu'ils ont écrit, mais JAMAIS au prix de la
+    // fin du jeu : si la base ne répond pas, le dénouement s'affiche quand
+    // même. C'est le moment où il faut le moins planter de toute l'enquête.
+    try { enregistrerConclusions(brut, fin.nom); } catch (e) { }
+  });
+}
+
+/**
  * LA QUESTION BONUS.
  *
  * Elle surgit sans QR code, au milieu du parcours. Une seule tentative :
