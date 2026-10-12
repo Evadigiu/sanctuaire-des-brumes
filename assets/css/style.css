@@ -335,6 +335,29 @@ video {
   z-index: 2;
 }
 
+/* Les photos posees dans une borne : l'empreinte, l'appel, le sac. */
+.photo-borne {
+  width: 100%;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  display: block;
+}
+
+/* Le contenu du sac, qu'on fait defiler sur place. */
+.galerie { margin-bottom: 4px; }
+.galerie-barre {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: -6px;
+}
+.galerie-barre button { margin-top: 0; flex: 1; }
+.galerie-compte {
+  font-variant-numeric: tabular-nums;
+  color: var(--fog);
+  white-space: nowrap;
+}
+
 /* La question bonus. Elle doit se distinguer d'un ecran ordinaire au
    premier coup d'oeil : c'est une surprise, pas une etape. */
 .popquiz { border-color: var(--gold); }
@@ -346,6 +369,29 @@ video {
 }
 .popquiz-question { font-weight: 700; margin-bottom: 4px; }
 .popquiz .quiz-prop { width: 100%; }
+
+/* Les photos posees dans une borne : l'empreinte, l'appel, le sac. */
+.photo-borne {
+  width: 100%;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  display: block;
+}
+
+/* Le contenu du sac, qu'on fait defiler sur place. */
+.galerie { margin-bottom: 4px; }
+.galerie-barre {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: -6px;
+}
+.galerie-barre button { margin-top: 0; flex: 1; }
+.galerie-compte {
+  font-variant-numeric: tabular-nums;
+  color: var(--fog);
+  white-space: nowrap;
+}
 
 /* La question bonus. Elle doit se distinguer d'un ecran ordinaire au
    premier coup d'oeil : c'est une surprise, pas une etape de plus. */

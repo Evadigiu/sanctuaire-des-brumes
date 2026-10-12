@@ -238,6 +238,39 @@ EPREUVE_REPONSE = {"E08": ("11", "S")}   # etape -> (bonne reponse, lettre deblo
 APPEL_AUDIO     = {"E12"}
 
 # ------------------------------------------------------------
+# LES PHOTOS DANS LES BORNES
+#
+# PHOTO : une image posee sur le premier ecran de la borne.
+# GALERIE : plusieurs images qu'on fait defiler sur place.
+#
+# Elles vivent DANS le depot, comme les plans de chemin : quelques dizaines
+# de kilo-octets chacune, c'est sans commune mesure avec une video, et ca
+# evite de dependre d'un credit chez l'hebergeur.
+# ------------------------------------------------------------
+# etape -> (fichier, texte de remplacement, numero d'ecran du cahier)
+PHOTO = {
+ "E08": ("empreinte-renard.webp", "Une empreinte fraîche dans la boue", 3),
+ "E12": ("appel-commissaire.webp", "Appel entrant", 1),
+}
+
+GALERIE = {
+ "E11": [("sac-%d.webp" % i, "Objet trouvé dans le sac") for i in range(1, 6)],
+}
+
+# ------------------------------------------------------------
+# LE NOMBRE CACHE DANS LE SAC
+#
+# Les objets du sac portent des chiffres. Lus dans l'ordre des photos, ils
+# donnent le code de la serre — mais on ne le dit pas au joueur a ce
+# moment-la : il note un nombre sans savoir a quoi il sert, et c'est ce
+# silence qui fait l'effet trois bornes plus loin.
+#
+# etape -> (le nombre, l'etape ou il s'utilise)
+# ------------------------------------------------------------
+CODE_CACHE  = {"E11": "5824"}
+CODE_DEMANDE = {"E14": "5824"}
+
+# ------------------------------------------------------------
 # LES BORNES OU L'ON CHERCHE AVANT DE SAVOIR
 #
 # Sur ces bornes, la lettre s'affichait des le scan : le joueur recevait la
@@ -622,11 +655,35 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
         h.append('    <audio id="audioAppel" controls><source src="" type="audio/mpeg"></audio>')
         h.append('  </div>')
 
+    if c in PHOTO and lg["n"] == PHOTO[c][2]:
+        fichier, texte, _ = PHOTO[c]
+        h.append('  <img class="photo-borne" src="../assets/img/%s" alt="%s">'
+                 % (e(fichier), e(texte)))
+
     if lg.get("legende"):
         h.append('  <p class="witness-name">%s</p>' % e(lg["legende"]))
 
     if c in quiz and est_media:
         h.append(bloc_quiz(c, etape["lettre"]))
+
+    if c in GALERIE and lg["n"] == 1:
+        # Les photos ne s'affichent qu'au clic sur « Voir » : l'ecran reste
+        # lisible a l'arrivee, et rien ne se telecharge tant que le groupe
+        # n'a pas decide de regarder.
+        h.append('  <div class="galerie" data-galerie>')
+        h.append('    <button data-galerie-ouvrir>Voir le contenu du sac</button>')
+        h.append('    <div data-galerie-vue hidden>')
+        for i, (fichier, texte) in enumerate(GALERIE[c]):
+            h.append('      <img class="photo-borne" loading="lazy" '
+                     'data-galerie-photo src="../assets/img/%s" alt="%s"%s>'
+                     % (e(fichier), e(texte), "" if i == 0 else " hidden"))
+        h.append('      <div class="galerie-barre">')
+        h.append('        <button class="btn-secondary" data-galerie-prec>Précédent</button>')
+        h.append('        <span class="galerie-compte" data-galerie-compte></span>')
+        h.append('        <button class="btn-secondary" data-galerie-suiv>Suivant</button>')
+        h.append('      </div>')
+        h.append('    </div>')
+        h.append('  </div>')
 
     if txt and txt != "/":
         for p in [x.strip() for x in txt.split("\n") if x.strip()]:
@@ -636,8 +693,9 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
         rep, lettre = EPREUVE_REPONSE[c]
         h.append('  <input type="text" id="reponse" inputmode="numeric" placeholder="Votre réponse">')
         h.append('  <button id="valider">Valider</button>')
+        h.append('  <p class="quiz-verdict quiz-faux" id="aCote" hidden></p>')
         h.append('  <div id="resultat" class="card indice" hidden>')
-        h.append('    <div class="eyebrow">Vous avez trouvé une lettre</div>')
+        h.append('    <div class="eyebrow" id="resultatTitre">Vous avez trouvé une lettre</div>')
         h.append('    <p class="lettre">%s</p>' % e(lettre))
         h.append('  </div>')
     elif (etape["lettre"] and etape["lettre"] not in ("-", "/") and lg["n"] == 1
@@ -646,6 +704,29 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
         h.append('  <div class="card indice">')
         h.append('    <div class="eyebrow">Vous avez trouvé une lettre</div>')
         h.append('    <p class="lettre">%s</p>' % e(etape["lettre"]))
+        h.append('  </div>')
+
+    if c in CODE_CACHE and lg["n"] == 3:
+        h.append('  <input type="text" id="codeTrouve" inputmode="numeric" '
+                 'maxlength="4" placeholder="4 chiffres">')
+        h.append('  <button id="validerCode">Valider</button>')
+        h.append('  <p class="quiz-verdict quiz-faux" id="codeACote" hidden></p>')
+        h.append('  <div id="codeJuste" class="card indice" hidden>')
+        h.append('    <div class="eyebrow">Notez ce nombre</div>')
+        h.append('    <p class="lettre">%s</p>' % e(CODE_CACHE[c]))
+        h.append('    <p>Vous ne savez pas encore à quoi il sert. Gardez-le.</p>')
+        h.append('  </div>')
+
+    if c in CODE_DEMANDE and lg["n"] == 3:
+        h.append('  <input type="text" id="codeSerre" inputmode="numeric" '
+                 'maxlength="4" placeholder="4 chiffres">')
+        h.append('  <button id="validerSerre">Ouvrir</button>')
+        h.append('  <p class="quiz-verdict quiz-faux" id="serreACote" hidden></p>')
+        # Personne ne doit rester dehors parce qu'un papier s'est envole.
+        h.append('  <button class="btn-lien" id="codePerdu">J\'ai perdu le code</button>')
+        h.append('  <div id="serreOuverte" class="card indice" hidden>')
+        h.append('    <div class="eyebrow">La porte s\'ouvre</div>')
+        h.append('    <p>Entrez dans la serre.</p>')
         h.append('  </div>')
 
     if c in NON_CONSTRUIT and lg["n"] == 3:
@@ -837,9 +918,16 @@ for c in PAGES:
     extra = ""
     if c in EPREUVE_REPONSE:
         rep, _ = EPREUVE_REPONSE[c]
-        extra += '  epreuveReponse("reponse", "valider", "%s", "resultat");\n' % rep
+        extra += ('  epreuveReponse("reponse", "valider", "%s", "resultat", "aCote");\n'
+                  % rep)
     if c in APPEL_AUDIO:
         extra += '  appelEntrant("decrocher", "audioAppel", "blocAppel");\n'
+    if c in GALERIE:
+        extra += '  galeriePhotos();\n'
+    if c in CODE_CACHE:
+        extra += '  codeATrouver("codeTrouve", "validerCode", "%s", "codeJuste", "codeACote");\n' % CODE_CACHE[c]
+    if c in CODE_DEMANDE:
+        extra += '  porteACode("codeSerre", "validerSerre", "%s", "serreOuverte", "serreACote", "codePerdu");\n' % CODE_DEMANDE[c] 
 
     posA = str(ordre["A"][c]) if c in ordre["A"] else ""
     posB = str(ordre["B"][c]) if c in ordre["B"] else ""

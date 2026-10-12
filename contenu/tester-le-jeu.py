@@ -410,18 +410,133 @@ with sync_playwright() as pw:
                  "scannez le QR code" in page.text_content(".wrap"))
         page.close()
 
-    # L'epreuve a reponse verifiee
+    # ------------------------------------------------------------
+    # L'EPREUVE DU PANNEAU D'EMPREINTES
+    #
+    # Tout tient sur un seul ecran : la photo, la consigne et la reponse.
+    # Et surtout, on ne bloque personne. Au deuxieme essai manque, le jeu
+    # donne le numero ET la lettre : quatre personnes debout devant un
+    # panneau un dimanche de novembre abandonnent avant de chercher
+    # longtemps, et cette lettre leur est necessaire pour finir.
+    # ------------------------------------------------------------
     print("\ne08 : l'epreuve du panneau d'empreintes")
     page = nouvelle_page(nav); page.add_init_script(init("horaire"))
     page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E08"]))
     page.wait_for_timeout(300)
-    page.query_selector(".ecran:not([hidden]) [data-suivant]").click(); page.wait_for_timeout(60)
+    verifier("tout est sur le premier ecran",
+             page.is_visible("#reponse") and page.is_visible(".photo-borne"))
+    verifier("la photo est bien l'empreinte",
+             "empreinte-renard" in page.eval_on_selector(".photo-borne",
+                                                         "e=>e.getAttribute('src')"))
     page.fill("#reponse", "7"); page.click("#valider")
-    verifier("mauvaise reponse : pas de lettre", page.eval_on_selector("#resultat", "e=>e.hidden"))
+    page.wait_for_timeout(100)
+    verifier("premier essai manque : pas de lettre, mais on reessaie",
+             page.eval_on_selector("#resultat", "e=>e.hidden")
+             and not page.eval_on_selector("#aCote", "e=>e.hidden")
+             and not page.eval_on_selector("#reponse", "e=>e.disabled"))
     page.fill("#reponse", "11"); page.click("#valider")
+    page.wait_for_timeout(100)
     verifier("bonne reponse : la lettre S",
              not page.eval_on_selector("#resultat", "e=>e.hidden")
              and page.text_content(".lettre").strip() == "S")
+    verifier("et plus de message d'erreur",
+             page.eval_on_selector("#aCote", "e=>e.hidden"))
+    page.close()
+
+    # Deux essais manques : on donne le numero et la lettre quand meme.
+    page = nouvelle_page(nav); page.add_init_script(init("horaire"))
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E08"]))
+    page.wait_for_timeout(300)
+    for essai in ("7", "3"):
+        page.fill("#reponse", essai); page.click("#valider")
+        page.wait_for_timeout(100)
+    bloque = page.evaluate("""() => ({
+        lettre: !document.getElementById("resultat").hidden,
+        titre: document.getElementById("resultatTitre").textContent,
+        message: document.getElementById("aCote").textContent })""")
+    verifier("deux essais manques : la lettre est donnee quand meme",
+             bloque["lettre"], str(bloque))
+    verifier("et le bon numero est annonce", "11" in bloque["titre"], str(bloque))
+    page.close()
+
+    # ------------------------------------------------------------
+    # LE SAC PERDU : les photos, puis le nombre qu'elles cachent
+    # ------------------------------------------------------------
+    print("\ne11 : le sac perdu")
+    page = nouvelle_page(nav); page.add_init_script(init("horaire"))
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E11"]))
+    page.wait_for_timeout(300)
+    verifier("rien ne s'affiche avant d'avoir clique sur Voir",
+             page.eval_on_selector("[data-galerie-vue]", "e=>e.hidden"))
+    page.click("[data-galerie-ouvrir]"); page.wait_for_timeout(150)
+    vue = lambda: page.evaluate("""() => {
+        const p = Array.from(document.querySelectorAll("[data-galerie-photo]"));
+        return { total: p.length,
+                 visible: p.findIndex(x => !x.hidden),
+                 compte: document.querySelector("[data-galerie-compte]").textContent,
+                 prec: document.querySelector("[data-galerie-prec]").disabled,
+                 suiv: document.querySelector("[data-galerie-suiv]").disabled }; }""")
+    v = vue()
+    verifier("cinq photos, la premiere a l'ecran",
+             v["total"] == 5 and v["visible"] == 0 and v["compte"] == "1 / 5", str(v))
+    verifier("on ne peut pas remonter avant la premiere", v["prec"], str(v))
+    for _ in range(4):
+        page.click("[data-galerie-suiv]"); page.wait_for_timeout(80)
+    v = vue()
+    verifier("on fait defiler jusqu'a la derniere",
+             v["visible"] == 4 and v["compte"] == "5 / 5" and v["suiv"], str(v))
+
+    # Le nombre cache. Deux essais manques et on le donne : il est
+    # indispensable pour entrer dans la serre.
+    page.query_selector(".ecran:not([hidden]) [data-suivant]").click()
+    page.wait_for_timeout(120)
+    page.fill("#codeTrouve", "1234"); page.click("#validerCode")
+    page.wait_for_timeout(100)
+    verifier("un mauvais nombre ne donne rien, mais on reessaie",
+             page.eval_on_selector("#codeJuste", "e=>e.hidden")
+             and not page.eval_on_selector("#codeTrouve", "e=>e.disabled"))
+    page.fill("#codeTrouve", "5824"); page.click("#validerCode")
+    page.wait_for_timeout(100)
+    verifier("5824 est le nombre cache dans le sac",
+             not page.eval_on_selector("#codeJuste", "e=>e.hidden"))
+    verifier("et on ne dit pas encore a quoi il sert",
+             "serre" not in page.text_content(".ecran:not([hidden])").lower())
+    page.close()
+
+    # ------------------------------------------------------------
+    # LA PORTE DE LA SERRE
+    # ------------------------------------------------------------
+    print("\ne14 : la porte de la serre")
+    page = nouvelle_page(nav); page.add_init_script(init("horaire"))
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E14"]))
+    page.wait_for_timeout(300)
+    while not page.is_visible("#codeSerre"):
+        b = page.query_selector(".ecran:not([hidden]) [data-suivant]")
+        if not b or not b.is_visible(): break
+        b.click(); page.wait_for_timeout(100)
+    verifier("la porte demande un code", page.is_visible("#codeSerre"))
+    page.fill("#codeSerre", "0000"); page.click("#validerSerre")
+    page.wait_for_timeout(100)
+    verifier("un mauvais code n'ouvre pas",
+             page.eval_on_selector("#serreOuverte", "e=>e.hidden"))
+    page.fill("#codeSerre", "5824"); page.click("#validerSerre")
+    page.wait_for_timeout(100)
+    verifier("5824 ouvre la serre",
+             not page.eval_on_selector("#serreOuverte", "e=>e.hidden"))
+    page.close()
+
+    # Personne ne reste dehors a la derniere etape de trois heures d'enquete.
+    page = nouvelle_page(nav); page.add_init_script(init("horaire"))
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E14"]))
+    page.wait_for_timeout(300)
+    while not page.is_visible("#codePerdu"):
+        b = page.query_selector(".ecran:not([hidden]) [data-suivant]")
+        if not b or not b.is_visible(): break
+        b.click(); page.wait_for_timeout(100)
+    page.click("#codePerdu"); page.wait_for_timeout(150)
+    verifier("« j'ai perdu le code » ouvre quand meme",
+             not page.eval_on_selector("#serreOuverte", "e=>e.hidden"))
+    verifier("et annonce le code", "5824" in page.text_content("#serreACote"))
     page.close()
 
     # L'accueil : saisie a 1 joueur
