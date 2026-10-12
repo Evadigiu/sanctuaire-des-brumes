@@ -196,7 +196,7 @@ APPEL_AUDIO     = {"E12"}
 # bloque personne : un groupe coince devant un enclos de loups un dimanche
 # de novembre abandonne, il ne cherche pas plus longtemps.
 # ------------------------------------------------------------
-CONFIRMATION_INDICE = {"E04"}
+CONFIRMATION_INDICE = {"E04", "E13"}
 
 # ------------------------------------------------------------
 # LE TEMPS DE REPONSE DU QUIZ
@@ -229,6 +229,29 @@ SECONDES_POUR_REPONDRE = 13
 # la douzieme verrait son verdict une seconde : il ne saurait meme pas s'il
 # a eu juste.
 SECONDES_DE_VERDICT = 4
+# ------------------------------------------------------------
+# LE TITRE AFFICHE EN HAUT DE LA BORNE
+#
+# Le nom du cahier sert a DEUX choses qui n'ont rien a voir : le titre que
+# lit le joueur, et l'identite de la borne dans la base de donnees, celle
+# qui relie un passage a un point du parc.
+#
+# Les deux bornes de Greg doivent s'appeler « GREG » a l'ecran — « version
+# sens A » sur un panneau, ca fait tache. Mais elles ne peuvent pas porter
+# le meme nom dans la base : ce sont deux endroits differents du parc, et
+# le tableau de bord ne saurait plus lequel un groupe vient de passer.
+#
+# Le cahier garde donc le nom technique, unique, et cette liste donne le
+# titre vu par le joueur. Changer un titre ici ne touche ni la base ni les
+# QR codes deja imprimes.
+# ------------------------------------------------------------
+TITRE_BORNE = {
+ "E09": "GREG",
+ "E16": "GREG",
+ "E11": "Indice : le sac perdu",
+ "E14": "LOUIS, LE BOTANISTE",
+}
+
 # ============================================================
 # LES MEDIAS (videos et audio)
 #
@@ -739,7 +762,10 @@ for c in PAGES:
         return ""
     precA, precB = precedente("A"), precedente("B")
 
-    page = GABARIT.format(titre=e(et["nom"]), borne=e(et["nom"]), code=c,
+    # titre : ce que lit le joueur. borne : l'identite en base, qui ne
+    # change pas quand on rebaptise une etape.
+    page = GABARIT.format(titre=e(TITRE_BORNE.get(c, et["nom"])),
+                          borne=e(et["nom"]), code=c,
                           posA=e(posA), posB=e(posB),
                           totA=TOTAL["A"], totB=TOTAL["B"],
                           precA=e(precA), precB=e(precB),

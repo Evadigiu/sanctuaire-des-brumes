@@ -457,9 +457,6 @@ function brancherQuizVideo() {
       bouton.addEventListener("click", () => {
         if (close(q)) return;            // une seule réponse, et pas après l'heure
         q.setAttribute("data-repondu", "");
-        // L'instant de la vidéo, pas celui du téléphone : le verdict doit
-        // rester le même temps à l'écran même si la lecture se recharge.
-        q.setAttribute("data-close-t", video ? video.currentTime : 0);
         repondues++;
         verrouiller(q);
         bouton.classList.add("est-choisie");
@@ -486,7 +483,6 @@ function brancherQuizVideo() {
 
     if (reste <= 0 && !close(q)) {
       q.setAttribute("data-expiree", "");
-      q.setAttribute("data-close-t", echeance(q));
       verrouiller(q);
       // On nomme la bonne réponse plutôt que de la désigner : « elle est
       // soulignée » suppose qu'on repère un trait vert sur un téléphone en
@@ -524,16 +520,23 @@ function brancherQuizVideo() {
     // sous la vidéo détourne l'oreille de ce qu'il y a à entendre.
     if (courante) {
       majChrono(courante, t);
-      const closeT = parseFloat(courante.getAttribute("data-close-t"));
-      if (!isNaN(closeT) && t >= closeT + VERDICT) courante = null;
+      // La question garde sa place pendant TOUT son compte à rebours, même
+      // répondue à la troisième seconde. La vidéo affiche son propre chrono :
+      // une question qui s'effacerait avant la fin de celui-ci donnerait
+      // l'impression d'un bug. Le verdict reste quelques secondes de plus,
+      // puis l'écran rend l'oreille au son.
+      if (t >= echeance(courante) + VERDICT) courante = null;
     }
     questions.forEach(q => { q.hidden = (q !== courante); });
     if (attente) attente.hidden = !!courante;
 
-    // Toutes les questions sont passées et leur délai est écoulé : il n'y a
-    // plus rien à attendre de la vidéo, le bilan peut tomber.
+    // Le bilan et la lettre attendent la FIN de la vidéo, pas la dernière
+    // question : le témoignage continue souvent après elle, et la lettre
+    // arrivait par-dessus. Seule exception, un groupe qui a répondu à tout
+    // et dont la dernière question est passée depuis longtemps : il a fini
+    // son travail, il n'est pas retenu si la vidéo s'arrête en route.
     const derniere = questions[questions.length - 1];
-    if (t >= echeance(derniere)) finir();
+    if (repondues === questions.length && t >= echeance(derniere) + VERDICT) finir();
   }
 
   /* Le compte des bonnes réponses.

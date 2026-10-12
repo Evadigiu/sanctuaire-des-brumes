@@ -780,19 +780,21 @@ with sync_playwright() as pw:
              detail["bloquees"] and detail["bonneMontree"], str(detail))
     verifier("le compte a rebours disparait une fois repondu", detail["chrono"])
 
-    # LE CHOIX D'EVA : la question ne traine pas sous la video. Elle laisse
-    # le verdict quelques secondes, puis s'efface et rend l'oreille au son.
-    # SECONDES_DE_VERDICT a zero est un reglage valable : la question
-    # disparait alors des la reponse. Le dire plutot que de faire passer
-    # une verification qui ne verifie plus rien.
+    # La question garde sa place pendant TOUT son compte a rebours, meme
+    # repondue des la cinquieme seconde. La video affiche son propre chrono :
+    # une question qui s'effacerait avant lui passerait pour un bug.
+    avancer(T[0] + DELAI - 1)
+    verifier("repondue tot, la question reste jusqu'au bout du chrono",
+             etat()["ouverte"] == 0, str(etat()))
+    # Puis le verdict s'attarde le temps d'etre lu.
     if VERDICT >= 2:
-        avancer(T[0] + 5 + VERDICT - 1)
+        avancer(T[0] + DELAI + VERDICT - 1)
         verifier("le verdict reste le temps d'etre lu",
                  etat()["ouverte"] == 0, str(etat()))
     else:
         print("   %-38s (SECONDES_DE_VERDICT = %g)"
               % ("le verdict ne s'attarde pas", VERDICT))
-    avancer(T[0] + 5 + VERDICT + 1)
+    avancer(T[0] + DELAI + VERDICT + 1)
     e2b = etat()
     verifier("puis la question s'efface",
              e2b["nbOuvertes"] == 0 and not e2b["bilan"], str(e2b))
@@ -827,7 +829,7 @@ with sync_playwright() as pw:
     question(1).locator(".quiz-prop").nth(plan["bonnes"][1]).dispatch_event("click")
 
     # La question expiree s'efface elle aussi, une fois sa reponse lue.
-    avancer(T[1] + DELAI + VERDICT + 1)
+    avancer(T[1] + DELAI + VERDICT + 1.5)
     e4b = etat()
     verifier("la question expiree s'efface a son tour",
              e4b["nbOuvertes"] == 0 and e4b["attente"], str(e4b))
@@ -846,8 +848,17 @@ with sync_playwright() as pw:
              e5["ouverte"] == N - 1 and e5["nbOuvertes"] == 1, str(e5))
     question(N - 1).locator(".quiz-prop").nth(plan["bonnes"][N - 1]).click()
 
-    # Son delai ecoule, plus rien a attendre de la video : le bilan tombe.
-    avancer(T[N - 1] + DELAI + 1)
+    # Le delai de la derniere question est ecoule, mais la video continue de
+    # tourner : la lettre ne doit PAS tomber par-dessus le temoignage qui
+    # suit. Le groupe n'a pas repondu a tout, rien ne doit se declencher.
+    avancer(T[N - 1] + DELAI + VERDICT + 2)
+    pas_encore = etat()
+    verifier("la lettre n'arrive pas avant la fin de la video",
+             not pas_encore["bilan"] and not pas_encore["lettreVue"],
+             str(pas_encore))
+
+    # C'est la fin de la video qui la declenche.
+    avancer(T[N - 1] + DELAI + 60, "ended")
     fin = etat()
     verifier("le quiz fini, le bilan s'affiche",
              fin["bilan"] and fin["nbOuvertes"] == 0, str(fin))
