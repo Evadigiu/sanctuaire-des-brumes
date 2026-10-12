@@ -9,6 +9,9 @@ Fabrique les codes remis a l'accueil du zoo.
         --depuis F.xlsx   reprend les codes d'une serie deja imprimee au
                           lieu d'en tirer de nouveaux, et ne change que
                           leur sens
+        --deux-piles      regroupe les deux sens au lieu de les semer :
+                          une pile principale et une pile de secours,
+                          separees par le numero
 
 Produit deux fichiers :
     codes-du-sanctuaire.xlsx   la liste, pour l'impression et le suivi
@@ -62,6 +65,22 @@ def un_code():
         if not any(m in c for m in MALVENUS):
             return c
 
+def grouper_les_sens(nombre, nb_antihoraire):
+    """Deux piles distinctes : la principale d'abord, le secours a la fin.
+
+    C'est le rangement qu'il faut quand quelqu'un tient l'accueil et decide
+    lui-meme d'ouvrir le second parcours parce qu'il voit la file monter.
+    Semer les sens dans une seule pile ne sert alors plus a rien : il faut
+    au contraire pouvoir attraper la pile de secours d'un geste.
+
+    Le partage se fait sur le NUMERO, et pas au hasard, parce que le sens
+    n'est pas imprime sur le billet. Une pile rangee par numero reste donc
+    reconstituable : au-dela de tel numero, c'est le secours. Sans cela,
+    deux piles melangees seraient definitivement melangees.
+    """
+    return ["horaire"] * (nombre - nb_antihoraire) + ["antihoraire"] * nb_antihoraire
+
+
 def semer_les_sens(nombre, nb_antihoraire):
     """Le sens de chaque place dans la pile.
 
@@ -84,9 +103,10 @@ def semer_les_sens(nombre, nb_antihoraire):
     return sens
 
 
-def fabriquer(nombre, nb_antihoraire=None):
+def fabriquer(nombre, nb_antihoraire=None, deux_piles=False):
     if nb_antihoraire is None: nb_antihoraire = nombre // 2
-    repartition = semer_les_sens(nombre, nb_antihoraire)
+    ranger = grouper_les_sens if deux_piles else semer_les_sens
+    repartition = ranger(nombre, nb_antihoraire)
     codes, vus = [], set()
     while len(codes) < nombre:
         c = un_code()
@@ -115,13 +135,64 @@ def relire_excel(chemin):
     return codes
 
 
-def ecrire_excel(codes, chemin):
+def consignes(codes):
+    """Ce que l'accueil doit faire de la pile. Depend du rangement."""
     nb_h = sum(1 for _, x in codes if x == "horaire")
     nb_a = len(codes) - nb_h
-    if nb_a == 0:   melange = "aucun billet en sens antihoraire"
-    elif nb_a == len(codes): melange = "tous en sens antihoraire"
-    else:           melange = "environ un billet sur %d part dans l'autre sens" \
-                              % round(len(codes) / nb_a)
+    sens = [x for _, x in codes]
+    groupe = nb_a > 0 and nb_h > 0 and sens == ["horaire"] * nb_h + ["antihoraire"] * nb_a
+
+    if groupe:
+        return [
+          ("DEUX PILES SEPAREES.", True),
+          ("", False),
+          ("  PILE PRINCIPALE   numeros 1 a %d (%d billets)" % (nb_h, nb_h), False),
+          ("  PILE DE SECOURS   numeros %d a %d (%d billets)"
+           % (nb_h + 1, len(codes), nb_a), False),
+          ("", False),
+          ("On distribue la pile principale. On n'ouvre la pile de secours", False),
+          ("que si la file s'allonge : elle envoie les groupes par l'autre", False),
+          ("cote du parc, et desengorge le depart.", False),
+          ("", False),
+          ("LE SENS N'EST PAS IMPRIME SUR LE BILLET.", True),
+          ("Deux piles melangees ne se redemelent pas a l'oeil. Trois", False),
+          ("precautions, par ordre d'efficacite :", False),
+          ("  1. Deux boites, deux enveloppes, deux elastiques. Jamais les", False),
+          ("     deux piles a plat l'une a cote de l'autre.", False),
+          ("  2. Un trait de surligneur sur la tranche de la pile de", False),
+          ("     secours, avant de l'ouvrir. Trente secondes, et un billet", False),
+          ("     egare se remet tout seul au bon endroit.", False),
+          ("  3. En dernier recours, l'onglet \"Pile de secours\" de ce", False),
+          ("     fichier liste les %d codes concernes : on peut tout" % nb_a, False),
+          ("     reconstituer en cherchant dedans.", False),
+          ("", False),
+          ("Un billet donne du mauvais cote ne casse rien : le groupe joue", False),
+          ("l'autre parcours, et l'enquete fonctionne. On perd seulement le", False),
+          ("moyen de repartir les gens dans le parc.", False),
+        ]
+
+    if nb_a == 0 or nb_h == 0:
+        unique = "horaire" if nb_a == 0 else "antihoraire"
+        return [
+          ("Une seule pile, un seul sens (%s). L'agent prend le code du" % unique, False),
+          ("dessus, quel que soit le nombre de personnes.", False),
+        ]
+
+    return [
+      ("Une seule pile, rangee par numero. L'agent prend le code du dessus,", False),
+      ("quel que soit le nombre de personnes.", False),
+      ("", False),
+      ("NE TRIEZ PAS LA PILE, NE LA MELANGEZ PAS.", True),
+      ("Les deux sens y sont semes a intervalle regulier : environ un billet", False),
+      ("sur %d part dans l'autre sens." % round(len(codes) / nb_a), False),
+      ("C'est ce rangement, et lui seul, qui repartit les groupes dans le", False),
+      ("parc. Une pile melangee enverrait tout le monde du meme cote.", False),
+    ]
+
+
+def ecrire_excel(codes, chemin):
+    nb_h = sum(1 for _, x in codes if x == "horaire")
+    consignes_de_pile = consignes(codes)
     from openpyxl import Workbook
     from openpyxl.styles import Font, Alignment, PatternFill
     from openpyxl.utils import get_column_letter
@@ -155,13 +226,7 @@ def ecrire_excel(codes, chemin):
         ("              ignore.", False),
         ("", False),
         ("COMMENT L'ACCUEIL DISTRIBUE", True),
-        ("Une seule pile, rangee par numero. L'agent prend le code du dessus,", False),
-        ("quel que soit le nombre de personnes.", False),
-        ("", False),
-        ("NE TRIEZ PAS LA PILE, NE LA MELANGEZ PAS.", True),
-        ("Les deux sens y sont semes a intervalle regulier : %s." % melange, False),
-        ("C'est ce rangement, et lui seul, qui repartit les groupes dans le", False),
-        ("parc. Une pile melangee enverrait tout le monde du meme cote.", False),
+    ] + consignes_de_pile + [
         ("", False),
         ("AVANT L'OUVERTURE", True),
         ("1. Charger les codes dans Supabase avec codes-a-charger.sql,", False),
@@ -201,6 +266,36 @@ def ecrire_excel(codes, chemin):
         ws.column_dimensions[get_column_letter(j)].width = largeur
     ws.freeze_panes = "A2"
     ws.auto_filter.ref = "A1:F%d" % (len(codes) + 1)
+
+    # --- La liste de la pile de secours, a imprimer ---
+    #
+    # Elle n'existe que pour un cas : les deux piles se sont melangees. Le
+    # sens n'etant pas imprime sur le billet, c'est alors la seule facon de
+    # savoir ou va chaque code. Une page en main a l'accueil vaut mieux
+    # qu'un fichier a ouvrir sur un telephone avec du monde qui attend.
+    secours = [(i, c) for i, (c, x) in enumerate(codes, start=1)
+               if x == "antihoraire"]
+    if secours and len(secours) < len(codes):
+        ps = wb.create_sheet("Pile de secours")
+        ps["A1"] = ("LES %d CODES DU SENS ANTIHORAIRE (pile de secours). "
+                    "A imprimer et garder a l'accueil : si les deux piles se "
+                    "melangent, c'est avec cette liste qu'on les separe."
+                    % len(secours))
+        ps["A1"].font = Font(bold=True)
+        ps.merge_cells("A1:B1")
+        ps.row_dimensions[1].height = 32
+        ps["A1"].alignment = Alignment(wrap_text=True, vertical="center")
+        for j, t in enumerate(("N°", "Code"), start=1):
+            c = ps.cell(row=2, column=j, value=t)
+            c.font = Font(bold=True, color="FFFFFF"); c.fill = fond
+            c.alignment = Alignment(horizontal="center")
+        for k, (n, code) in enumerate(secours, start=3):
+            ps.cell(row=k, column=1, value=n)
+            ps.cell(row=k, column=2, value=code).font = Font(
+                name="Consolas", size=12, bold=True)
+        ps.column_dimensions["A"].width = 8
+        ps.column_dimensions["B"].width = 18
+        ps.freeze_panes = "A3"
 
     wb.save(chemin)
 
@@ -252,7 +347,7 @@ def ecrire_sql(codes, chemin):
 
 def lire_options(args):
     """Les options de la ligne de commande, sans dependance exterieure."""
-    nombre, sortie, antihoraire, depuis = None, ".", None, None
+    nombre, sortie, antihoraire, depuis, deux_piles = None, ".", None, None, False
     reste = []
     i = 0
     while i < len(args):
@@ -266,6 +361,8 @@ def lire_options(args):
             i += 1
             if i >= len(args): sys.exit("--depuis attend un fichier .xlsx.")
             depuis = args[i]
+        elif a == "--deux-piles":
+            deux_piles = True
         elif a.startswith("--"):
             sys.exit("Option inconnue : %s" % a)
         else:
@@ -277,11 +374,12 @@ def lire_options(args):
     for a in reste:
         if a.isdigit() and nombre is None: nombre = int(a)
         else: sortie = a
-    return nombre, sortie, antihoraire, depuis
+    return nombre, sortie, antihoraire, depuis, deux_piles
 
 
 if __name__ == "__main__":
-    nombre, sortie, antihoraire, depuis = lire_options(sys.argv[1:])
+    nombre, sortie, antihoraire, depuis, deux_piles = lire_options(sys.argv[1:])
+    ranger = grouper_les_sens if deux_piles else semer_les_sens
 
     if depuis:
         # Serie deja imprimee : on garde les codes, on ne change que le sens.
@@ -292,11 +390,11 @@ if __name__ == "__main__":
                      % (len(anciens), nombre))
         nombre = len(anciens)
         if antihoraire is None: antihoraire = nombre // 2
-        codes = list(zip(anciens, semer_les_sens(nombre, antihoraire)))
+        codes = list(zip(anciens, ranger(nombre, antihoraire)))
     else:
         if nombre is None: nombre = 600
         if antihoraire is None: antihoraire = nombre // 2
-        codes = fabriquer(nombre, antihoraire)
+        codes = fabriquer(nombre, antihoraire, deux_piles)
 
     if not 0 <= antihoraire <= nombre:
         sys.exit("--antihoraire doit etre compris entre 0 et %d." % nombre)
@@ -319,5 +417,8 @@ if __name__ == "__main__":
     print("%d codes %s dans %s"
           % (nombre, "repartis" if depuis else "fabriques", os.path.abspath(sortie)))
     print("  %d en sens horaire, %d en antihoraire" % (horaires, nombre - horaires))
+    if deux_piles and 0 < antihoraire < nombre:
+        print("  pile principale : n° 1 a %d   |   pile de secours : n° %d a %d"
+              % (horaires, horaires + 1, nombre))
     if depuis:
         print("  les codes sont inchanges : AUCUNE reimpression de billet")
