@@ -121,6 +121,59 @@ if "Quiz" in wb.sheetnames:
     for c in quiz:
         quiz[c].sort(key=lambda q: q["t"])
 
+# ------------------------------------------------------------
+# LES QUESTIONS BONUS
+#
+# Elles surgissent sans QR code, au milieu du parcours. Une seule tentative :
+# qui repond juste du premier coup gagne un indice que les autres n'auront
+# pas. On ne bloque jamais — une mauvaise reponse coute l'indice, pas la
+# suite du jeu.
+#
+# C'est un ECRAN comme les autres, pas une fenetre qui se superpose. Sur un
+# telephone tenu a bout de bras par quatre personnes, un ecran plein se lit ;
+# une vignette qu'on peut fermer par megarde, non. Et il herite ainsi de
+# toute la navigation deja eprouvee : retour, memoire de l'ecran quitte,
+# bouton suivant.
+# ------------------------------------------------------------
+def colonnes_du_popquiz(ws):
+    titres = {}
+    for i, c in enumerate(ws[2]):
+        t = slug(propre(c.value))
+        if t: titres[t] = i
+    props = sorted(i for t, i in titres.items() if t.startswith("proposition"))
+    bonne = next((i for t, i in titres.items() if t.startswith("bonne")), None)
+    indice = next((i for t, i in titres.items() if t.startswith("indice")), None)
+    rate = next((i for t, i in titres.items() if t.startswith("message")), None)
+    manque = [n for n in ("code", "moment", "question") if n not in titres]
+    for nom, v in (("bonne reponse", bonne), ("indice gagne", indice),
+                   ("message si faux", rate)):
+        if v is None: manque.append(nom)
+    if not props: manque.append("proposition 1")
+    if manque:
+        sys.exit("Onglet Pop quiz : colonne(s) introuvable(s) : %s."
+                 % ", ".join(manque))
+    return (titres["code"], titres["moment"], titres["question"],
+            props, bonne, indice, rate)
+
+
+popquiz = {}
+if "Pop quiz" in wb.sheetnames:
+    ws = wb["Pop quiz"]
+    cC, cM, cQ, cP, cB, cI, cR = colonnes_du_popquiz(ws)
+    for r in ws.iter_rows(min_row=3, values_only=True):
+        def case(i): return propre(r[i]) if i < len(r) else ""
+        c = case(cC)
+        props = [case(i) for i in cP if case(i)]
+        if not (c and case(cQ) and props): continue
+        try: bonne = int(float(case(cB))) - 1
+        except ValueError: bonne = 0
+        popquiz[c] = {
+            "moment": "sortie" if "sortie" in slug(case(cM)) else "scan",
+            "question": case(cQ), "props": props,
+            "bonne": max(0, min(bonne, len(props) - 1)),
+            "indice": case(cI), "rate": case(cR),
+        }
+
 lignes = {}
 for r in tex.iter_rows(min_row=3, values_only=True):
     c = propre(r[0])
@@ -483,6 +536,37 @@ def bloc_quiz(code, lettre):
     return "\n".join(h)
 
 
+CONSIGNE_BONUS = ("Question Bonus : répondez correctement à la question "
+                  "suivante pour gagner un indice supplémentaire.")
+
+
+def bloc_popquiz(code):
+    """L'ecran d'une question bonus."""
+    q = popquiz[code]
+    h = ['<section class="ecran card popquiz" data-popquiz data-bonne="%d" hidden>'
+         % q["bonne"],
+         '  <div class="ecran-titre">Question bonus</div>',
+         '  <p class="popquiz-consigne">%s</p>' % e(CONSIGNE_BONUS),
+         '  <p class="popquiz-question">%s</p>' % e(q["question"])]
+    h.append('  <div data-bonus-choix>')
+    for n, prop in enumerate(q["props"]):
+        h.append('    <button class="quiz-prop" data-bonus-prop="%d">%s</button>'
+                 % (n, e(prop)))
+    h.append('  </div>')
+    # Les deux issues sont ecrites d'avance dans la page : le telephone n'a
+    # rien a demander a personne au moment de repondre, et la borne reste
+    # juste meme si le reseau du parc tombe entre-temps.
+    h.append('  <div class="card indice" data-bonus-gagne hidden>')
+    h.append('    <p>%s</p>' % e(q["indice"]))
+    h.append('  </div>')
+    h.append('  <p class="quiz-verdict quiz-faux" data-bonus-rate hidden>%s</p>'
+             % e(q["rate"]))
+    h.append('  <button data-suivant data-bonus-suivant hidden>Continuer</button>')
+    h.append('  <button class="btn-secondary" data-retour>Revenir en arrière</button>')
+    h.append('</section>')
+    return "\n".join(h)
+
+
 def bloc_ecran(etape, lg, dernier, sens_attr):
     """Un ecran = une carte. sens_attr vaut None, 'A' ou 'B'."""
     c, lib, txt = etape["code"], lg["ecran"], lg["texte"]
@@ -712,11 +796,20 @@ for c in PAGES:
     sorties = {s: [x for x in lg if x["sens"] == "sens " + s.lower()] for s in ("A", "B")}
 
     blocs = []
+    # « au scan » : la question tombe avant tout le reste, c'est la surprise.
+    if c in popquiz and popquiz[c]["moment"] == "scan":
+        blocs.append(bloc_popquiz(c))
+    bonus_apres = (c in popquiz and popquiz[c]["moment"] == "sortie")
     for i, x in enumerate(communs):
-        dernier = (i == len(communs) - 1) and not (sorties["A"] or sorties["B"])
+        dernier = (i == len(communs) - 1) and not (sorties["A"] or sorties["B"]) \
+                  and not bonus_apres
         blocs.append(bloc_ecran(et, x, dernier, None))
     if c in CONFIRMATION_INDICE and et["lettre"]:
         blocs.append(bloc_confirmation(et["lettre"]))
+    # « avant la sortie » : la question vient apres le temoignage, juste avant
+    # qu'on indique le chemin.
+    if c in popquiz and popquiz[c]["moment"] == "sortie":
+        blocs.append(bloc_popquiz(c))
 
     for s in ("A", "B"):
         for x in sorties[s]:
