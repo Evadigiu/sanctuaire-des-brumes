@@ -28,18 +28,14 @@
   </div>
   <h1>Indice : le panneau d&#x27;empreinte</h1>
 <section class="ecran card" hidden>
-  <!-- cahier : 1. Accueil apres le scan -->
-  <p>Vous l&#x27;aurez compris, un animal a semé la zizanie dans le parc hier soir. Saurez-vous l&#x27;identifier sur ce panneau ?</p>
-  <button data-suivant>Suivant</button>
-  <button class="btn-secondary" data-retour>Revenir en arrière</button>
-</section>
-<section class="ecran card" hidden>
   <!-- cahier : 3. Texte ou epreuve -->
-  <p>Quel est le numéro de l&#x27;animal qui était présent dans le zoo hier soir ?</p>
+  <img class="photo-borne" src="../assets/img/empreinte-renard.webp" alt="Une empreinte fraîche dans la boue">
+  <p>Enquêteur ! Vous venez de tomber sur une empreinte suspecte. Saurez-vous reconnaître à qui elle appartient ? Notez le numéro correspondant ci-dessous.</p>
   <input type="text" id="reponse" inputmode="numeric" placeholder="Votre réponse">
   <button id="valider">Valider</button>
+  <p class="quiz-verdict quiz-faux" id="aCote" hidden></p>
   <div id="resultat" class="card indice" hidden>
-    <div class="eyebrow">Vous avez trouvé une lettre</div>
+    <div class="eyebrow" id="resultatTitre">Vous avez trouvé une lettre</div>
     <p class="lettre">S</p>
   </div>
   <!-- Note du cahier de contenu : créer un champ libre, bonne réponse = 11. SI 11, donner l'indice "S" -->
@@ -111,7 +107,7 @@
 <script src="../assets/js/etape.js"></script>
 <script>
   demarrerEtape();
-  epreuveReponse("reponse", "valider", "11", "resultat");
+  epreuveReponse("reponse", "valider", "11", "resultat", "aCote");
 </script>
 
 </body>

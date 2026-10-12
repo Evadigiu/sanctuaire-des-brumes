@@ -679,30 +679,166 @@ function brancherQuizVideo() {
   }
 }
 
-function epreuveReponse(idChamp, idBouton, bonneReponse, idResultat) {
+/**
+ * Une épreuve à réponse vérifiée (le panneau d'empreintes).
+ *
+ * Une mauvaise réponse ne bloque plus. Au deuxième essai manqué, le jeu
+ * donne le bon numéro et la lettre quand même : quatre personnes debout
+ * devant un panneau un dimanche de novembre abandonnent avant de chercher
+ * longtemps, et la lettre leur sera nécessaire pour finir l'enquête. On
+ * perd la fierté d'avoir trouvé, pas la suite du jeu.
+ */
+function epreuveReponse(idChamp, idBouton, bonneReponse, idResultat, idACote) {
   const champ = document.getElementById(idChamp);
   const bouton = document.getElementById(idBouton);
   const resultat = document.getElementById(idResultat);
+  const aCote = idACote ? document.getElementById(idACote) : null;
+  const titre = document.getElementById("resultatTitre");
   if (!champ || !bouton || !resultat) return;
+
+  let manques = 0;
+  function reveler(trouve) {
+    if (titre && !trouve) titre.textContent = "La réponse était le " + bonneReponse;
+    resultat.hidden = false;
+    champ.disabled = true;
+    bouton.disabled = true;
+  }
 
   bouton.addEventListener("click", () => {
     const saisi = champ.value.trim().toLowerCase();
     if (saisi === String(bonneReponse).toLowerCase()) {
-      resultat.hidden = false;
-      champ.disabled = true;
-      bouton.disabled = true;
-    } else {
-      resultat.hidden = true;
-      champ.setAttribute("aria-invalid", "true");
-      champ.value = "";
-      champ.placeholder = "Ce n'est pas la bonne réponse, regardez mieux.";
+      if (aCote) aCote.hidden = true;
+      reveler(true);
+      return;
+    }
+    manques++;
+    champ.setAttribute("aria-invalid", "true");
+    champ.value = "";
+    if (manques >= 2) {
+      if (aCote) {
+        aCote.textContent = "Ce n'était pas le bon numéro. Le voici tout de même.";
+        aCote.hidden = false;
+      }
+      reveler(false);
+    } else if (aCote) {
+      aCote.textContent = "Ce n'est pas le bon numéro. Regardez mieux le panneau.";
+      aCote.hidden = false;
     }
   });
 }
 
-// ------------------------------------------------------------
-// Appel entrant : le son ne part qu'au clic sur "décrocher".
-// ------------------------------------------------------------
+/**
+ * Les photos qu'on fait défiler sur place (le contenu du sac perdu).
+ *
+ * Rien ne se télécharge avant le clic sur « Voir » : sur le réseau d'un
+ * parc, cinq photos qui partent toutes seules à l'ouverture de la borne,
+ * c'est l'écran qui reste blanc pendant que le groupe attend.
+ */
+function galeriePhotos() {
+  document.querySelectorAll("[data-galerie]").forEach(zone => {
+    const ouvrir = zone.querySelector("[data-galerie-ouvrir]");
+    const vue    = zone.querySelector("[data-galerie-vue]");
+    const photos = Array.from(zone.querySelectorAll("[data-galerie-photo]"));
+    const compte = zone.querySelector("[data-galerie-compte]");
+    const prec   = zone.querySelector("[data-galerie-prec]");
+    const suiv   = zone.querySelector("[data-galerie-suiv]");
+    if (!photos.length || !vue) return;
+
+    let n = 0;
+    function montrer(i) {
+      n = Math.max(0, Math.min(i, photos.length - 1));
+      photos.forEach((p, k) => { p.hidden = (k !== n); });
+      if (compte) compte.textContent = (n + 1) + " / " + photos.length;
+      if (prec) prec.disabled = (n === 0);
+      if (suiv) suiv.disabled = (n === photos.length - 1);
+    }
+    if (ouvrir) ouvrir.addEventListener("click", () => {
+      ouvrir.hidden = true; vue.hidden = false; montrer(0);
+    });
+    if (prec) prec.addEventListener("click", () => montrer(n - 1));
+    if (suiv) suiv.addEventListener("click", () => montrer(n + 1));
+    montrer(0);
+  });
+}
+
+/**
+ * Le nombre à reconstituer depuis les objets du sac.
+ *
+ * On ne dit pas à quoi il sert : le joueur note quatre chiffres sans
+ * savoir, et c'est ce silence qui fait l'effet trois bornes plus loin.
+ * Au deuxième essai manqué, on le donne — il est indispensable à la suite.
+ */
+function codeATrouver(idChamp, idBouton, bonCode, idJuste, idACote) {
+  const champ = document.getElementById(idChamp);
+  const bouton = document.getElementById(idBouton);
+  const juste = document.getElementById(idJuste);
+  const aCote = document.getElementById(idACote);
+  if (!champ || !bouton || !juste) return;
+
+  let manques = 0;
+  bouton.addEventListener("click", () => {
+    if (champ.value.trim() === String(bonCode)) {
+      if (aCote) aCote.hidden = true;
+      juste.hidden = false; champ.disabled = true; bouton.disabled = true;
+      return;
+    }
+    manques++;
+    champ.value = "";
+    if (manques >= 2) {
+      if (aCote) {
+        aCote.textContent = "Ce n'était pas cela. Le voici, notez-le.";
+        aCote.hidden = false;
+      }
+      juste.hidden = false; champ.disabled = true; bouton.disabled = true;
+    } else if (aCote) {
+      aCote.textContent = "Ce n'est pas cela. Les objets portaient des chiffres : "
+                        + "relisez-les dans l'ordre où vous les avez vus.";
+      aCote.hidden = false;
+    }
+  });
+}
+
+/**
+ * La porte à code (la serre).
+ *
+ * « J'ai perdu le code » existe parce qu'un papier s'envole, qu'un
+ * téléphone se verrouille et qu'on ne laisse personne dehors à la
+ * dernière étape de trois heures d'enquête.
+ */
+function porteACode(idChamp, idBouton, bonCode, idOuverte, idACote, idPerdu) {
+  const champ = document.getElementById(idChamp);
+  const bouton = document.getElementById(idBouton);
+  const ouverte = document.getElementById(idOuverte);
+  const aCote = document.getElementById(idACote);
+  const perdu = idPerdu ? document.getElementById(idPerdu) : null;
+  if (!champ || !bouton || !ouverte) return;
+
+  function ouvrir() {
+    ouverte.hidden = false;
+    champ.disabled = true; bouton.disabled = true;
+    if (perdu) perdu.hidden = true;
+  }
+  bouton.addEventListener("click", () => {
+    if (champ.value.trim() === String(bonCode)) {
+      if (aCote) aCote.hidden = true;
+      ouvrir();
+    } else if (aCote) {
+      champ.value = "";
+      aCote.textContent = "Ce code n'ouvre pas la porte.";
+      aCote.hidden = false;
+    }
+  });
+  if (perdu) perdu.addEventListener("click", () => {
+    if (aCote) {
+      aCote.className = "quiz-verdict";
+      aCote.textContent = "Le code est le " + bonCode + ".";
+      aCote.hidden = false;
+    }
+    champ.value = String(bonCode);
+    ouvrir();
+  });
+}
+
 function appelEntrant(idBouton, idAudio, idBloc) {
   const bouton = document.getElementById(idBouton);
   const audio = document.getElementById(idAudio);
