@@ -66,10 +66,25 @@
        réservé aux codes de test. -->
   <section class="ecran card" id="ecranDepart" hidden>
     <div class="ecran-titre">Votre enquête commence</div>
-    <p>Tournez directement à droite dans le jardin des Pivoines, juste après l'accueil du zoo. Votre commissaire vous y attend.</p>
-    <!-- A AJOUTER : la photo qui montre le chemin.
-         <img src="assets/img/depart.jpg" alt="Le jardin des pivoines"> -->
-    <p class="consigne-scan">Sur place, scannez le QR code de la borne pour recevoir ses instructions.</p>
+
+    <!-- Le cas ordinaire : le groupe est a la caisse, il faut le mettre en
+         route vers la premiere borne. -->
+    <div id="allerALaBorne">
+      <p>Tournez directement à droite dans le jardin des Pivoines, juste après l'accueil du zoo. Votre commissaire vous y attend.</p>
+      <!-- A AJOUTER : la photo qui montre le chemin.
+           <img src="assets/img/depart.jpg" alt="Le jardin des pivoines"> -->
+      <p class="consigne-scan">Sur place, scannez le QR code de la borne pour recevoir ses instructions.</p>
+    </div>
+
+    <!-- Le cas le plus frequent le jour J : le groupe a scanne le QR de la
+         premiere borne AVANT de demarrer, et il est deja devant. Lui dire
+         d'aller la ou il se trouve, puis lui demander de rescanner le meme
+         QR code, c'est le meilleur moyen de faire croire a une panne. -->
+    <div id="dejaSurPlace" hidden>
+      <p>Vous êtes déjà devant la bonne borne : inutile de scanner à nouveau.</p>
+      <a href="#" class="btn" id="versBorneScannee">Commencer l'enquête ici</a>
+    </div>
+
     <a href="#" id="versPremiereBorne" class="btn btn-test" data-lien-test hidden>Raccourci de test</a>
   </section>
 
@@ -221,6 +236,26 @@
     // Le secours par le nombre à quatre chiffres, comme sur chaque borne.
     document.getElementById("secoursDepart").hidden = false;
     brancherSecours();
+
+    // Le groupe a-t-il scanné le QR de sa première borne avant de démarrer ?
+    // C'est le chemin le plus frequent sur place : on prend son billet, on
+    // avance, on voit le panneau et on le scanne. Dans ce cas il est deja
+    // devant, et lui demander de rescanner le meme QR passerait pour une
+    // panne.
+    //
+    // Le renvoi n'est propose que si la borne scannée est bien la PREMIÈRE
+    // du sens attribué au groupe. Un billet antihoraire scanné sur la borne
+    // du commissaire doit continuer d'envoyer son groupe à l'autre bout du
+    // parc : c'est le sens qui commande, pas le panneau qu'on a croisé.
+    //
+    // Et ce n'est pas une porte dérobée : il faut avoir réellement ouvert la
+    // page de cette borne, donc avoir scanné son QR code sur place.
+    const scannee = (params.get("borne") || "").toUpperCase();
+    if (scannee && scannee === premiere && PARCOURS.pages[scannee]) {
+      document.getElementById("allerALaBorne").hidden = true;
+      document.getElementById("versBorneScannee").href = PARCOURS.pages[scannee];
+      document.getElementById("dejaSurPlace").hidden = false;
+    }
 
     // Le chrono part d'ici. On affiche l'écran qui envoie vers la 1re borne.
     saisie.hidden = true; depart.hidden = false; window.scrollTo(0, 0);

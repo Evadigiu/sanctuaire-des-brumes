@@ -37,6 +37,7 @@ def init(sens):
     noms = _j.loads(txt.split("const PARCOURS =", 1)[1].rstrip().rstrip(";"))["noms"]
     tous = _j.dumps([{"qr_points": {"label": n}} for n in noms.values()], ensure_ascii=False)
     return """
+    const SENS = "%s";
     window.__scans = []; window.__signalements = [];
     window.supabase = { createClient: () => ({
       // Depuis le correctif 6, le passage d'une borne s'enregistre par un
@@ -50,10 +51,12 @@ def init(sens):
             message: "Cette enquête n'a pas encore commencé." }, error: null };
           if (c !== "K7NPX4RT") return { data: { ok: false,
             message: "Ce code n'existe pas." }, error: null };
-          return { data: { ok: true, code_id: "c1", code: c, direction: "horaire",
+          return { data: { ok: true, code_id: "c1", code: c, direction: SENS,
             expires_at: "2099-01-01T00:00:00Z" }, error: null }; }
+        // Le guichet rend le sens inscrit sur le code, pas un sens fixe :
+        // sans cela, impossible de tester ce que voit un billet antihoraire.
         if (nom === "activer_code") return { data: { ok: true, code_id: "c1",
-          code: (args.p_code || "").toUpperCase(), direction: "horaire",
+          code: (args.p_code || "").toUpperCase(), direction: SENS,
           expires_at: "2099-01-01T00:00:00Z" }, error: null };
         return { data: { ok: true }, error: null }; },
       from: (t) => ({
@@ -61,7 +64,7 @@ def init(sens):
                         ? Promise.resolve({ data: %s, error: null })
                         : ({ maybeSingle: async () => ({ data: { id: 'pt-1' } }) })) }),
       insert: async (row) => { (t === "signalements" ? window.__signalements
-                                 : window.__scans).push(row); return {}; } }) }) };""" % tous + """
+                                 : window.__scans).push(row); return {}; } }) }) };""" % (sens, tous) + """
     localStorage.setItem("sdb_session", JSON.stringify({
       codeId: "c1", code: "TEST", direction: "%s",
       expiresAt: "2099-01-01T00:00:00Z", participantName: "Test", nbJoueurs: 1 }));
@@ -215,6 +218,110 @@ with sync_playwright() as pw:
              page.evaluate("localStorage.getItem('sdb_session')") is None)
     page.close()
 
+    # ------------------------------------------------------------
+    # LE DOUBLE SCAN AU DEPART
+    #
+    # Le chemin le plus frequent sur place : on prend son billet, on avance,
+    # on voit le panneau du commissaire et on le scanne AVANT d'avoir
+    # demarre. Le jeu envoyait alors a l'accueil, puis annoncait « rendez-
+    # vous dans le jardin des Pivoines » a un groupe qui s'y trouvait deja,
+    # et lui demandait de rescanner le QR code qu'il avait sous les yeux.
+    #
+    # On verifie les quatre cas, y compris les deux ou le renvoi doit etre
+    # REFUSE : c'est la qu'une porte derobee se glisserait.
+    # ------------------------------------------------------------
+    print("\nLe QR de la premiere borne scanne avant d'avoir demarre")
+
+    def demarrer_depuis(url_borne, code="K7NPX4RT", sens="horaire"):
+        """Scanne une borne sans partie, puis demarre. Rend l'etat final."""
+        pg = nouvelle_page(nav)
+        pg.add_init_script(init(sens).split('localStorage.setItem("sdb_session"')[0])
+        pg.goto(url_borne)
+        pg.wait_for_timeout(400)
+        with pg.expect_navigation():
+            pg.click("#versAccueil")
+        pg.wait_for_timeout(300)
+        depuis = pg.url
+        pg.click("#versSaisie")
+        pg.fill("#participantName", "Eva"); pg.fill("#nbJoueurs", "4")
+        pg.fill("#codeInput", code); pg.check("#acceptRules")
+        pg.click("#startBtn"); pg.wait_for_timeout(600)
+        etat = {
+            "accueil": depuis,
+            "propose": pg.is_visible("#dejaSurPlace"),
+            "consigne_de_marche": pg.is_visible("#allerALaBorne"),
+            "lien": pg.eval_on_selector("#versBorneScannee",
+                                        "e => e.getAttribute('href')"),
+        }
+        return pg, etat
+
+    url_e01 = "http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E01"])
+    pg, e = demarrer_depuis(url_e01)
+    verifier("l'accueil sait d'ou vient le groupe", "borne=E01" in e["accueil"],
+             e["accueil"])
+    verifier("on ne lui redemande pas de scanner", e["propose"], str(e))
+    verifier("et on lui epargne le chemin a faire",
+             not e["consigne_de_marche"], str(e))
+    verifier("le bouton ouvre bien sa premiere borne",
+             e["lien"] == PARC["pages"]["E01"], str(e["lien"]))
+
+    # Le bouton doit reellement mener a la borne, et le passage s'enregistrer.
+    # On ne clique que s'il est la : un controle qui echoue doit le dire, pas
+    # faire tomber le reste de la suite avec lui.
+    if e["propose"]:
+        with pg.expect_navigation():
+            pg.click("#versBorneScannee")
+        pg.wait_for_timeout(600)
+        verifier("un clic suffit, sans rescanner",
+                 pg.url.endswith(PARC["pages"]["E01"]), pg.url)
+        verifier("la borne s'ouvre vraiment",
+                 pg.eval_on_selector_all(".ecran",
+                                         "e=>e.filter(x=>!x.hidden).length") == 1)
+        verifier("et le passage est enregistre",
+                 len(pg.evaluate("window.__scans")) == 1)
+    else:
+        for nom in ("un clic suffit, sans rescanner", "la borne s'ouvre vraiment",
+                    "et le passage est enregistre"):
+            verifier(nom, False, "le raccourci n'a pas ete propose")
+    pg.close()
+
+    # L'AUTRE SENS. Aujourd'hui les deux parcours partent de la meme borne,
+    # le commissaire, et ne divergent qu'ensuite : le raccourci vaut donc
+    # pour les deux. Mais c'est le SENS qui commande, pas le panneau qu'on a
+    # croise. On lit donc le parcours au lieu de le supposer, pour que ce
+    # controle dise encore la verite le jour ou les deux departs se separent.
+    premiere_B = next(c for c, n in PARC["ordre"]["B"].items() if n == 1)
+    attendu = (premiere_B == "E01")
+    pg, e = demarrer_depuis(url_e01, sens="antihoraire")
+    verifier("billet antihoraire : raccourci %s"
+             % ("propose, meme depart" if attendu else "refuse, autre depart"),
+             e["propose"] == attendu, str(e))
+    verifier("et la consigne de marche suit la meme regle",
+             e["consigne_de_marche"] != attendu, str(e))
+    if attendu:
+        verifier("il ouvre la borne de son sens, pas une autre",
+                 e["lien"] == PARC["pages"][premiere_B], str(e["lien"]))
+    pg.close()
+
+    # REFUS 2 : une borne du milieu du parcours. Scanner le veterinaire en
+    # arrivant ne doit pas ouvrir la septieme etape.
+    pg, e = demarrer_depuis("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E07"]))
+    verifier("borne du milieu : pas de raccourci", not e["propose"], str(e))
+    pg.close()
+
+    # REFUS 3 : une adresse bricolee a la main. Le parametre ne doit ouvrir
+    # que ce que le plan du parcours connait.
+    pg = nouvelle_page(nav)
+    pg.add_init_script(init("horaire").split('localStorage.setItem("sdb_session"')[0])
+    pg.goto("http://127.0.0.1:%d/index.html?borne=E99" % PORT)
+    pg.wait_for_timeout(300)
+    pg.click("#versSaisie")
+    pg.fill("#participantName", "Eva"); pg.fill("#nbJoueurs", "4")
+    pg.fill("#codeInput", "K7NPX4RT"); pg.check("#acceptRules")
+    pg.click("#startBtn"); pg.wait_for_timeout(600)
+    verifier("borne inventee : pas de raccourci", not pg.is_visible("#dejaSurPlace"))
+    pg.close()
+
     # Le cas signale sur le terrain : un essai precedent a laisse une partie
     # au chrono ecoule, puis on scanne directement le QR du commissaire. La
     # borne renvoyait a l'accueil avec « session terminee » : impossible de
@@ -236,8 +343,13 @@ with sync_playwright() as pw:
                            " && localStorage.getItem('sdb_visites') === null"))
     verifier("pas de diagnostic pour un depart normal",
              len(page.evaluate("window.__signalements")) == 0)
-    page.click("#versAccueil"); page.wait_for_timeout(300)
-    verifier("le bouton mene a l'accueil", page.url.endswith("/index.html"), page.url)
+    with page.expect_navigation():
+        page.click("#versAccueil")
+    page.wait_for_timeout(300)
+    verifier("le bouton mene a l'accueil",
+             page.url.split("?")[0].endswith("/index.html"), page.url)
+    verifier("en emportant la borne d'ou l'on vient",
+             "borne=E01" in page.url, page.url)
     verifier("aucun message d'erreur a l'accueil",
              not page.is_visible("#errorBox.visible"))
     page.close()
@@ -668,19 +780,21 @@ with sync_playwright() as pw:
              detail["bloquees"] and detail["bonneMontree"], str(detail))
     verifier("le compte a rebours disparait une fois repondu", detail["chrono"])
 
-    # LE CHOIX D'EVA : la question ne traine pas sous la video. Elle laisse
-    # le verdict quelques secondes, puis s'efface et rend l'oreille au son.
-    # SECONDES_DE_VERDICT a zero est un reglage valable : la question
-    # disparait alors des la reponse. Le dire plutot que de faire passer
-    # une verification qui ne verifie plus rien.
+    # La question garde sa place pendant TOUT son compte a rebours, meme
+    # repondue des la cinquieme seconde. La video affiche son propre chrono :
+    # une question qui s'effacerait avant lui passerait pour un bug.
+    avancer(T[0] + DELAI - 1)
+    verifier("repondue tot, la question reste jusqu'au bout du chrono",
+             etat()["ouverte"] == 0, str(etat()))
+    # Puis le verdict s'attarde le temps d'etre lu.
     if VERDICT >= 2:
-        avancer(T[0] + 5 + VERDICT - 1)
+        avancer(T[0] + DELAI + VERDICT - 1)
         verifier("le verdict reste le temps d'etre lu",
                  etat()["ouverte"] == 0, str(etat()))
     else:
         print("   %-38s (SECONDES_DE_VERDICT = %g)"
               % ("le verdict ne s'attarde pas", VERDICT))
-    avancer(T[0] + 5 + VERDICT + 1)
+    avancer(T[0] + DELAI + VERDICT + 1)
     e2b = etat()
     verifier("puis la question s'efface",
              e2b["nbOuvertes"] == 0 and not e2b["bilan"], str(e2b))
@@ -715,7 +829,7 @@ with sync_playwright() as pw:
     question(1).locator(".quiz-prop").nth(plan["bonnes"][1]).dispatch_event("click")
 
     # La question expiree s'efface elle aussi, une fois sa reponse lue.
-    avancer(T[1] + DELAI + VERDICT + 1)
+    avancer(T[1] + DELAI + VERDICT + 1.5)
     e4b = etat()
     verifier("la question expiree s'efface a son tour",
              e4b["nbOuvertes"] == 0 and e4b["attente"], str(e4b))
@@ -734,8 +848,17 @@ with sync_playwright() as pw:
              e5["ouverte"] == N - 1 and e5["nbOuvertes"] == 1, str(e5))
     question(N - 1).locator(".quiz-prop").nth(plan["bonnes"][N - 1]).click()
 
-    # Son delai ecoule, plus rien a attendre de la video : le bilan tombe.
-    avancer(T[N - 1] + DELAI + 1)
+    # Le delai de la derniere question est ecoule, mais la video continue de
+    # tourner : la lettre ne doit PAS tomber par-dessus le temoignage qui
+    # suit. Le groupe n'a pas repondu a tout, rien ne doit se declencher.
+    avancer(T[N - 1] + DELAI + VERDICT + 2)
+    pas_encore = etat()
+    verifier("la lettre n'arrive pas avant la fin de la video",
+             not pas_encore["bilan"] and not pas_encore["lettreVue"],
+             str(pas_encore))
+
+    # C'est la fin de la video qui la declenche.
+    avancer(T[N - 1] + DELAI + 60, "ended")
     fin = etat()
     verifier("le quiz fini, le bilan s'affiche",
              fin["bilan"] and fin["nbOuvertes"] == 0, str(fin))
