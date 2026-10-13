@@ -73,7 +73,14 @@
       <p>Tournez directement à droite dans le jardin des Pivoines, juste après l'accueil du zoo. Votre commissaire vous y attend.</p>
       <!-- A AJOUTER : la photo qui montre le chemin.
            <img src="assets/img/depart.jpg" alt="Le jardin des pivoines"> -->
-      <p class="consigne-scan">Sur place, scannez le QR code de la borne pour recevoir ses instructions.</p>
+      <p class="consigne-scan">Sur place, scannez le QR code de la borne avec ce bouton pour recevoir ses instructions.</p>
+      <button data-scanner>Scanner le QR code</button>
+      <!-- La consigne qui evite de perdre la partie en route : un QR lu avec
+           l'appareil photo peut s'ouvrir dans une autre fenetre, qui ne
+           connait pas la partie. Voir assets/js/scanner.js. -->
+      <p class="muted">À chaque borne, scannez avec le bouton « Scanner le QR code » de l'enquête,
+        pas avec l'appareil photo : votre enquête reste ainsi ouverte sur ce téléphone,
+        sans avoir à ressaisir votre code.</p>
     </div>
 
     <!-- Le cas le plus frequent le jour J : le groupe a scanne le QR de la
@@ -112,6 +119,7 @@
 <script src="assets/js/supabase-client.js"></script>
 <script src="assets/js/game.js"></script>
 <script src="assets/js/etape.js"></script>
+<script src="assets/js/scanner.js"></script>
 <script>
   const accueil  = document.getElementById("ecranAccueil");
   const saisie   = document.getElementById("ecranSaisie");

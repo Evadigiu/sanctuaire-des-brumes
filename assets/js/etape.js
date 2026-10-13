@@ -150,6 +150,32 @@ function demarrerEtape() {
   afficher(courant);
   brancherSecours();
   brancherRetourAMaBorne();
+  conseillerLeScanner();
+}
+
+/**
+ * Le groupe vient de ressaisir son code, parce que le QR s'est ouvert dans
+ * une autre fenêtre que celle du départ. Sans conseil, la même chose se
+ * reproduira à la borne suivante : on le lui dit une fois, en haut de page.
+ */
+function conseillerLeScanner() {
+  let aConseiller = false;
+  try {
+    aConseiller = sessionStorage.getItem("sdb_conseil_scanner") === "1";
+    sessionStorage.removeItem("sdb_conseil_scanner");
+  } catch (e) {}
+  if (!aConseiller) return;
+
+  const note = document.createElement("div");
+  note.className = "card";
+  note.id = "conseilScanner";
+  note.innerHTML =
+      '<p><strong>Votre enquête est retrouvée.</strong></p>'
+    + '<p class="muted">Pour ne plus avoir à ressaisir votre code, scannez les prochaines '
+    + 'bornes avec le bouton « Scanner le QR code » proposé à la fin de chaque borne, '
+    + 'et non avec l\'appareil photo.</p>';
+  const titre = document.querySelector(".wrap h1");
+  if (titre) titre.insertAdjacentElement("afterend", note);
 }
 
 /**
@@ -227,7 +253,13 @@ function proposerDeRetrouverLaPartie(ancienneTrouvee) {
     err.hidden = true;
 
     const result = await reprendrePartie(champ.value);
-    if (result.ok) { window.location.reload(); return; }
+    if (result.ok) {
+      // La partie est retrouvée dans ce navigateur. Elle n'y restera que si
+      // les bornes suivantes s'ouvrent ici aussi, donc par le scanner du site.
+      try { sessionStorage.setItem("sdb_conseil_scanner", "1"); } catch (e) {}
+      window.location.reload();
+      return;
+    }
 
     // Un code jamais activé : le groupe n'a pas encore démarré. On l'envoie
     // à l'accueil avec son code déjà saisi, plutôt que de lui opposer un refus.
