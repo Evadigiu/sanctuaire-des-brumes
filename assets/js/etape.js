@@ -182,17 +182,38 @@ function proposerDeRetrouverLaPartie(ancienneTrouvee) {
   const bloc = document.createElement("section");
   bloc.className = "ecran card";
   bloc.id = "retrouverPartie";
-  bloc.innerHTML =
-    '<div class="ecran-titre">Votre enquête commence à l\'accueil</div>'
-    + '<p>Pour démarrer, munissez-vous du code inscrit sur votre billet.</p>'
-    + '<a href="' + accueilDepuisIci + '" class="btn" id="versAccueil">Démarrer l\'enquête</a>' 
-    + '<p class="muted">Votre enquête est déjà en cours ? Saisissez votre code '
-    + 'pour la retrouver ici.</p>'
-    + '<label for="codeReprise">Le code de votre billet</label>'
+
+  const saisie =
+      '<label for="codeReprise">Le code de votre billet</label>'
     + '<input type="text" id="codeReprise" autocomplete="off" autocapitalize="characters" '
     + 'spellcheck="false" placeholder="Ex. K7NPX4RT">'
-    + '<div class="error-box visible" id="erreurReprise" hidden></div>'
-    + '<button class="btn-secondary" id="validerReprise">Reprendre mon enquête</button>';
+    + '<div class="error-box visible" id="erreurReprise" hidden></div>';
+
+  // Sur une borne de départ, le groupe qui arrive sans partie n'a le plus
+  // souvent pas encore commencé : on le pousse vers l'accueil. Sur une borne
+  // du milieu du parcours, c'est l'inverse. Il a démarré, et le lecteur de QR
+  // a ouvert un autre navigateur que celui du départ. Lui proposer d'abord
+  // de « démarrer l'enquête » lui laissait croire qu'il avait tout perdu.
+  if (borneDeDepart()) {
+    bloc.innerHTML =
+      '<div class="ecran-titre">Votre enquête commence à l\'accueil</div>'
+      + '<p>Pour démarrer, munissez-vous du code inscrit sur votre billet.</p>'
+      + '<a href="' + accueilDepuisIci + '" class="btn" id="versAccueil">Démarrer l\'enquête</a>'
+      + '<p class="muted">Votre enquête est déjà en cours ? Saisissez votre code '
+      + 'pour la retrouver ici.</p>'
+      + saisie
+      + '<button class="btn-secondary" id="validerReprise">Reprendre mon enquête</button>';
+  } else {
+    bloc.innerHTML =
+      '<div class="ecran-titre">Retrouvez votre enquête</div>'
+      + '<p>Ce téléphone ne retrouve pas votre partie : le lecteur de QR code a '
+      + 'sans doute ouvert un autre navigateur que celui du départ. Saisissez le '
+      + 'code de votre billet pour reprendre ici, sans rien perdre.</p>'
+      + saisie
+      + '<button class="btn" id="validerReprise">Reprendre mon enquête</button>'
+      + '<p class="muted">Vous n\'avez pas encore commencé ? '
+      + '<a href="' + accueil + '" id="versAccueil">Démarrez l\'enquête à l\'accueil</a>.</p>';
+  }
   document.querySelector(".wrap").appendChild(bloc);
   bloc.hidden = false;
 
