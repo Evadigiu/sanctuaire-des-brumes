@@ -98,7 +98,8 @@ sanctuaire-des-brumes/
 │   ├── css/style.css        — thème visuel partagé
 │   └── js/
 │       ├── supabase-client.js  — config (URL + clé anon)
-│       └── game.js             — logique : activateCode(), requireActiveSession(), logScan(), startCountdown()
+│       ├── game.js             — logique : activateCode(), requireActiveSession(), logScan(), startCountdown()
+│       └── scanner.js          — scanner intégré : un QR lu depuis la page garde la partie (l'appareil photo peut ouvrir une fenêtre sans mémoire)
 ├── etapes/
 │   ├── jardin-des-pivoines.html — étape 1, briefing de Jerry (texte provisoire, à valider)
 │   └── bureau-soignants.html    — étape 2, modèle de référence à dupliquer pour les 10 autres

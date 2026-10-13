@@ -60,6 +60,14 @@ with etat as (
       as c7_fabrique,
     (select count(*) from codes where code not like 'TEST%') as nb_vrais_codes,
 
+    -- Correctif 8 : une borne peut-elle retrouver une partie par son code ?
+    exists (select 1 from pg_proc where proname = 'reprendre_partie')
+      as c8_reprise,
+
+    -- Correctif 9 : les conclusions des joueurs arrivent-elles dans la base ?
+    exists (select 1 from pg_proc where proname = 'enregistrer_conclusions')
+      as c9_conclusions,
+
     -- Les bornes du parcours
     (select count(*) from qr_points) as nb_bornes,
     (select count(*) from codes)     as nb_codes,
@@ -96,15 +104,23 @@ select * from (
                    and c6_codes_fermes and c6_scans_fermes
               then 'FAIT' else 'A LANCER' end from etat
   union all
-  select 8, 'Les vrais codes',
+  select 8, 'Correctif 8',
+         'Une borne retrouve la partie par le code du billet (sinon « Erreur de connexion »)',
+         case when c8_reprise then 'FAIT' else 'A LANCER' end from etat
+  union all
+  select 9, 'Correctif 9',
+         'Les conclusions des joueurs sont enregistrees',
+         case when c9_conclusions then 'FAIT' else 'A LANCER' end from etat
+  union all
+  select 10, 'Les vrais codes',
          nb_vrais_codes || ' code(s) charge(s), impossibles a deviner',
          case when nb_vrais_codes > 0 then 'FAIT' else 'A LANCER' end from etat
   union all
-  select 9, 'Les bornes',
+  select 11, 'Les bornes',
          'Le parcours compte ' || nb_bornes || ' bornes (il en faut 16)',
          case when nb_bornes = 16 then 'FAIT' else 'A REVOIR' end from etat
   union all
-  select 10, 'Le contenu',
+  select 12, 'Le contenu',
          nb_codes || ' code(s), ' || nb_passages || ' passage(s) enregistre(s)',
          'pour information' from etat
 ) bilan

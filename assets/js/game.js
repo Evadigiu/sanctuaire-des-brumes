@@ -68,7 +68,17 @@ async function reprendrePartie(code) {
   const { data, error } = await supabaseClient.rpc("reprendre_partie", { p_code: code });
 
   if (error) {
-    console.warn("Guichet de reprise injoignable :", error.message);
+    console.warn("Guichet de reprise injoignable :", error.code, error.message);
+    // La base répond, mais ne connaît pas ce guichet : le correctif 8 n'a pas
+    // été lancé dans Supabase. Ce n'est pas le réseau, et le dire ainsi
+    // faisait chercher la panne au mauvais endroit.
+    if (guichetAbsent(error)) {
+      return {
+        ok: false,
+        message: "Impossible de retrouver votre enquête depuis cette borne pour le moment. "
+               + "Rouvrez le navigateur où vous l'avez démarrée, ou adressez-vous à l'accueil du zoo.",
+      };
+    }
     return { ok: false, message: "Erreur de connexion, réessayez dans un instant." };
   }
   if (!data || !data.ok) {
@@ -90,6 +100,14 @@ async function reprendrePartie(code) {
   };
   saveSession(session);
   return { ok: true, session };
+}
+
+/**
+ * La base a répondu « cette fonction n'existe pas » : un correctif SQL n'a
+ * pas été lancé. PostgREST le signale par le code PGRST202 (réponse 404).
+ */
+function guichetAbsent(error) {
+  return !!error && (error.code === "PGRST202" || /could not find the function/i.test(error.message || ""));
 }
 
 function saveSession(session) {

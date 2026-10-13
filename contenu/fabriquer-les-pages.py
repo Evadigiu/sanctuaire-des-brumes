@@ -812,7 +812,11 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
             # de la borne suivante ouvre la page. etape.js ne revele ce lien
             # qu'aux codes de test, pour que l'equipe puisse repeter le
             # parcours sans courir dans le parc.
-            h.append('  <p class="consigne-scan">Rendez-vous sur place, puis scannez le QR code de la borne.</p>')
+            h.append('  <p class="consigne-scan">Rendez-vous sur place, puis scannez le QR code de la borne avec ce bouton.</p>')
+            # Le scan se fait depuis la page, pas avec l'appareil photo : la
+            # borne suivante s'ouvre ainsi dans le meme navigateur, celui qui
+            # garde la partie en memoire. Voir assets/js/scanner.js.
+            h.append('  <button data-scanner>Scanner le QR code</button>')
             h.append('  <a href="%s" class="btn btn-test" data-lien-test hidden>Raccourci de test</a>' % e(lg["lien"]))
         else:
             h.append('  <p class="muted">Fin du parcours.</p>')
@@ -916,6 +920,7 @@ GABARIT = """<!DOCTYPE html>
 <script src="../assets/js/parcours.js"></script>
 <script src="../assets/js/game.js"></script>
 <script src="../assets/js/etape.js"></script>
+<script src="../assets/js/scanner.js"></script>
 <script>
   demarrerEtape();
 {extra}</script>

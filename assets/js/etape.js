@@ -150,6 +150,32 @@ function demarrerEtape() {
   afficher(courant);
   brancherSecours();
   brancherRetourAMaBorne();
+  conseillerLeScanner();
+}
+
+/**
+ * Le groupe vient de ressaisir son code, parce que le QR s'est ouvert dans
+ * une autre fenêtre que celle du départ. Sans conseil, la même chose se
+ * reproduira à la borne suivante : on le lui dit une fois, en haut de page.
+ */
+function conseillerLeScanner() {
+  let aConseiller = false;
+  try {
+    aConseiller = sessionStorage.getItem("sdb_conseil_scanner") === "1";
+    sessionStorage.removeItem("sdb_conseil_scanner");
+  } catch (e) {}
+  if (!aConseiller) return;
+
+  const note = document.createElement("div");
+  note.className = "card";
+  note.id = "conseilScanner";
+  note.innerHTML =
+      '<p><strong>Votre enquête est retrouvée.</strong></p>'
+    + '<p class="muted">Pour ne plus avoir à ressaisir votre code, scannez les prochaines '
+    + 'bornes avec le bouton « Scanner le QR code » proposé à la fin de chaque borne, '
+    + 'et non avec l\'appareil photo.</p>';
+  const titre = document.querySelector(".wrap h1");
+  if (titre) titre.insertAdjacentElement("afterend", note);
 }
 
 /**
@@ -182,17 +208,38 @@ function proposerDeRetrouverLaPartie(ancienneTrouvee) {
   const bloc = document.createElement("section");
   bloc.className = "ecran card";
   bloc.id = "retrouverPartie";
-  bloc.innerHTML =
-    '<div class="ecran-titre">Votre enquête commence à l\'accueil</div>'
-    + '<p>Pour démarrer, munissez-vous du code inscrit sur votre billet.</p>'
-    + '<a href="' + accueilDepuisIci + '" class="btn" id="versAccueil">Démarrer l\'enquête</a>' 
-    + '<p class="muted">Votre enquête est déjà en cours ? Saisissez votre code '
-    + 'pour la retrouver ici.</p>'
-    + '<label for="codeReprise">Le code de votre billet</label>'
+
+  const saisie =
+      '<label for="codeReprise">Le code de votre billet</label>'
     + '<input type="text" id="codeReprise" autocomplete="off" autocapitalize="characters" '
     + 'spellcheck="false" placeholder="Ex. K7NPX4RT">'
-    + '<div class="error-box visible" id="erreurReprise" hidden></div>'
-    + '<button class="btn-secondary" id="validerReprise">Reprendre mon enquête</button>';
+    + '<div class="error-box visible" id="erreurReprise" hidden></div>';
+
+  // Sur une borne de départ, le groupe qui arrive sans partie n'a le plus
+  // souvent pas encore commencé : on le pousse vers l'accueil. Sur une borne
+  // du milieu du parcours, c'est l'inverse. Il a démarré, et le lecteur de QR
+  // a ouvert un autre navigateur que celui du départ. Lui proposer d'abord
+  // de « démarrer l'enquête » lui laissait croire qu'il avait tout perdu.
+  if (borneDeDepart()) {
+    bloc.innerHTML =
+      '<div class="ecran-titre">Votre enquête commence à l\'accueil</div>'
+      + '<p>Pour démarrer, munissez-vous du code inscrit sur votre billet.</p>'
+      + '<a href="' + accueilDepuisIci + '" class="btn" id="versAccueil">Démarrer l\'enquête</a>'
+      + '<p class="muted">Votre enquête est déjà en cours ? Saisissez votre code '
+      + 'pour la retrouver ici.</p>'
+      + saisie
+      + '<button class="btn-secondary" id="validerReprise">Reprendre mon enquête</button>';
+  } else {
+    bloc.innerHTML =
+      '<div class="ecran-titre">Retrouvez votre enquête</div>'
+      + '<p>Ce téléphone ne retrouve pas votre partie : le lecteur de QR code a '
+      + 'sans doute ouvert un autre navigateur que celui du départ. Saisissez le '
+      + 'code de votre billet pour reprendre ici, sans rien perdre.</p>'
+      + saisie
+      + '<button class="btn" id="validerReprise">Reprendre mon enquête</button>'
+      + '<p class="muted">Vous n\'avez pas encore commencé ? '
+      + '<a href="' + accueil + '" id="versAccueil">Démarrez l\'enquête à l\'accueil</a>.</p>';
+  }
   document.querySelector(".wrap").appendChild(bloc);
   bloc.hidden = false;
 
@@ -206,7 +253,13 @@ function proposerDeRetrouverLaPartie(ancienneTrouvee) {
     err.hidden = true;
 
     const result = await reprendrePartie(champ.value);
-    if (result.ok) { window.location.reload(); return; }
+    if (result.ok) {
+      // La partie est retrouvée dans ce navigateur. Elle n'y restera que si
+      // les bornes suivantes s'ouvrent ici aussi, donc par le scanner du site.
+      try { sessionStorage.setItem("sdb_conseil_scanner", "1"); } catch (e) {}
+      window.location.reload();
+      return;
+    }
 
     // Un code jamais activé : le groupe n'a pas encore démarré. On l'envoie
     // à l'accueil avec son code déjà saisi, plutôt que de lui opposer un refus.
