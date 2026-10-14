@@ -10,6 +10,11 @@
 // ============================================================
 
 function demarrerEtape() {
+  // Avant le premier jour de jeu, la page est couverte par la fenêtre de la
+  // billetterie : on n'enregistre rien, pas même un signalement, pour que
+  // les curieux ne remplissent pas le tableau de bord. Voir avant-ouverture.js.
+  if (typeof avantOuverture === "function" && avantOuverture()) return;
+
   // Aucune partie dans ce navigateur : ce n'est pas forcément qu'il n'y en a
   // pas. Le QR a pu ouvrir un autre navigateur que celui du départ. On
   // propose de la retrouver ici, sans quitter la borne.
