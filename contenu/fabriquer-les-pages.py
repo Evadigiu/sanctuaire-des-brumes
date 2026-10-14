@@ -915,6 +915,7 @@ GABARIT = """<!DOCTYPE html>
   Le Sanctuaire des Brumes
 </footer>
 
+<script src="../assets/js/avant-ouverture.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="../assets/js/supabase-client.js"></script>
 <script src="../assets/js/parcours.js"></script>

@@ -682,3 +682,26 @@ footer .signature {
   margin: 0 auto 10px;
   opacity: 0.75;
 }
+
+/* ============================================================
+   AVANT L'OUVERTURE
+   La fenêtre qui couvre le jeu tant qu'il n'a pas commencé.
+   Voir assets/js/avant-ouverture.js.
+   ============================================================ */
+.avant-ouverture {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(11, 13, 20, 0.94);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow-y: auto;
+}
+.avant-ouverture > .card { width: 100%; max-width: 420px; margin: auto; text-align: center; }
+.avant-ouverture h1 { margin: 6px 0 16px; }
+.avant-ouverture p { margin-bottom: 10px; }
+.avant-ouverture-equipe { margin-top: 26px; }
+.avant-ouverture-equipe input { margin-top: 10px; }
+body.sous-fenetre { overflow: hidden; }
