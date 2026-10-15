@@ -420,9 +420,11 @@ MEDIAS = {
  "E07": "le-veterinaire-66ckyk.mp4",
  "E09": "greg-sens-a-sj7kmm.mp4",
  "E10": "bill-t87isj.mp4",
- # "E12": "appel-du-commissaire-bm7fpb.mp3",
+ # L'appel du commissaire n'est pas une video : c'est l'audio que joue
+ # le bouton « Décrocher ».
+ "E12": "appel-du-commissaire-bm7fpb.mp3",
  "E14": "le-botaniste-acanpa.mp4",
- # "E15": "la-serre-f4bxez.mp4",
+ "E15": "la-serre-h264.mp4",
  # Greg ne dit pas autre chose selon le sens par lequel on arrive : les
  # deux bornes portent la meme legende et renvoient toutes deux vers
  # Bill. Une seule video, donc, servie aux deux endroits. Ce ne sont pas
@@ -693,8 +695,15 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
     if c in APPEL_AUDIO and lg["n"] == 1:
         h.append('  <button id="decrocher" class="btn-appel">Décrocher</button>')
         h.append('  <div id="blocAppel" hidden>')
-        h.append('    <!-- Remplacer la source par le vrai fichier audio -->')
-        h.append('    <audio id="audioAppel" controls><source src="" type="audio/mpeg"></audio>')
+        fichier = MEDIAS.get(c)
+        if fichier and MEDIA_BASE:
+            # preload="none" : le son ne se telecharge qu'au moment ou le
+            # joueur decroche, comme les videos.
+            h.append('    <audio id="audioAppel" controls preload="none">'
+                     '<source src="%s/%s" type="audio/mpeg"></audio>' % (MEDIA_BASE, e(fichier)))
+        else:
+            h.append('    <!-- Audio pas encore integre : ajouter le fichier dans MEDIAS -->')
+            h.append('    <audio id="audioAppel" controls><source src="" type="audio/mpeg"></audio>')
         h.append('  </div>')
 
     if c in PHOTO and lg["n"] == PHOTO[c][2]:
