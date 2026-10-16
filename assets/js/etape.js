@@ -819,11 +819,10 @@ function celebrer() {
     + '<div class="celebration-texte">'
     + '  <div class="eyebrow">Affaire résolue</div>'
     + '  <h1 id="celebrationTitre">Félicitations, enquêteurs&nbsp;!</h1>'
-    + '  <p class="celebration-accroche">Vous êtes les meilleurs limiers que ce zoo ait jamais vus.</p>'
-    + '  <p>Isabelle a dormi comme une marmotte. Les marmottes du parc '
-    + 'crient au plagiat.</p>'
-    + '  <p>Louis a juré de doser ses tisanes à la cuillère, et plus à la louche. '
-    + 'Greg, lui, prépare déjà sa prochaine farce.</p>'
+    + '  <p class="celebration-accroche">Vous êtes les meilleurs enquêteurs que ce zoo ait jamais vus.</p>'
+    + '  <p>Isabelle est vivante, elle a dormi comme une marmotte. Le commissaire Jean est soulagé…</p>'
+    + '  <p>Louis, lui, a promis de goûter ses tisanes avant de les servir. '
+    + 'Greg a proposé de s\u2019en charger. On a refusé.</p>'
     + '  <button type="button" id="celebrationFermer">Lire le dénouement</button>'
     + '</div>';
   document.body.appendChild(fond);
