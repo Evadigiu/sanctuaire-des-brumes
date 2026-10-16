@@ -42,6 +42,24 @@
   <button data-suivant>Suivant</button>
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
 </section>
+<section class="ecran card popquiz" data-reflexion hidden>
+  <div class="ecran-titre">Votre avis d'enquêteur</div>
+  <p class="popquiz-question">À votre avis, Isabelle aurait-elle pu entrer dans l&#x27;enclos des loups et se faire dévorer ?</p>
+  <div data-reflexion-choix>
+    <button class="quiz-prop" data-reflexion-repondre="oui">Oui</button>
+    <button class="quiz-prop" data-reflexion-repondre="non">Non</button>
+  </div>
+  <div class="card indice" data-reflexion-reponse="oui" hidden>
+    <div class="eyebrow">Très peu probable</div>
+    <p>On comprend le frisson, mais c&#x27;est très improbable. Un soigneur n&#x27;entre jamais dans un enclos quand les loups s&#x27;y trouvent : les animaux sont d&#x27;abord enfermés dans leurs loges, et l&#x27;on passe par un sas à double porte. Et le loup n&#x27;a rien du monstre des contes : il craint l&#x27;homme et l&#x27;évite. En Europe, les attaques de loups sur des humains sont rarissimes depuis plus d&#x27;un siècle. D&#x27;ailleurs, l&#x27;empreinte que vous venez d&#x27;identifier n&#x27;est pas celle d&#x27;un loup…</p>
+  </div>
+  <div class="card indice" data-reflexion-reponse="non" hidden>
+    <div class="eyebrow">Bien vu</div>
+    <p>En effet. Un soigneur n&#x27;entre jamais dans un enclos quand les loups s&#x27;y trouvent : les animaux sont d&#x27;abord enfermés dans leurs loges, et l&#x27;on passe par un sas à double porte. Le loup, lui, craint l&#x27;homme et l&#x27;évite : en Europe, les attaques de loups sur des humains sont rarissimes depuis plus d&#x27;un siècle. Et l&#x27;empreinte que vous venez d&#x27;identifier n&#x27;est pas celle d&#x27;un loup…</p>
+  </div>
+  <button data-suivant data-reflexion-suivant hidden>Suivant</button>
+  <button class="btn-secondary" data-retour>Revenir en arrière</button>
+</section>
 <section class="ecran card" data-sens="A" hidden>
   <div class="ecran-titre">Où aller ensuite</div>
   <p>Rendez-vous au point GPS pour interroger votre prochain témoin.</p>

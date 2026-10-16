@@ -339,6 +339,32 @@ COUP_DE_POUCE = {
     "E04": "N'hésitez pas à lever la tête pour chercher votre objet mystère.",
 }
 
+# LES QUESTIONS DE REFLEXION. Une question fermee, posee avant « Ou aller
+# ensuite », pour faire avancer le raisonnement du groupe. Il n'y a pas de
+# mauvaise reponse qui coute quelque chose : chaque reponse a son
+# explication, ecrite d'avance. Elle s'affiche donc meme sans reseau.
+REFLEXION = {
+    "E08": {
+        "question": "À votre avis, Isabelle aurait-elle pu entrer dans l'enclos "
+                    "des loups et se faire dévorer ?",
+        "oui": ("Très peu probable",
+                "On comprend le frisson, mais c'est très improbable. Un soigneur "
+                "n'entre jamais dans un enclos quand les loups s'y trouvent : les "
+                "animaux sont d'abord enfermés dans leurs loges, et l'on passe par "
+                "un sas à double porte. Et le loup n'a rien du monstre des contes : "
+                "il craint l'homme et l'évite. En Europe, les attaques de loups sur "
+                "des humains sont rarissimes depuis plus d'un siècle. D'ailleurs, "
+                "l'empreinte que vous venez d'identifier n'est pas celle d'un loup…"),
+        "non": ("Bien vu",
+                "En effet. Un soigneur n'entre jamais dans un enclos quand les loups "
+                "s'y trouvent : les animaux sont d'abord enfermés dans leurs loges, "
+                "et l'on passe par un sas à double porte. Le loup, lui, craint "
+                "l'homme et l'évite : en Europe, les attaques de loups sur des "
+                "humains sont rarissimes depuis plus d'un siècle. Et l'empreinte que "
+                "vous venez d'identifier n'est pas celle d'un loup…"),
+    },
+}
+
 # LE MOT DES QUATRE LETTRES. Apres la derniere lettre de chaque sens, le
 # groupe ecrit le mot qu'elles forment. Juste : on lui revele le dernier
 # lieu. Faux deux fois : on lui donne le mot, et le lieu quand meme. Le
@@ -644,6 +670,30 @@ def bloc_quiz(code, lettre):
     h.append('    <p data-score></p>')
     h.append('  </div>')
     h.append('</div>')
+    return "\n".join(h)
+
+
+def bloc_reflexion(code):
+    """La question de reflexion : Oui ou Non, puis l'explication de la
+    reponse choisie. « Suivant » n'apparait qu'apres la reponse, comme pour
+    les questions bonus : sinon on la sauterait sans la lire."""
+    r = REFLEXION[code]
+    h = ['<section class="ecran card popquiz" data-reflexion hidden>',
+         '  <div class="ecran-titre">Votre avis d\'enquêteur</div>',
+         '  <p class="popquiz-question">%s</p>' % e(r["question"]),
+         '  <div data-reflexion-choix>',
+         '    <button class="quiz-prop" data-reflexion-repondre="oui">Oui</button>',
+         '    <button class="quiz-prop" data-reflexion-repondre="non">Non</button>',
+         '  </div>']
+    for cle in ("oui", "non"):
+        titre, texte = r[cle]
+        h += ['  <div class="card indice" data-reflexion-reponse="%s" hidden>' % cle,
+              '    <div class="eyebrow">%s</div>' % e(titre),
+              '    <p>%s</p>' % e(texte),
+              '  </div>']
+    h += ['  <button data-suivant data-reflexion-suivant hidden>Suivant</button>',
+          '  <button class="btn-secondary" data-retour>Revenir en arrière</button>',
+          '</section>']
     return "\n".join(h)
 
 
@@ -1054,6 +1104,9 @@ for c in PAGES:
         blocs.append(bloc_lettre_du_quiz(et["lettre"]))
     if c in CONFIRMATION_INDICE and et["lettre"]:
         blocs.append(bloc_confirmation(et["lettre"], donnee=(c in LETTRE_DONNEE)))
+    # La question de reflexion, juste avant le chemin.
+    if c in REFLEXION:
+        blocs.append(bloc_reflexion(c))
     # « avant la sortie » : la question vient apres le temoignage, juste avant
     # qu'on indique le chemin.
     if c in popquiz and popquiz[c]["moment"] == "sortie":
