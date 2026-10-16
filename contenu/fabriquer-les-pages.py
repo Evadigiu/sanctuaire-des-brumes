@@ -801,7 +801,7 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
             if c in quiz:
                 # Le plein ecran cacherait les questions : on le dit, et
                 # etape.js le refuse (controlsList le retire sur Android).
-                h.append('  <p class="consigne-scan">Ne mettez pas la vidéo en plein écran : '
+                h.append('  <p class="consigne-scan consigne-video">Ne mettez pas la vidéo en plein écran : '
                          'les questions apparaissent juste en dessous.</p>')
                 h.append('  <video controls playsinline preload="none" '
                          'controlslist="nofullscreen" disablepictureinpicture '

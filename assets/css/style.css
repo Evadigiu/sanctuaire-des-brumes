@@ -616,6 +616,8 @@ footer {
   font-size: 0.9rem;
   letter-spacing: 0.5px;
 }
+/* Au-dessus de la vidéo du quiz, l'avertissement ne doit pas la toucher. */
+.ecran p.consigne-video { margin-bottom: 16px; }   /* plus fort que .ecran p:last-of-type */
 /* Raccourci visible uniquement avec un code de test, volontairement terne
    pour qu'on ne le confonde jamais avec un élément du jeu. */
 .btn-test {

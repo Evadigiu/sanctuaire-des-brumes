@@ -1168,10 +1168,21 @@ function brancherQuizVideo() {
   // quatre minutes, et un groupe pressé doit pouvoir avancer. Il perd les
   // points des questions qu'il saute, pas la lettre : elle est sur l'écran
   // d'après. Le même bouton devient « Suivant » une fois le quiz fini.
+  // Il n'apparaît qu'après PASSER_APRES secondes de vidéo : offert dès le
+  // départ, il tentait des groupes qui n'avaient encore rien vu. Une fois
+  // apparu, il reste, même si le groupe revient en arrière.
+  const PASSER_APRES = 120;
   if (suivant) {
     suivant.textContent = "Passer la vidéo";
     suivant.classList.add("btn-secondary");
-    suivant.hidden = false;
+    suivant.hidden = true;
+  }
+  if (suivant && video) {
+    const proposerDePasser = () => {
+      if (!fini && suivant.hidden && video.currentTime >= PASSER_APRES) suivant.hidden = false;
+    };
+    video.addEventListener("timeupdate", proposerDePasser);
+    video.addEventListener("seeked", proposerDePasser);
   }
   function boutonFinal() {
     if (!suivant) return;

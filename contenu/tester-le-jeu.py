@@ -1114,8 +1114,8 @@ with sync_playwright() as pw:
              and not e0["lettreVue"], str(e0))
     # Demande du terrain : un groupe presse peut passer la video. Il perd les
     # points, pas la lettre, qui est sur l'ecran d'apres.
-    verifier("« Passer la vidéo » est propose des le depart",
-             e0["suivant"] and e0["bouton"] == "Passer la vidéo", str(e0))
+    verifier("« Passer la vidéo » n'est pas propose au depart",
+             not e0["suivant"], str(e0))
 
     # Une horloge a la place de la lecture.
     page.evaluate("""() => {
@@ -1225,6 +1225,16 @@ with sync_playwright() as pw:
     e4 = etat()
     verifier("retour en arriere : on retrouve la question de ce moment",
              e4["ouverte"] == 0 and e4["nbOuvertes"] == 1, str(e4))
+
+    # « Passer la vidéo » n'arrive qu'a deux minutes, et reste ensuite.
+    avancer(119)
+    verifier("a 1:59, toujours pas de « Passer la vidéo »", not etat()["suivant"], str(etat()))
+    avancer(120)
+    e_p = etat()
+    verifier("a 2:00, « Passer la vidéo » apparait",
+             e_p["suivant"] and e_p["bouton"] == "Passer la vidéo", str(e_p))
+    avancer(30, "seeked")
+    verifier("et reste meme apres un retour en arriere", etat()["suivant"], str(etat()))
 
     # --- La derniere question, bien repondue ----------------------------
     avancer(T[N - 1] + 1)
