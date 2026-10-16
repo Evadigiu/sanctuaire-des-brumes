@@ -58,7 +58,13 @@
     <input type="text" id="motFinal" autocomplete="off" autocapitalize="characters" spellcheck="false">
     <button id="validerMot">Valider</button>
     <p class="quiz-verdict quiz-faux" data-mot-faux hidden></p>
-    <div class="card indice" data-mot-trouve hidden><p>Félicitations, vous avez trouvé le dernier lieu ! Rendez-vous au Jardin des Iris.</p></div>
+    <div class="card indice" data-mot-trouve hidden>
+      <p data-mot-bravo data-donne="Il ne vous reste plus qu&#x27;à trouver l&#x27;endroit où il vous mène.">Félicitations, vous avez trouvé le bon mot ! Il ne vous reste plus qu&#x27;à trouver l&#x27;endroit où il vous mène.</p>
+      <div data-coup-de-pouce>
+        <button class="btn-secondary" data-coup-de-pouce-ouvrir>Demander un indice</button>
+        <p class="indice-lieu" data-coup-de-pouce-texte hidden>Rendez-vous au Jardin des Iris.</p>
+      </div>
+    </div>
   </div>
   <div data-apres-mot hidden>
   <p class="consigne-scan">Rendez-vous sur place, puis scannez le QR code de la borne avec ce bouton.</p>

@@ -1285,9 +1285,11 @@ function brancherCoupDePouce() {
 }
 
 /**
- * Le mot des quatre lettres, après la dernière. Juste : le dernier lieu est
- * révélé. Faux deux fois : on donne le mot, et le lieu quand même — à la
- * dernière étape, personne ne reste dehors. Le scanner n'apparaît qu'après.
+ * Le mot des quatre lettres, après la dernière. Juste : félicitations, et
+ * le groupe cherche le lieu où mène le mot, avec « Demander un indice » s'il
+ * sèche. Faux deux fois : on donne le mot, et le même indice reste à portée
+ * — à la dernière étape, personne ne reste dehors. Le scanner n'apparaît
+ * qu'après.
  *
  * Indulgent : majuscules, accents et espaces ne comptent pas.
  */
@@ -1309,6 +1311,9 @@ function brancherMotFinal() {
       faux.hidden = !texteFaux;
       if (texteFaux) faux.textContent = texteFaux;
     }
+    // Mot donné après deux essais : pas de « Félicitations » mérité.
+    const bravo = trouve.querySelector("[data-mot-bravo]");
+    if (texteFaux && bravo && bravo.getAttribute("data-donne")) bravo.textContent = bravo.getAttribute("data-donne");
     trouve.hidden = false;
     champ.disabled = true; bouton.disabled = true;
     if (apres) apres.hidden = false;

@@ -810,6 +810,48 @@ with sync_playwright() as pw:
     # sur le telephone de sa mere ecrit sans accents, en majuscules, avec
     # des fautes. Trois heures d'enquete ne doivent pas se jouer la-dessus.
     # ------------------------------------------------------------
+    # ------------------------------------------------------------
+    # LE MOT DES QUATRE LETTRES (IRIS), au bureau de Greg en sens A.
+    # Juste : felicitations, et le lieu reste a chercher, avec un indice
+    # a la demande. Faux deux fois : le mot est donne, sans felicitations.
+    # ------------------------------------------------------------
+    print("\ne13 : le mot des quatre lettres")
+
+    def jouer_mot(essais, indice=False):
+        pg = nouvelle_page(nav); pg.add_init_script(init("horaire"))
+        borne = PARC["pages"]["E13"]
+        # Droit a l'ecran « Ou aller ensuite » : les precedents ont leurs tests.
+        pg.add_init_script("sessionStorage.setItem('sdb_ecran_/%s', '2')" % borne)
+        pg.goto("http://127.0.0.1:%d/%s" % (PORT, borne))
+        pg.wait_for_timeout(300)
+        for m in essais:
+            pg.fill("#motFinal", m); pg.click("#validerMot"); pg.wait_for_timeout(100)
+        if indice:
+            pg.click("[data-mot-trouve] [data-coup-de-pouce-ouvrir]"); pg.wait_for_timeout(100)
+        r = pg.evaluate("""() => {
+          const t = document.querySelector("[data-mot-trouve]");
+          const i = t.querySelector("[data-coup-de-pouce-texte]");
+          const a = document.querySelector("[data-apres-mot]");
+          return { trouve: !t.hidden, bravo: t.querySelector("[data-mot-bravo]").textContent,
+                   indice: !i.hidden, lieu: i.textContent,
+                   bouton: !t.querySelector("[data-coup-de-pouce-ouvrir]").hidden,
+                   scanner: !!a && !a.hidden,
+                   faux: document.querySelector("[data-mot-faux]").textContent }; }""")
+        pg.close()
+        return r
+
+    r = jouer_mot(["iris"])
+    verifier("le bon mot : felicitations", r["trouve"] and r["bravo"].startswith("Félicitations"), str(r))
+    verifier("le lieu n'est pas donne d'office", r["bouton"] and not r["indice"], str(r))
+    verifier("le scanner apparait", r["scanner"], str(r))
+    r = jouer_mot(["iris"], indice=True)
+    verifier("« Demander un indice » donne le Jardin des Iris",
+             r["indice"] and "Jardin des Iris" in r["lieu"] and not r["bouton"], str(r))
+    r = jouer_mot(["sire", "riss"])
+    verifier("deux essais manques : le mot est donne, sans felicitations",
+             r["trouve"] and "IRIS" in r["faux"] and "Félicitations" not in r["bravo"]
+             and r["bouton"] and r["scanner"], str(r))
+
     print("\ne15 : les conclusions et les trois fins")
 
     def rendre(texte):

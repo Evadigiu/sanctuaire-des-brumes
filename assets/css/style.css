@@ -617,7 +617,15 @@ footer {
   letter-spacing: 0.5px;
 }
 /* Au-dessus de la vidéo du quiz, l'avertissement ne doit pas la toucher. */
-.ecran p.consigne-video { margin-bottom: 16px; }   /* plus fort que .ecran p:last-of-type */
+/* Premiere ligne de son ecran : pas de trait de separation au-dessus d'un vide. */
+.ecran p.consigne-video {                /* plus fort que .ecran p:last-of-type */
+  border-top: none;
+  margin-top: 0;
+  padding-top: 0;
+  margin-bottom: 16px;
+}
+.indice-lieu { font-weight: 700; color: var(--gold-bright); margin-top: 12px; }
+[data-mot-trouve] [data-coup-de-pouce-ouvrir] { margin-top: 12px; }
 /* Raccourci visible uniquement avec un code de test, volontairement terne
    pour qu'on ne le confonde jamais avec un élément du jeu. */
 .btn-test {
