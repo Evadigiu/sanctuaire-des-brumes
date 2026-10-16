@@ -900,27 +900,33 @@ with sync_playwright() as pw:
         pg.close()
         return etapes
 
-    BONNE = int(open(os.path.join(RACINE, PARC["pages"]["E15"], "index.html"))
-                .read().split('data-conclusions data-bonne="', 1)[1].split('"', 1)[0])
-    for choix in range(4):
-        juste = (choix == BONNE)
+    # Les fins des propositions, lues dans la page : le cahier peut changer.
+    FINS = re.findall(r'data-conclusion="\d+" data-fin="([^"]+)"',
+                      open(os.path.join(RACINE, PARC["pages"]["E15"], "index.html")).read())
+    verifier("cinq propositions, une seule juste",
+             len(FINS) == 5 and FINS.count("Bon") == 1, str(FINS))
+    verifier("la bonne reponse n'est pas la derniere", FINS and FINS[-1] != "Bon", str(FINS))
+    verifier("l'empoisonnement mene a la fin intermediaire", "Moyen" in FINS, str(FINS))
+    BONNE = FINS.index("Bon")
+    for choix, attendue in enumerate(FINS):
+        juste = (attendue == "Bon")
         f = conclure(choix)
-        nom = "reponse %d (%s)" % (choix + 1, "juste" if juste else "fausse")
+        nom = "reponse %d (%s)" % (choix + 1, attendue)
         verifier(nom + " : le choix est propose apres l'accueil", f["avant"]["choix"], str(f["avant"]))
         verifier(nom + " : droit a la video, sans verdict",
                  f["video"]["video"] and f["video"]["denouement"] is None and not f["video"]["fete"],
                  str(f["video"]))
         verifier(nom + " : puis la lettre de Greg, toujours sans verdict",
                  f["lettre"]["lettre"] and f["lettre"]["denouement"] is None, str(f["lettre"]))
-        verifier(nom + " : puis le verdict, " + ("Bon" if juste else "Mauvais"),
-                 f["verdict"]["verdictEcran"]
-                 and f["verdict"]["denouement"] == ("Bon" if juste else "Mauvais"), str(f["verdict"]))
+        verifier(nom + " : puis son verdict",
+                 f["verdict"]["verdictEcran"] and f["verdict"]["denouement"] == attendue,
+                 str(f["verdict"]))
         verifier(nom + " : etincelles " + ("oui" if juste else "non"),
                  f["verdict"]["fete"] == juste and f["verdict"].get("fete_fermee", True), str(f["verdict"]))
         verifier(nom + " : le photocall a son ecran, puis les remerciements",
                  f["photocall"]["photocall"] and f["fin"]["fin"], str(f["photocall"]) + str(f["fin"]))
         verifier(nom + " : la reponse est rangee une fois",
-                 f["verdict"]["rangements"] == [("Bon" if juste else "Mauvais")],
+                 f["verdict"]["rangements"] == [attendue],
                  str(f["verdict"]["rangements"]))
         verifier(nom + " : de retour au choix, il est verrouille",
                  f["retour"]["choix"] and f["retour"]["verrou"], str(f["retour"]))
