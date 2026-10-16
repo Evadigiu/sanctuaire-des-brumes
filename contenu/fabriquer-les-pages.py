@@ -481,13 +481,13 @@ MEDIAS = {
  "E03": "la-videosurveillance-yag6qs.mp4",
  "E05": "la-passante-2-qri7tr.mp4",
  "E06": "quiz-animalier-2-hwqbca.mp4",   # version raccourcie, 6 questions
- "E07": "le-veterinaire-66ckyk.mp4",
+ "E07": "le-veterinaire-66ckyk-2.mp4",
  "E09": "greg-sens-a-sj7kmm.mp4",
- "E10": "bill-t87isj.mp4",
+ "E10": "bill-t87isj-2.mp4",
  # L'appel du commissaire n'est pas une video : c'est l'audio que joue
  # le bouton « Décrocher ».
  "E12": "appel-du-commissaire-bm7fpb.mp3",
- "E14": "le-botaniste-acanpa.mp4",
+ "E14": "le-botaniste-acanpa-2.mp4",
  "E15": "la-serre-4.mp4",
  # Greg ne dit pas autre chose selon le sens par lequel on arrive : les
  # deux bornes portent la meme legende et renvoient toutes deux vers
