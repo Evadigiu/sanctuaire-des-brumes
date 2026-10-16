@@ -1023,6 +1023,7 @@ with sync_playwright() as pw:
                bilan: !b.hidden, score: b.querySelector("[data-score]").textContent,
                lettre: (b.querySelector(".lettre") || {}).textContent || "",
                suivant: !!s && !s.hidden, pleinEcran: !!document.fullscreenElement,
+               bouton: s ? s.textContent.trim() : "",
                // La lettre ne doit pas etre lisible a l'arrivee : sur cette
                // borne elle se merite au bout du quiz, pas au scan.
                lettreVue: Array.from(document.querySelectorAll(".lettre"))
@@ -1037,7 +1038,11 @@ with sync_playwright() as pw:
     e0 = etat()
     verifier("rien avant la lecture",
              not e0["zone"] and e0["nbOuvertes"] == 0 and not e0["bilan"]
-             and not e0["suivant"] and not e0["lettreVue"], str(e0))
+             and not e0["lettreVue"], str(e0))
+    # Demande du terrain : un groupe presse peut passer la video. Il perd les
+    # points, pas la lettre, qui est sur l'ecran d'apres.
+    verifier("« Passer la vidéo » est propose des le depart",
+             e0["suivant"] and e0["bouton"] == "Passer la vidéo", str(e0))
 
     # Une horloge a la place de la lecture.
     page.evaluate("""() => {
@@ -1173,9 +1178,19 @@ with sync_playwright() as pw:
              not fin["attente"], str(fin))
     verifier("une seule bonne reponse comptee sur %d" % N,
              ("1 bonne réponse sur %d" % N) in fin["score"], fin["score"])
-    verifier("la lettre est donnee a la fin",
-             fin["lettre"] and fin["lettreVue"], str(fin))
-    verifier("et seulement alors, Suivant apparait", fin["suivant"], str(fin))
+    # La lettre n'est plus sous les questions : elle a son ecran, apres
+    # « Suivant ». Elle arrive ainsi meme si la video n'a pas charge, ou si
+    # le groupe l'a passee.
+    verifier("la lettre n'est pas sur l'ecran du quiz",
+             not fin["lettre"] and not fin["lettreVue"], str(fin))
+    verifier("le bouton devient « Suivant »",
+             fin["suivant"] and fin["bouton"] == "Suivant", str(fin))
+    page.click("[data-quiz-suivant]")
+    page.wait_for_timeout(200)
+    lettre = page.evaluate("""() => { const l = Array.from(document.querySelectorAll('.lettre'))
+                                   .find(x => x.offsetParent !== null);
+                                 return l ? l.textContent.trim() : ""; }""")
+    verifier("apres Suivant, l'ecran de la lettre", lettre == "I", lettre)
     page.close()
 
     # La video ne descend pas : fichier absent chez l'hebergeur, ou reseau
