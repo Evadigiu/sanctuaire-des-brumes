@@ -35,10 +35,9 @@
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
 </section>
 <section class="ecran card" data-confirmation hidden>
-  <p>Avez-vous bien trouvé l'indice caché ?</p>
+  <p>Vous avez bien observé la scène ? L'indice est à vous.</p>
   <div data-indice-choix>
-    <button data-suivant>Oui</button>
-    <button class="btn-secondary" data-indice-non>Non, montrez-le moi</button>
+    <button data-indice-non>Donnez-moi l'indice</button>
   </div>
   <div data-indice-revele hidden>
     <div class="card indice">
@@ -51,13 +50,22 @@
 </section>
 <section class="ecran card" data-sens="A" hidden>
   <div class="ecran-titre">Où aller ensuite</div>
-  <p>Vous avez désormais intérrogé tous les témoins officiels. Analysez les 4 lettres que vous avez trouvé pour continuer votre enquête.</p>
+  <p>Vous avez désormais interrogé tous les témoins officiels. Notez le mot formé par les 4 lettres que vous avez trouvées.</p>
   <!-- A AJOUTER : le plan qui montre où aller. Déposer l'image
        dans assets/img/ et ajouter sa ligne à CHEMINS, en haut
        de contenu/fabriquer-les-pages.py. -->
+  <div data-mot-final data-mot="IRIS">
+    <label for="motFinal">Le mot formé par vos 4 lettres</label>
+    <input type="text" id="motFinal" autocomplete="off" autocapitalize="characters" spellcheck="false">
+    <button id="validerMot">Valider</button>
+    <p class="quiz-verdict quiz-faux" data-mot-faux hidden></p>
+    <div class="card indice" data-mot-trouve hidden><p>Félicitations, vous avez trouvé le dernier lieu ! Rendez-vous au Jardin des Iris.</p></div>
+  </div>
+  <div data-apres-mot hidden>
   <p class="consigne-scan">Rendez-vous sur place, puis scannez le QR code de la borne avec ce bouton.</p>
   <button data-scanner>Scanner le QR code</button>
   <a href="../3177/" class="btn btn-test" data-lien-test hidden>Raccourci de test</a>
+  </div>
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
 </section>
 <section class="ecran card" data-sens="B" hidden>

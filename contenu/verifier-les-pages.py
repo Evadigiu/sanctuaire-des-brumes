@@ -60,9 +60,12 @@ def main():
                 pb.append("SENS %s : lien mort vers %s." % (sens, cur)); break
             h = lire(p)
             vus.append(re.search(r"<h1>(.*?)</h1>", h).group(1))
-            bloc = re.search(r'<section class="ecran card" data-sens="%s" hidden>(.*?)</section>'
-                             % sens, h, re.S)
-            if not bloc:
+            # Tous les ecrans de ce sens, pas seulement le premier : une borne
+            # peut en avoir plusieurs (Greg, version B : la video, puis la
+            # sortie), et le lien est sur le dernier.
+            blocs = re.findall(r'<section class="ecran card" data-sens="%s" hidden>(.*?)</section>'
+                               % sens, h, re.S)
+            if not blocs:
                 # Pas d'ecran propre a ce sens : soit c'est la derniere etape,
                 # commune aux deux parcours, soit le joueur est vraiment bloque.
                 if 'data-sens=' in h:
@@ -70,7 +73,7 @@ def main():
                               % (sens, cur))
                 fins.setdefault(sens, cur)
                 break
-            m = re.search(r'href="\.\./([0-9]+/)"', bloc.group(1))
+            m = re.search(r'href="\.\./([0-9]+/)"', "".join(blocs))
             if not m: fins.setdefault(sens, cur)
             cur = m.group(1) if m else None
             n += 1
