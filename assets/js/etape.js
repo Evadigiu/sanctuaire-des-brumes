@@ -1168,10 +1168,21 @@ function brancherQuizVideo() {
   // quatre minutes, et un groupe pressé doit pouvoir avancer. Il perd les
   // points des questions qu'il saute, pas la lettre : elle est sur l'écran
   // d'après. Le même bouton devient « Suivant » une fois le quiz fini.
+  // Il n'apparaît qu'après PASSER_APRES secondes de vidéo : offert dès le
+  // départ, il tentait des groupes qui n'avaient encore rien vu. Une fois
+  // apparu, il reste, même si le groupe revient en arrière.
+  const PASSER_APRES = 120;
   if (suivant) {
     suivant.textContent = "Passer la vidéo";
     suivant.classList.add("btn-secondary");
-    suivant.hidden = false;
+    suivant.hidden = true;
+  }
+  if (suivant && video) {
+    const proposerDePasser = () => {
+      if (!fini && suivant.hidden && video.currentTime >= PASSER_APRES) suivant.hidden = false;
+    };
+    video.addEventListener("timeupdate", proposerDePasser);
+    video.addEventListener("seeked", proposerDePasser);
   }
   function boutonFinal() {
     if (!suivant) return;
@@ -1274,9 +1285,11 @@ function brancherCoupDePouce() {
 }
 
 /**
- * Le mot des quatre lettres, après la dernière. Juste : le dernier lieu est
- * révélé. Faux deux fois : on donne le mot, et le lieu quand même — à la
- * dernière étape, personne ne reste dehors. Le scanner n'apparaît qu'après.
+ * Le mot des quatre lettres, après la dernière. Juste : félicitations, et
+ * le groupe cherche le lieu où mène le mot, avec « Demander un indice » s'il
+ * sèche. Faux deux fois : on donne le mot, et le même indice reste à portée
+ * — à la dernière étape, personne ne reste dehors. Le scanner n'apparaît
+ * qu'après.
  *
  * Indulgent : majuscules, accents et espaces ne comptent pas.
  */
@@ -1298,6 +1311,9 @@ function brancherMotFinal() {
       faux.hidden = !texteFaux;
       if (texteFaux) faux.textContent = texteFaux;
     }
+    // Mot donné après deux essais : pas de « Félicitations » mérité.
+    const bravo = trouve.querySelector("[data-mot-bravo]");
+    if (texteFaux && bravo && bravo.getAttribute("data-donne")) bravo.textContent = bravo.getAttribute("data-donne");
     trouve.hidden = false;
     champ.disabled = true; bouton.disabled = true;
     if (apres) apres.hidden = false;

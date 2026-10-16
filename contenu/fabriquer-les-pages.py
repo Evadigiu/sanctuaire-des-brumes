@@ -379,7 +379,12 @@ REFLEXION = {
 MOT_FINAL = {
     "mot": "IRIS",
     "ecrans": {("E13", "A"), ("E08", "B")},
-    "trouve": "Félicitations, vous avez trouvé le dernier lieu ! Rendez-vous au Jardin des Iris.",
+    "trouve": "Félicitations, vous avez trouvé le bon mot ! Il ne vous reste plus "
+              "qu'à trouver l'endroit où il vous mène.",
+    # A la place de « trouve », quand le jeu a du donner le mot.
+    "donne": "Il ne vous reste plus qu'à trouver l'endroit où il vous mène.",
+    # Derriere « Demander un indice » : le groupe cherche d'abord le lieu.
+    "indice": "Rendez-vous au Jardin des Iris.",
 }
 
 # ------------------------------------------------------------
@@ -801,7 +806,7 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
             if c in quiz:
                 # Le plein ecran cacherait les questions : on le dit, et
                 # etape.js le refuse (controlsList le retire sur Android).
-                h.append('  <p class="consigne-scan">Ne mettez pas la vidéo en plein écran : '
+                h.append('  <p class="consigne-scan consigne-video">Ne mettez pas la vidéo en plein écran : '
                          'les questions apparaissent juste en dessous.</p>')
                 h.append('  <video controls playsinline preload="none" '
                          'controlslist="nofullscreen" disablepictureinpicture '
@@ -971,7 +976,14 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
         h.append('    <input type="text" id="motFinal" autocomplete="off" autocapitalize="characters" spellcheck="false">')
         h.append('    <button id="validerMot">Valider</button>')
         h.append('    <p class="quiz-verdict quiz-faux" data-mot-faux hidden></p>')
-        h.append('    <div class="card indice" data-mot-trouve hidden><p>%s</p></div>' % e(MOT_FINAL["trouve"]))
+        h.append('    <div class="card indice" data-mot-trouve hidden>')
+        h.append('      <p data-mot-bravo data-donne="%s">%s</p>'
+                 % (e(MOT_FINAL["donne"]), e(MOT_FINAL["trouve"])))
+        h.append('      <div data-coup-de-pouce>')
+        h.append('        <button class="btn-secondary" data-coup-de-pouce-ouvrir>Demander un indice</button>')
+        h.append('        <p class="indice-lieu" data-coup-de-pouce-texte hidden>%s</p>' % e(MOT_FINAL["indice"]))
+        h.append('      </div>')
+        h.append('    </div>')
         h.append('  </div>')
 
     if lg["rem"]:
