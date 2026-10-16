@@ -152,6 +152,7 @@ function demarrerEtape() {
   brancherQuizVideo();
   brancherCoupDePouce();
   brancherMotFinal();
+  brancherReflexion();
   garderLesMediasSousControle();
   afficher(courant);
   brancherSecours();
@@ -1044,6 +1045,27 @@ function brancherQuizVideo() {
   } else {
     ouvrirSansVideo();
   }
+}
+
+/**
+ * La question de réflexion (après l'empreinte) : Oui ou Non, puis
+ * l'explication de la réponse choisie. Pas de point perdu : elle est là pour
+ * faire raisonner, pas pour piéger. « Suivant » attend la réponse.
+ */
+function brancherReflexion() {
+  document.querySelectorAll("[data-reflexion]").forEach(zone => {
+    const boutons = Array.from(zone.querySelectorAll("[data-reflexion-repondre]"));
+    const suivant = zone.querySelector("[data-reflexion-suivant]");
+    boutons.forEach(b => b.addEventListener("click", () => {
+      const choix = b.getAttribute("data-reflexion-repondre");
+      boutons.forEach(x => { x.disabled = true; });
+      b.classList.add("est-choisie");
+      zone.querySelectorAll("[data-reflexion-reponse]").forEach(r => {
+        r.hidden = (r.getAttribute("data-reflexion-reponse") !== choix);
+      });
+      if (suivant) suivant.hidden = false;
+    }));
+  });
 }
 
 /**
