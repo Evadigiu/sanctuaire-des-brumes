@@ -728,3 +728,22 @@ body.sous-fenetre { overflow: hidden; }
   padding: 12px;
 }
 .partenaires-plaque img { display: block; width: 100%; height: auto; }
+
+/* Le mot du commissaire, écrit par l'IA d'après les conclusions du groupe,
+   au-dessus du dénouement officiel. */
+.commentaire-commissaire {
+  font-style: italic;
+  color: var(--ink);
+  border-left: 2px solid var(--gold);
+  padding-left: 12px;
+  margin: 10px 0 16px;
+}
+.commentaire-commissaire span {
+  display: block;
+  font-style: normal;
+  font-size: 0.8rem;
+  color: var(--gold);
+  margin-top: 6px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}

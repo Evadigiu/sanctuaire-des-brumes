@@ -88,6 +88,10 @@ def nouvelle_page(nav):
     situation du reseau d'un parc un dimanche de novembre.
     """
     page = nav.new_page()
+    # Le juge par IA (fonction Supabase) n'est pas joignable d'ici : on le
+    # coupe net, et c'est le juge par mots-cles, son repli, qui est teste.
+    # Les tests du juge par IA le remplacent par une reponse ecrite d'avance.
+    page.route("**/functions/v1/**", lambda r: r.abort())
     page.route("**/*.mp4", lambda r: r.abort())
     page.route("**/*.mp3", lambda r: r.abort())
     return page
@@ -848,10 +852,66 @@ with sync_playwright() as pw:
       ("Elle n'est pas morte du tout ! Elle a bu la tisane à la valériane, "
        "elle s'est endormie dans la serre.", "Bon",
        "une negation ne fait pas basculer une bonne conclusion"),
+      # Les negations qui faisaient basculer la meilleure conclusion dans la
+      # pire des fins, relevees mercredi.
+      ("Elle n'a pas été enlevée : elle a bu la tisane du botaniste et s'est "
+       "endormie dans la serre", "Bon",
+       "« n'a pas ete enlevee » ne disqualifie plus"),
+      ("Personne ne l'a tuée, elle a bu une tisane et s'est endormie dans la serre",
+       "Bon", "« personne ne l'a tuee » ne disqualifie plus"),
+      ("C'est Greg qui l'a enlevée pour se venger.", "Mauvais",
+       "un enlevement affirme reste disqualifiant"),
+      ("Elle a pris un somnifère par erreur et fait une sieste dans la serre",
+       "Bon", "les synonymes du cahier comptent"),
     ]
     for texte, attendu, nom in CAS:
         f = rendre(texte)
         verifier(nom, f["nb"] == 1 and f["nom"] == attendu, str(f))
+
+    # LE JUGE PAR IA. On remplace la fonction Supabase par une reponse ecrite
+    # d'avance : le verdict de l'IA l'emporte sur les mots-cles, son mot
+    # s'affiche au-dessus du denouement, et une reponse invalide fait
+    # retomber sur les mots-cles.
+    def rendre_ia(texte, reponse):
+        pg = nouvelle_page(nav); pg.add_init_script(init("horaire"))
+        pg.unroute("**/functions/v1/**")
+        pg.route("**/functions/v1/juger-conclusions",
+                 lambda r: r.fulfill(status=200, content_type="application/json", body=reponse))
+        pg.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E15"]))
+        pg.wait_for_timeout(300)
+        while not pg.is_visible("#conclusions"):
+            b = pg.query_selector(".ecran:not([hidden]) [data-suivant]")
+            if not b or not b.is_visible(): break
+            b.click(); pg.wait_for_timeout(100)
+        pg.fill("#conclusions", texte)
+        pg.click("#validerConclusions"); pg.wait_for_timeout(500)
+        fin = pg.evaluate("""() => {
+          const d = Array.from(document.querySelectorAll("[data-denouement]")).filter(x => !x.hidden);
+          const c = d.length ? d[0].querySelector(".commentaire-commissaire") : null;
+          return { nb: d.length, nom: d.length ? d[0].getAttribute("data-denouement") : null,
+                   commentaire: c ? c.textContent : "", html: c ? c.innerHTML : "",
+                   rangements: window.__scans.filter(x => x && x.p_denouement).length }; }""")
+        pg.close()
+        return fin
+
+    import json as _json
+    f = rendre_ia("Le botaniste et sa plante, elle somnole dans un coin",
+                  _json.dumps({"ok": True, "denouement": "Bon",
+                               "commentaire": "Bien vu pour la plante <b>de Louis</b>."}))
+    verifier("IA : son verdict l'emporte sur les mots-cles",
+             f["nb"] == 1 and f["nom"] == "Bon", str(f))
+    verifier("IA : son mot s'affiche au-dessus du denouement",
+             "Bien vu pour la plante" in f["commentaire"] and "Le commissaire Jean" in f["commentaire"], str(f))
+    verifier("IA : son texte n'est jamais lu comme du HTML",
+             "<b>" not in f["html"] and "&lt;b&gt;" in f["html"], f["html"])
+    f = rendre_ia("Elle a bu la tisane et s'est endormie dans la serre",
+                  _json.dumps({"ok": True, "denouement": "Excellent", "commentaire": "?"}))
+    verifier("IA : verdict invalide, repli sur les mots-cles",
+             f["nb"] == 1 and f["nom"] == "Bon" and f["commentaire"] == "", str(f))
+    f = rendre_ia("Elle a bu la tisane et s'est endormie dans la serre",
+                  _json.dumps({"ok": False, "message": "Jugement indisponible."}))
+    verifier("IA en panne : repli sur les mots-cles, sans mot du commissaire",
+             f["nb"] == 1 and f["nom"] == "Bon" and f["commentaire"] == "", str(f))
 
     # Deux mots jetes ne sont pas une enquete.
     f = rendre("sais pas")
