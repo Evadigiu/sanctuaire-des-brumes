@@ -328,6 +328,27 @@ CODE_DEMANDE = {"E14": "5824"}
 # ------------------------------------------------------------
 CONFIRMATION_INDICE = {"E04", "E13"}
 
+# Sur ces bornes, la lettre n'est PAS dans le decor : le groupe observe une
+# saynette, et la borne lui donne la lettre a la fin, d'un bouton. On ne lui
+# demande pas s'il l'a trouvee, puisqu'il n'y a rien a trouver.
+LETTRE_DONNEE = {"E13"}
+
+# Le coup de pouce : un bouton « Demander un indice » sous la consigne de
+# l'ecran 1, qui devoile une phrase d'aide. Il ne donne pas la reponse.
+COUP_DE_POUCE = {
+    "E04": "N'hésitez pas à lever la tête pour chercher votre objet mystère.",
+}
+
+# LE MOT DES QUATRE LETTRES. Apres la derniere lettre de chaque sens, le
+# groupe ecrit le mot qu'elles forment. Juste : on lui revele le dernier
+# lieu. Faux deux fois : on lui donne le mot, et le lieu quand meme. Le
+# bouton du scanner n'apparait qu'ensuite, pour qu'il ne parte pas sans.
+MOT_FINAL = {
+    "mot": "IRIS",
+    "ecrans": {("E13", "A"), ("E08", "B")},
+    "trouve": "Félicitations, vous avez trouvé le dernier lieu ! Rendez-vous au Jardin des Iris.",
+}
+
 # ------------------------------------------------------------
 # LE TEMPS DE REPONSE DU QUIZ
 #
@@ -545,15 +566,23 @@ def ecran_vide(code, etape, lg):
     return True
 
 
-def bloc_confirmation(lettre):
-    """L'ecran qui demande au joueur s'il a trouve, avant de lui dire."""
+def bloc_confirmation(lettre, donnee=False):
+    """L'ecran qui demande au joueur s'il a trouve, avant de lui dire.
+
+    donnee : la lettre n'est pas dans le decor, on la donne d'un bouton."""
+    if donnee:
+        choix = ['  <p>Vous avez bien observé la scène ? L\'indice est à vous.</p>',
+                 '  <div data-indice-choix>',
+                 '    <button data-indice-non>Donnez-moi l\'indice</button>',
+                 '  </div>']
+    else:
+        choix = ['  <p>Avez-vous bien trouvé l\'indice caché ?</p>',
+                 '  <div data-indice-choix>',
+                 '    <button data-suivant>Oui</button>',
+                 '    <button class="btn-secondary" data-indice-non>Non, montrez-le-moi</button>',
+                 '  </div>']
     return "\n".join([
-        '<section class="ecran card" data-confirmation hidden>',
-        '  <p>Avez-vous bien trouvé l\'indice caché ?</p>',
-        '  <div data-indice-choix>',
-        '    <button data-suivant>Oui</button>',
-        '    <button class="btn-secondary" data-indice-non>Non, montrez-le moi</button>',
-        '  </div>',
+        '<section class="ecran card" data-confirmation hidden>'] + choix + [
         '  <div data-indice-revele hidden>',
         '    <div class="card indice">',
         '      <div class="eyebrow">Vous avez trouvé une lettre</div>',
@@ -683,7 +712,12 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
             # filmee en paysage, donc "playsinline" pour qu'iOS la laisse
             # dans la page, et un cadre 16/9 au lieu du 9/16 des temoignages.
             if c in quiz:
+                # Le plein ecran cacherait les questions : on le dit, et
+                # etape.js le refuse (controlsList le retire sur Android).
+                h.append('  <p class="consigne-scan">Ne mettez pas la vidéo en plein écran : '
+                         'les questions apparaissent juste en dessous.</p>')
                 h.append('  <video controls playsinline preload="none" '
+                         'controlslist="nofullscreen" disablepictureinpicture '
                          'class="video-paysage" data-quiz-video poster="%s">'
                          % e(poster))
             else:
@@ -820,10 +854,30 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
             h.append('       dans assets/img/ et ajouter sa ligne à CHEMINS, en haut')
             h.append('       de contenu/fabriquer-les-pages.py. -->')
 
+    if c in COUP_DE_POUCE and lg["n"] == 1:
+        h.append('  <div data-coup-de-pouce>')
+        h.append('    <button class="btn-secondary" data-coup-de-pouce-ouvrir>Demander un indice</button>')
+        h.append('    <p class="card indice" data-coup-de-pouce-texte hidden>%s</p>' % e(COUP_DE_POUCE[c]))
+        h.append('  </div>')
+
+    mot_final = est_sortie and (c, sens_attr) in MOT_FINAL["ecrans"]
+    if mot_final:
+        h.append('  <div data-mot-final data-mot="%s">' % e(MOT_FINAL["mot"]))
+        h.append('    <label for="motFinal">Le mot formé par vos 4 lettres</label>')
+        h.append('    <input type="text" id="motFinal" autocomplete="off" autocapitalize="characters" spellcheck="false">')
+        h.append('    <button id="validerMot">Valider</button>')
+        h.append('    <p class="quiz-verdict quiz-faux" data-mot-faux hidden></p>')
+        h.append('    <div class="card indice" data-mot-trouve hidden><p>%s</p></div>' % e(MOT_FINAL["trouve"]))
+        h.append('  </div>')
+
     if lg["rem"]:
         h.append('  <!-- Note du cahier de contenu : %s -->' % lg["rem"].replace("--", "—"))
 
     if dernier:
+        if mot_final:
+            # Le scanner attend le mot : parti sans lui, le groupe ne saurait
+            # pas ou aller.
+            h.append('  <div data-apres-mot hidden>')
         if lg.get("lien"):
             # Le lien n'est PAS un bouton offert au joueur : l'enquete ne doit
             # pas se derouler au clic depuis un canape. Seul le scan du QR code
@@ -836,6 +890,8 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
             # garde la partie en memoire. Voir assets/js/scanner.js.
             h.append('  <button data-scanner>Scanner le QR code</button>')
             h.append('  <a href="%s" class="btn btn-test" data-lien-test hidden>Raccourci de test</a>' % e(lg["lien"]))
+            if mot_final:
+                h.append('  </div>')
         else:
             # La derniere page du jeu : on remercie, et on remercie les
             # partenaires. Leurs logos ont leur plaque claire (style.css).
@@ -981,17 +1037,21 @@ for c in PAGES:
                   and not bonus_apres
         blocs.append(bloc_ecran(et, x, dernier, None))
     if c in CONFIRMATION_INDICE and et["lettre"]:
-        blocs.append(bloc_confirmation(et["lettre"]))
+        blocs.append(bloc_confirmation(et["lettre"], donnee=(c in LETTRE_DONNEE)))
     # « avant la sortie » : la question vient apres le temoignage, juste avant
     # qu'on indique le chemin.
     if c in popquiz and popquiz[c]["moment"] == "sortie":
         blocs.append(bloc_popquiz(c))
 
     for s in ("A", "B"):
-        for x in sorties[s]:
+        # Seul le DERNIER ecran d'un sens porte le scanner. Une borne dont
+        # tous les ecrans sont propres a un sens (Greg, version B) donnait le
+        # scanner des la video : la consigne « allez voir Bill » qui suivait
+        # ne s'affichait jamais.
+        for j, x in enumerate(sorties[s]):
             suite = et["suite" + s]
             x = dict(x, lien=("../" + FICHIER[suite]) if suite else None)
-            blocs.append(bloc_ecran(et, x, True, s))
+            blocs.append(bloc_ecran(et, x, j == len(sorties[s]) - 1, s))
 
     # Garde-fou terrain : les bornes sont physiques et un groupe peut tomber
     # sur celle de l'autre sens en se promenant. Sans cet ecran, il arriverait

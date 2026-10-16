@@ -150,6 +150,8 @@ function demarrerEtape() {
   brancherConfirmationIndice();
   brancherQuestionBonus();
   brancherQuizVideo();
+  brancherCoupDePouce();
+  brancherMotFinal();
   garderLesMediasSousControle();
   afficher(courant);
   brancherSecours();
@@ -211,6 +213,20 @@ function garderLesMediasSousControle() {
     // vidéo continuait alors dans la page, son compris.
     if (!m.hasAttribute("data-quiz-video")) {
       m.addEventListener("webkitendfullscreen", () => m.pause());
+    }
+  });
+  // La vidéo du quiz ne va JAMAIS en plein écran : les questions
+  // apparaissent dessous, le groupe ne les verrait pas. Sur iPhone, on la
+  // fait ressortir aussitôt ; ailleurs, controlslist retire déjà le bouton.
+  document.querySelectorAll("video[data-quiz-video]").forEach(v => {
+    v.addEventListener("webkitbeginfullscreen", () => {
+      setTimeout(() => { try { v.webkitExitFullscreen(); } catch (e) {} }, 0);
+    });
+  });
+  document.addEventListener("fullscreenchange", () => {
+    const fs = document.fullscreenElement;
+    if (fs && fs.matches && fs.matches("video[data-quiz-video]")) {
+      try { document.exitFullscreen(); } catch (e) {}
     }
   });
   // Plein écran des autres téléphones : on coupe la vidéo qui en sort.
@@ -1011,6 +1027,65 @@ function brancherQuizVideo() {
   } else {
     ouvrirSansVideo();
   }
+}
+
+/**
+ * Le coup de pouce (l'enclos des loups) : une phrase d'aide derrière un
+ * bouton. Elle oriente le regard, elle ne donne pas la réponse.
+ */
+function brancherCoupDePouce() {
+  document.querySelectorAll("[data-coup-de-pouce]").forEach(zone => {
+    const bouton = zone.querySelector("[data-coup-de-pouce-ouvrir]");
+    const texte = zone.querySelector("[data-coup-de-pouce-texte]");
+    if (!bouton || !texte) return;
+    bouton.addEventListener("click", () => { bouton.hidden = true; texte.hidden = false; });
+  });
+}
+
+/**
+ * Le mot des quatre lettres, après la dernière. Juste : le dernier lieu est
+ * révélé. Faux deux fois : on donne le mot, et le lieu quand même — à la
+ * dernière étape, personne ne reste dehors. Le scanner n'apparaît qu'après.
+ *
+ * Indulgent : majuscules, accents et espaces ne comptent pas.
+ */
+function brancherMotFinal() {
+  const zone = document.querySelector("[data-mot-final]");
+  if (!zone) return;
+  const attendu = sansAccent(zone.getAttribute("data-mot")).replace(/[^a-z]/g, "");
+  const champ = zone.querySelector("#motFinal");
+  const bouton = zone.querySelector("#validerMot");
+  const faux = zone.querySelector("[data-mot-faux]");
+  const trouve = zone.querySelector("[data-mot-trouve]");
+  const ecran = zone.closest(".ecran");
+  const apres = ecran && ecran.querySelector("[data-apres-mot]");
+  if (!champ || !bouton || !trouve) return;
+
+  let manques = 0;
+  function reveler(texteFaux) {
+    if (faux) {
+      faux.hidden = !texteFaux;
+      if (texteFaux) faux.textContent = texteFaux;
+    }
+    trouve.hidden = false;
+    champ.disabled = true; bouton.disabled = true;
+    if (apres) apres.hidden = false;
+  }
+  function valider() {
+    const saisi = sansAccent(champ.value).replace(/[^a-z]/g, "");
+    if (!saisi) return;
+    if (saisi === attendu) { reveler(""); return; }
+    manques++;
+    champ.value = "";
+    if (manques >= 2) {
+      reveler("Le mot était " + zone.getAttribute("data-mot") + ".");
+    } else if (faux) {
+      faux.textContent = "Ce n'est pas ce mot. Essayez vos lettres dans un autre ordre.";
+      faux.hidden = false;
+    }
+  }
+  bouton.addEventListener("click", valider);
+  champ.addEventListener("keydown", e => { if (e.key === "Enter") valider(); });
 }
 
 /**

@@ -30,6 +30,10 @@
 <section class="ecran card" hidden>
   <!-- cahier : 1. Accueil apres le scan -->
   <p>Observez l&#x27;enclos à l&#x27;aide des jumelles à la recherche d&#x27;un objet qui n&#x27;est pas à sa place. Vous trouverez un indice sur cet objet, à noter soigneusement.</p>
+  <div data-coup-de-pouce>
+    <button class="btn-secondary" data-coup-de-pouce-ouvrir>Demander un indice</button>
+    <p class="card indice" data-coup-de-pouce-texte hidden>N&#x27;hésitez pas à lever la tête pour chercher votre objet mystère.</p>
+  </div>
   <button data-suivant>Suivant</button>
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
 </section>
@@ -37,7 +41,7 @@
   <p>Avez-vous bien trouvé l'indice caché ?</p>
   <div data-indice-choix>
     <button data-suivant>Oui</button>
-    <button class="btn-secondary" data-indice-non>Non, montrez-le moi</button>
+    <button class="btn-secondary" data-indice-non>Non, montrez-le-moi</button>
   </div>
   <div data-indice-revele hidden>
     <div class="card indice">
