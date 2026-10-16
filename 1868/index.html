@@ -40,6 +40,26 @@
   <button data-suivant>Suivant</button>
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
 </section>
+<section class="ecran card" hidden>
+  <!-- cahier : 3. Les images du commissaire -->
+  <p>Le commissaire vous a envoyé 4 images.</p>
+  <div class="galerie" data-galerie>
+    <button data-galerie-ouvrir>Voir les images</button>
+    <div data-galerie-vue hidden>
+      <img class="photo-borne" loading="lazy" data-galerie-photo src="../assets/img/commissaire-1.webp" alt="Image envoyée par le commissaire">
+      <img class="photo-borne" loading="lazy" data-galerie-photo src="../assets/img/commissaire-2.webp" alt="Image envoyée par le commissaire" hidden>
+      <img class="photo-borne" loading="lazy" data-galerie-photo src="../assets/img/commissaire-3.webp" alt="Image envoyée par le commissaire" hidden>
+      <img class="photo-borne" loading="lazy" data-galerie-photo src="../assets/img/commissaire-4.webp" alt="Image envoyée par le commissaire" hidden>
+      <div class="galerie-barre">
+        <button class="btn-secondary" data-galerie-prec aria-label="Image précédente">‹ Précédente</button>
+        <span class="galerie-compte" data-galerie-compte></span>
+        <button class="btn-secondary" data-galerie-suiv aria-label="Image suivante">Suivante ›</button>
+      </div>
+    </div>
+  </div>
+  <button data-suivant>Suivant</button>
+  <button class="btn-secondary" data-retour>Revenir en arrière</button>
+</section>
 <section class="ecran card" data-sens="A" hidden>
   <div class="ecran-titre">Où aller ensuite</div>
   <p>Poursuivez jusqu&#x27;au bureau de Greg</p>
@@ -118,6 +138,7 @@
 <script>
   demarrerEtape();
   appelEntrant("decrocher", "audioAppel", "blocAppel");
+  galeriePhotos();
 </script>
 
 </body>

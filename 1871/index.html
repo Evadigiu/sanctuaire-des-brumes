@@ -29,6 +29,7 @@
   <h1>Indice : le sac perdu</h1>
 <section class="ecran card" hidden>
   <!-- cahier : 1. Accueil apres le scan -->
+  <p>Vous venez de tomber sur un sac qui ne semble pas être à sa place. Cliquez sur « Voir » pour faire défiler son contenu.</p>
   <div class="galerie" data-galerie>
     <button data-galerie-ouvrir>Voir le contenu du sac</button>
     <div data-galerie-vue hidden>
@@ -38,13 +39,12 @@
       <img class="photo-borne" loading="lazy" data-galerie-photo src="../assets/img/sac-4.webp" alt="Objet trouvé dans le sac" hidden>
       <img class="photo-borne" loading="lazy" data-galerie-photo src="../assets/img/sac-5.webp" alt="Objet trouvé dans le sac" hidden>
       <div class="galerie-barre">
-        <button class="btn-secondary" data-galerie-prec>Précédent</button>
+        <button class="btn-secondary" data-galerie-prec aria-label="Image précédente">‹ Précédente</button>
         <span class="galerie-compte" data-galerie-compte></span>
-        <button class="btn-secondary" data-galerie-suiv>Suivant</button>
+        <button class="btn-secondary" data-galerie-suiv aria-label="Image suivante">Suivante ›</button>
       </div>
     </div>
   </div>
-  <p>Vous venez de tomber sur un sac qui ne semble pas être à sa place. Cliquez sur « Voir » pour faire défiler son contenu.</p>
   <button data-suivant>Suivant</button>
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
 </section>
