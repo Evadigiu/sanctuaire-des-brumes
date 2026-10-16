@@ -164,19 +164,22 @@ function demarrerEtape() {
  * reproduira à la borne suivante : on le lui dit une fois, en haut de page.
  */
 function conseillerLeScanner() {
-  let aConseiller = false;
+  let aConseiller = false, auDepart = false;
   try {
     aConseiller = sessionStorage.getItem("sdb_conseil_scanner") === "1";
+    auDepart = sessionStorage.getItem("sdb_conseil_depart") === "1";
     sessionStorage.removeItem("sdb_conseil_scanner");
+    sessionStorage.removeItem("sdb_conseil_depart");
   } catch (e) {}
-  if (!aConseiller) return;
+  if (!aConseiller && !auDepart) return;
 
   const note = document.createElement("div");
   note.className = "card";
   note.id = "conseilScanner";
   note.innerHTML =
-      '<p><strong>Votre enquête est retrouvée.</strong></p>'
-    + '<p class="muted">Pour ne plus avoir à ressaisir votre code, scannez les prochaines '
+      (auDepart ? '<p><strong>Votre enquête commence, le chrono est lancé.</strong></p>'
+                : '<p><strong>Votre enquête est retrouvée.</strong></p>')
+    + '<p class="muted">Pour ne pas avoir à ressaisir votre code, scannez les prochaines '
     + 'bornes avec le bouton « Scanner le QR code » proposé à la fin de chaque borne, '
     + 'et non avec l\'appareil photo.</p>';
   const titre = document.querySelector(".wrap h1");
@@ -200,6 +203,10 @@ function proposerDeRetrouverLaPartie(ancienneTrouvee) {
   const timer = document.getElementById("timer");
   if (timer) timer.remove();
   brancherSecours();
+
+  // La borne du départ est la porte d'entrée du jeu : c'est le premier QR
+  // que le groupe scanne. Elle l'accueille et ouvre la partie sur place.
+  if (borneDeDepart()) { accueillirAuDepart(); return; }
 
   // L'accueil, en emportant la borne qu'on vient de scanner. Elle sert a
   // renvoyer le groupe ici meme une fois sa partie ouverte, au lieu de lui
@@ -278,6 +285,124 @@ function proposerDeRetrouverLaPartie(ancienneTrouvee) {
     err.hidden = false;
     bouton.disabled = false;
     bouton.textContent = "Reprendre mon enquête";
+  });
+}
+
+/**
+ * L'ACCUEIL SUR LA BORNE DU DÉPART.
+ *
+ * Le premier QR que voit un groupe est celui du commissaire. Il le scanne
+ * avant d'avoir rien démarré : la borne lui souhaite la bienvenue, lui
+ * demande son équipe, son nombre et le code de son billet, et ouvre la
+ * partie ici même. Avant, elle le renvoyait à la page d'accueil, qui le
+ * renvoyait ensuite à la borne : deux détours pour un groupe déjà sur place.
+ *
+ * Les textes sont ceux de la page d'accueil (étape E00 du cahier). Les
+ * changer ici ET dans index.html.
+ *
+ * Un code déjà activé rouvre sa partie au lieu d'être refusé (le guichet
+ * activer_code s'en charge) : le même formulaire sert donc à reprendre.
+ */
+function accueillirAuDepart() {
+  const wrap = document.querySelector(".wrap");
+  const codeBorne = document.body.getAttribute("data-etape") || "";
+  const params = new URLSearchParams(window.location.search);
+
+  const bienvenue = document.createElement("section");
+  bienvenue.className = "ecran card";
+  bienvenue.id = "accueilDepart";
+  bienvenue.innerHTML =
+      '<div class="ecran-titre">Bienvenue, enquêteur·rice</div>'
+    + '<p>Bienvenue au Parc Zoologique et Botanique de Mulhouse. Vous êtes sur le point de prendre part à une expérience unique en son genre : une enquête de police grandeur nature.</p>'
+    + '<p>Armez-vous de bon sens et observez bien ce qu\'il se passe autour de vous. Suivez les consignes qui vous sont données et respectez le sens des énigmes qui vous est proposé.</p>'
+    + '<p>Vous aurez 3 heures, à partir du moment où vous démarrez, pour terminer l\'enquête.</p>'
+    + '<p class="muted">Merci de ne pas toucher aux décors : d\'autres enquêteurs passeront après vous.</p>'
+    + '<button id="versSaisieDepart">Suivant</button>';
+
+  const saisie = document.createElement("section");
+  saisie.className = "ecran card";
+  saisie.id = "saisieDepart";
+  saisie.hidden = true;
+  saisie.innerHTML =
+      '<p>Ces trois informations sont nécessaires pour démarrer :</p>'
+    + '<label for="participantName">Nom de votre équipe</label>'
+    + '<input type="text" id="participantName" maxlength="40" placeholder="Ex. Les Limiers du Dimanche">'
+    + '<label for="nbJoueurs">Nombre de joueurs</label>'
+    + '<input type="number" id="nbJoueurs" min="1" max="6" step="1" inputmode="numeric" placeholder="Entre 1 et 6">'
+    + '<label for="codeInput">Le code de votre billet</label>'
+    + '<input type="text" id="codeInput" maxlength="16" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Ex. K7NPX4RT">'
+    + '<div class="checkbox-row">'
+    + '  <input type="checkbox" id="acceptRules">'
+    + '  <label for="acceptRules" style="margin:0; text-transform:none; letter-spacing:0; font-size:0.9rem; color:var(--fog);">'
+    + '    J\'accepte les consignes et je suis prêt·e à démarrer l\'enquête.</label>'
+    + '</div>'
+    + '<div class="error-box" id="errorBox"></div>'
+    + '<button id="startBtn" disabled>Démarrer l\'enquête</button>'
+    + '<p class="muted" id="ceQuiManque"></p>'
+    + '<button class="btn-secondary" id="retourBienvenue">Revenir en arrière</button>';
+
+  wrap.appendChild(bienvenue);
+  wrap.appendChild(saisie);
+  bienvenue.hidden = false;
+
+  const nom = saisie.querySelector("#participantName");
+  const nb = saisie.querySelector("#nbJoueurs");
+  const code = saisie.querySelector("#codeInput");
+  const accord = saisie.querySelector("#acceptRules");
+  const bouton = saisie.querySelector("#startBtn");
+  const manque = saisie.querySelector("#ceQuiManque");
+  const erreur = saisie.querySelector("#errorBox");
+
+  // Un code venu d'ailleurs (une borne du milieu, l'accueil) reste saisi.
+  if (params.get("code")) code.value = params.get("code").trim().toUpperCase();
+
+  bienvenue.querySelector("#versSaisieDepart").addEventListener("click", () => {
+    bienvenue.hidden = true; saisie.hidden = false; window.scrollTo(0, 0);
+  });
+  saisie.querySelector("#retourBienvenue").addEventListener("click", () => {
+    saisie.hidden = true; bienvenue.hidden = false; window.scrollTo(0, 0);
+  });
+
+  // Comme à l'accueil : on dit ce qui manque, tant qu'il manque quelque chose.
+  function verifier() {
+    const n = parseInt(nb.value, 10);
+    const reste = [];
+    if (!nom.value.trim())     reste.push("le nom de votre équipe");
+    if (!(n >= 1 && n <= 6))   reste.push("le nombre de joueurs, de 1 à 6");
+    if (!code.value.trim())    reste.push("votre code");
+    if (!accord.checked)       reste.push("votre accord sur les consignes");
+    bouton.disabled = reste.length > 0;
+    manque.textContent = reste.length ? "Il reste à renseigner : " + reste.join(", ") + "." : "";
+  }
+  [nom, nb, code].forEach(c => c.addEventListener("input", verifier));
+  accord.addEventListener("change", verifier);
+  verifier();
+
+  bouton.addEventListener("click", async () => {
+    bouton.disabled = true;
+    bouton.textContent = "Vérification...";
+    erreur.classList.remove("visible");
+
+    const result = await activateCode(code.value, nom.value, parseInt(nb.value, 10));
+    if (!result.ok) {
+      erreur.textContent = result.message;
+      erreur.classList.add("visible");
+      bouton.textContent = "Démarrer l'enquête";
+      verifier();
+      return;
+    }
+
+    // C'est le sens du billet qui commande. Le jour où les deux parcours ne
+    // partiraient plus de la même borne, un billet de l'autre sens est
+    // renvoyé à l'accueil, qui lui indique où aller.
+    const sens = sensDuGroupe(result.session);
+    if ((PARCOURS.ordre[sens] || {})[codeBorne] !== 1) {
+      window.location.href = BASE_PATH + "index.html";
+      return;
+    }
+    try { sessionStorage.setItem("sdb_conseil_depart", "1"); } catch (e) {}
+    // La partie est ouverte : la borne redémarre, cette fois avec elle.
+    window.location.href = window.location.pathname;
   });
 }
 

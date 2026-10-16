@@ -262,51 +262,62 @@ with sync_playwright() as pw:
         return pg, etat
 
     url_e01 = "http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E01"])
-    pg, e = demarrer_depuis(url_e01)
-    verifier("l'accueil sait d'ou vient le groupe", "borne=E01" in e["accueil"],
-             e["accueil"])
-    verifier("on ne lui redemande pas de scanner", e["propose"], str(e))
-    verifier("et on lui epargne le chemin a faire",
-             not e["consigne_de_marche"], str(e))
-    verifier("le bouton ouvre bien sa premiere borne",
-             e["lien"] == PARC["pages"]["E01"], str(e["lien"]))
 
-    # Le bouton doit reellement mener a la borne, et le passage s'enregistrer.
-    # On ne clique que s'il est la : un controle qui echoue doit le dire, pas
-    # faire tomber le reste de la suite avec lui.
-    if e["propose"]:
+    # Depuis l'inauguration, la borne du commissaire EST le depart : elle
+    # accueille le groupe et ouvre la partie sur place, sans detour par la
+    # page d'accueil ni second scan.
+    def demarrer_au_commissaire(sens, code="K7NPX4RT"):
+        pg = nouvelle_page(nav)
+        pg.add_init_script(init(sens).split('localStorage.setItem("sdb_session"')[0])
+        pg.goto(url_e01); pg.wait_for_timeout(400)
+        etat = {"bienvenue": pg.is_visible("#accueilDepart"),
+                "renvoi_accueil": pg.locator("#versAccueil").count() > 0,
+                "diagnostic": len(pg.evaluate("window.__signalements"))}
+        pg.click("#versSaisieDepart")
+        etat["bouton_grise"] = pg.is_disabled("#startBtn")
+        pg.fill("#participantName", "Eva"); pg.fill("#nbJoueurs", "4")
+        pg.fill("#codeInput", code); pg.check("#acceptRules")
         with pg.expect_navigation():
-            pg.click("#versBorneScannee")
+            pg.click("#startBtn")
         pg.wait_for_timeout(600)
-        verifier("un clic suffit, sans rescanner",
-                 pg.url.endswith(PARC["pages"]["E01"]), pg.url)
-        verifier("la borne s'ouvre vraiment",
-                 pg.eval_on_selector_all(".ecran",
-                                         "e=>e.filter(x=>!x.hidden).length") == 1)
-        verifier("et le passage est enregistre",
-                 len(pg.evaluate("window.__scans")) == 1)
-    else:
-        for nom in ("un clic suffit, sans rescanner", "la borne s'ouvre vraiment",
-                    "et le passage est enregistre"):
-            verifier(nom, False, "le raccourci n'a pas ete propose")
-    pg.close()
+        etat.update({
+            "url": pg.url,
+            "ecrans": pg.eval_on_selector_all(".ecran", "e=>e.filter(x=>!x.hidden).length"),
+            "formulaire": pg.locator("#saisieDepart").count(),
+            "scans": len(pg.evaluate("window.__scans")),
+            "conseil": pg.is_visible("#conseilScanner"),
+            "session": pg.evaluate("localStorage.getItem('sdb_session') !== null"),
+        })
+        return pg, etat
 
-    # L'AUTRE SENS. Aujourd'hui les deux parcours partent de la meme borne,
-    # le commissaire, et ne divergent qu'ensuite : le raccourci vaut donc
-    # pour les deux. Mais c'est le SENS qui commande, pas le panneau qu'on a
-    # croise. On lit donc le parcours au lieu de le supposer, pour que ce
-    # controle dise encore la verite le jour ou les deux departs se separent.
-    premiere_B = next(c for c, n in PARC["ordre"]["B"].items() if n == 1)
-    attendu = (premiere_B == "E01")
-    pg, e = demarrer_depuis(url_e01, sens="antihoraire")
-    verifier("billet antihoraire : raccourci %s"
-             % ("propose, meme depart" if attendu else "refuse, autre depart"),
-             e["propose"] == attendu, str(e))
-    verifier("et la consigne de marche suit la meme regle",
-             e["consigne_de_marche"] != attendu, str(e))
-    if attendu:
-        verifier("il ouvre la borne de son sens, pas une autre",
-                 e["lien"] == PARC["pages"][premiere_B], str(e["lien"]))
+    for sens in ("horaire", "antihoraire"):
+        pg, e = demarrer_au_commissaire(sens)
+        verifier("%s : bienvenue sur la borne" % sens, e["bienvenue"] and not e["renvoi_accueil"], str(e))
+        verifier("%s : pas de diagnostic au depart" % sens, e["diagnostic"] == 0, str(e))
+        verifier("%s : demarrer grise tant qu'il manque" % sens, e["bouton_grise"], str(e))
+        verifier("%s : on reste sur la borne" % sens,
+                 e["url"].split("?")[0].endswith(PARC["pages"]["E01"]), e["url"])
+        verifier("%s : la borne s'ouvre, sans formulaire" % sens,
+                 e["ecrans"] == 1 and e["formulaire"] == 0 and e["session"], str(e))
+        verifier("%s : passage enregistre une fois" % sens, e["scans"] == 1, str(e))
+        verifier("%s : le conseil du scanner s'affiche" % sens, e["conseil"], str(e))
+        pg.close()
+
+    # Un code refuse : le message de la base, et on reste sur le formulaire.
+    pg = nouvelle_page(nav)
+    pg.add_init_script(init("horaire").split('localStorage.setItem("sdb_session"')[0]
+                       + 'window.supabase.createClient = ((f) => () => { const c = f(); '
+                         'const r = c.rpc; c.rpc = async (n, a) => n === "activer_code" '
+                         '? { data: { ok: false, message: "Ce code n\'existe pas." }, error: null } '
+                         ': r(n, a); return c; })(window.supabase.createClient);')
+    pg.goto(url_e01); pg.wait_for_timeout(300)
+    pg.click("#versSaisieDepart")
+    pg.fill("#participantName", "Eva"); pg.fill("#nbJoueurs", "4")
+    pg.fill("#codeInput", "ZZZZ"); pg.check("#acceptRules")
+    pg.click("#startBtn"); pg.wait_for_timeout(400)
+    verifier("code refuse : message affiche", "existe pas" in pg.inner_text("#errorBox"))
+    verifier("code refuse : on peut corriger", pg.is_enabled("#startBtn")
+             and pg.evaluate("localStorage.getItem('sdb_session')") is None)
     pg.close()
 
     # REFUS 2 : une borne du milieu du parcours. Scanner le veterinaire en
@@ -343,21 +354,12 @@ with sync_playwright() as pw:
     page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E01"]))
     page.wait_for_timeout(300)
     verifier("on reste sur la borne", "/index.html" not in page.url, page.url)
-    verifier("demarrer est propose", page.is_visible("#versAccueil"))
+    verifier("la bienvenue est proposee", page.is_visible("#accueilDepart"))
     verifier("l'ancienne partie est oubliee",
              page.evaluate("localStorage.getItem('sdb_session') === null"
                            " && localStorage.getItem('sdb_visites') === null"))
     verifier("pas de diagnostic pour un depart normal",
              len(page.evaluate("window.__signalements")) == 0)
-    with page.expect_navigation():
-        page.click("#versAccueil")
-    page.wait_for_timeout(300)
-    verifier("le bouton mene a l'accueil",
-             page.url.split("?")[0].endswith("/index.html"), page.url)
-    verifier("en emportant la borne d'ou l'on vient",
-             "borne=E01" in page.url, page.url)
-    verifier("aucun message d'erreur a l'accueil",
-             not page.is_visible("#errorBox.visible"))
     page.close()
 
     # Un vrai billet au temps ecoule : on ne l'invite pas a redemarrer.
