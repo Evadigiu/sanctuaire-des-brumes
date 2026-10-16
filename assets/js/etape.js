@@ -101,9 +101,7 @@ function demarrerEtape() {
     reglerRetour(i);
     window.scrollTo(0, 0);
     // On coupe toute vidéo ou audio de l'écran qu'on quitte.
-    document.querySelectorAll("video, audio").forEach(m => {
-      if (!m.closest(".ecran") || m.closest(".ecran").hidden) { m.pause(); }
-    });
+    couperLesMediasCaches();
   }
 
   document.querySelectorAll("[data-suivant]").forEach(b => {
@@ -152,10 +150,67 @@ function demarrerEtape() {
   brancherConfirmationIndice();
   brancherQuestionBonus();
   brancherQuizVideo();
+  garderLesMediasSousControle();
   afficher(courant);
   brancherSecours();
   brancherRetourAMaBorne();
   conseillerLeScanner();
+}
+
+// ------------------------------------------------------------
+// LE SON NE DOIT JAMAIS JOUER DERRIÈRE LE JOUEUR
+//
+// Constaté sur le terrain, sur iPhone : on verrouille le téléphone entre
+// deux bornes, on le rouvre sur « Où aller ensuite », et le témoignage
+// d'avant reparle tout seul. Ou bien on quitte un témoignage en cours, et
+// le son suit le groupe sur l'écran suivant. L'iPhone relance volontiers un
+// média : depuis l'écran verrouillé, au retour dans le navigateur, à la
+// sortie du plein écran.
+//
+// On ne cherche pas à deviner lequel de ces chemins : une seule règle les
+// couvre tous. Un média ne joue que si son écran est affiché et la page
+// visible. Tout le reste est coupé, y compris un média qui tente de
+// repartir de lui-même.
+// ------------------------------------------------------------
+
+/** Le média est-il sur l'écran que le joueur a sous les yeux ? */
+function mediaVisible(m) {
+  const ecran = m.closest(".ecran");
+  return !document.hidden && !!ecran && !ecran.hidden;
+}
+
+function couperLesMediasCaches() {
+  document.querySelectorAll("video, audio").forEach(m => {
+    if (!mediaVisible(m)) m.pause();
+  });
+}
+
+function couperTousLesMedias() {
+  document.querySelectorAll("video, audio").forEach(m => m.pause());
+}
+
+function garderLesMediasSousControle() {
+  document.querySelectorAll("video, audio").forEach(m => {
+    // La garde : un média qui démarre sur un écran caché, ou page masquée,
+    // est arrêté aussitôt. C'est elle qui tient le cas de l'écran verrouillé.
+    m.addEventListener("play", () => { if (!mediaVisible(m)) m.pause(); });
+    m.addEventListener("playing", () => { if (!mediaVisible(m)) m.pause(); });
+    // Sortir du plein écran, c'est avoir fini de regarder. Sur iPhone, la
+    // vidéo continuait alors dans la page, son compris.
+    if (!m.hasAttribute("data-quiz-video")) {
+      m.addEventListener("webkitendfullscreen", () => m.pause());
+    }
+  });
+  // Plein écran des autres téléphones : on coupe la vidéo qui en sort.
+  document.addEventListener("fullscreenchange", () => {
+    if (!document.fullscreenElement) {
+      document.querySelectorAll("video:not([data-quiz-video])").forEach(v => v.pause());
+    }
+  });
+  // Téléphone verrouillé, autre application, page quittée : tout s'arrête.
+  // Au retour, rien ne repart sans que le joueur appuie sur lecture.
+  document.addEventListener("visibilitychange", () => { if (document.hidden) couperTousLesMedias(); });
+  window.addEventListener("pagehide", couperTousLesMedias);
 }
 
 /**

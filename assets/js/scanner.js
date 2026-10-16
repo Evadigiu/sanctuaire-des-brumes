@@ -102,6 +102,8 @@ async function preparerLecteur() {
 
 function ouvrirScanner() {
   if (scannerOuvert) return;
+  // Le groupe part vers la borne suivante : plus aucun son derrière lui.
+  document.querySelectorAll("video, audio").forEach(m => m.pause());
 
   const fond = document.createElement("div");
   fond.className = "scanner";
