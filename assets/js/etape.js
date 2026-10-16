@@ -706,33 +706,122 @@ function jugerLesConclusions(idChamp, idBouton, regles) {
                  .filter(Boolean)
                  .some(m => texte.indexOf(m) !== -1);
   }
+
+  // Un mot qui disqualifie ne compte pas s'il est NIÉ dans sa proposition :
+  // « elle n'a pas été enlevée », « personne ne l'a tuée », « ni tuée ni
+  // enlevée ». Le groupe qui a tout compris écrit volontiers ainsi, et la
+  // meilleure conclusion recevait la pire des fins. On ne regarde que la
+  // proposition du mot (jusqu'à la virgule ou au « mais » qui précède) :
+  // « elle a dormi, puis il l'a tuée » reste disqualifiant.
+  const NEGATION = /(^|[^a-z])(pas|jamais|ni|personne|aucun|aucune|non|sans|nullement|ne)(?![a-z])|(^|[^a-z])n'/;
+  function nie(texte, i) {
+    let avant = texte.slice(Math.max(0, i - 40), i);
+    const coupure = Math.max(avant.lastIndexOf(","), avant.lastIndexOf("."),
+                             avant.lastIndexOf(";"), avant.lastIndexOf("!"),
+                             avant.lastIndexOf("?"), avant.lastIndexOf(" mais "),
+                             avant.lastIndexOf(" puis "));
+    if (coupure >= 0) avant = avant.slice(coupure + 1);
+    return NEGATION.test(avant);
+  }
+  function contientSansNegation(texte, groupe) {
+    return groupe.split("|").map(m => sansAccent(m).trim()).filter(Boolean)
+      .some(m => {
+        let i = texte.indexOf(m);
+        while (i !== -1) {
+          if (!nie(texte, i)) return true;
+          i = texte.indexOf(m, i + 1);
+        }
+        return false;
+      });
+  }
   function convient(texte, regle) {
     const attendus = (regle.attendus || "").split(";").filter(g => g.trim());
     const interdits = (regle.interdits || "").trim();
-    if (interdits && contient(texte, interdits)) return false;
+    if (interdits && contientSansNegation(texte, interdits)) return false;
     return attendus.every(g => contient(texte, g));
   }
+  function jugeLocal(brut) {
+    const texte = sansAccent(brut).replace(/[’`]/g, "'");
+    return (regles.find(r => convient(texte, r)) || regles[regles.length - 1]).nom;
+  }
 
-  bouton.addEventListener("click", () => {
+  /** Affiche le dénouement, précédé du mot du commissaire s'il y en a un. */
+  function devoiler(nom, commentaire) {
+    document.querySelectorAll("[data-denouement]").forEach(d => {
+      d.hidden = (d.getAttribute("data-denouement") !== nom);
+      const vieux = d.querySelector(".commentaire-commissaire");
+      if (vieux) vieux.remove();
+      if (!d.hidden && commentaire) {
+        const p = document.createElement("p");
+        p.className = "commentaire-commissaire";
+        p.textContent = "« " + commentaire + " »";     // textContent : jamais de HTML venu d'ailleurs
+        const signe = document.createElement("span");
+        signe.textContent = "Le commissaire Jean";
+        p.appendChild(signe);
+        const titre = d.querySelector(".eyebrow");
+        if (titre) titre.insertAdjacentElement("afterend", p); else d.prepend(p);
+      }
+    });
+  }
+
+  bouton.addEventListener("click", async () => {
     const brut = champ.value.trim();
     if (brut.length < 10) {           // deux mots jetés ne sont pas une enquête
       if (vides) vides.hidden = false;
       return;
     }
     if (vides) vides.hidden = true;
-    const texte = sansAccent(brut);
-    const fin = regles.find(r => convient(texte, r)) || regles[regles.length - 1];
-
-    document.querySelectorAll("[data-denouement]").forEach(d => {
-      d.hidden = (d.getAttribute("data-denouement") !== fin.nom);
-    });
     champ.disabled = true;
     bouton.disabled = true;
+    const libelle = bouton.textContent;
+    bouton.textContent = "Le commissaire lit vos conclusions…";
+
+    // L'IA d'abord. Elle répond en quelques secondes, ou pas du tout : au
+    // bout de 9 secondes, ou à la moindre panne, le juge par mots-clés prend
+    // le relais. La fin s'affiche TOUJOURS — c'est le moment de l'enquête
+    // où il faut le moins planter.
+    const verdict = await jugerParIA(brut);
+    bouton.textContent = libelle;
+    if (verdict) { devoiler(verdict.denouement, verdict.commentaire); return; }
+
+    const nom = jugeLocal(brut);
+    devoiler(nom, "");
     // On garde la trace de ce qu'ils ont écrit, mais JAMAIS au prix de la
-    // fin du jeu : si la base ne répond pas, le dénouement s'affiche quand
-    // même. C'est le moment où il faut le moins planter de toute l'enquête.
-    try { enregistrerConclusions(brut, fin.nom); } catch (e) { }
+    // fin du jeu : si la base ne répond pas, le dénouement s'affiche quand même.
+    try { enregistrerConclusions(brut, nom); } catch (e) { }
   });
+}
+
+/**
+ * Demande son verdict au commissaire (la fonction Supabase juger-conclusions,
+ * qui interroge Claude). Rend { denouement, commentaire }, ou null si quoi
+ * que ce soit cloche : pas de partie, pas de réseau, fonction absente, IA
+ * lente ou en panne. Le jeu ne dépend jamais de cette réponse.
+ */
+async function jugerParIA(texte) {
+  const session = getSession();
+  if (!session || !session.codeId) return null;
+  if (typeof SUPABASE_URL === "undefined" || typeof SUPABASE_ANON_KEY === "undefined") return null;
+  const arret = new AbortController();
+  const minuteur = setTimeout(() => arret.abort(), 9000);
+  try {
+    const r = await fetch(SUPABASE_URL + "/functions/v1/juger-conclusions", {
+      method: "POST",
+      signal: arret.signal,
+      headers: { "Content-Type": "application/json",
+                 apikey: SUPABASE_ANON_KEY,
+                 Authorization: "Bearer " + SUPABASE_ANON_KEY },
+      body: JSON.stringify({ code_id: session.codeId, texte: String(texte).slice(0, 1000) }),
+    });
+    const d = await r.json();
+    if (!d || !d.ok || ["Bon", "Moyen", "Mauvais"].indexOf(d.denouement) === -1) return null;
+    return { denouement: d.denouement, commentaire: String(d.commentaire || "").slice(0, 400) };
+  } catch (e) {
+    console.warn("Verdict de l'IA indisponible, juge par mots-clés :", e && e.message);
+    return null;
+  } finally {
+    clearTimeout(minuteur);
+  }
 }
 
 /**
