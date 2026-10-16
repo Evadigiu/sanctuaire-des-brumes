@@ -412,10 +412,15 @@ MEDIA_BASE = "https://sanctuaire-brumes.b-cdn.net"
 # CES NOMS FONT FOI. Le fichier depose chez l'hebergeur porte exactement
 # ce nom-la, sinon la borne affiche un rectangle noir.
 MEDIAS = {
- "E01": "le-commissaire-jean-79swb7.mp4",
+ # Le commissaire et la passante portent un nom neuf (« -2- ») : remplaces
+ # sous leur ancien nom, ils calaient en cours de lecture. Un fichier
+ # remplace a l'identique peut etre servi par morceaux, anciens et nouveaux
+ # melanges, par le cache et la replication de l'hebergeur. Un nom neuf,
+ # c'est un cache neuf. A retenir pour toute nouvelle version d'une video.
+ "E01": "le-commissaire-jean-2-79swb7.mp4",
  "E02": "la-collegue-soigneuse-8bdz93.mp4",
  "E03": "la-videosurveillance-yag6qs.mp4",
- "E05": "la-passante-qri7tr.mp4",
+ "E05": "la-passante-2-qri7tr.mp4",
  "E06": "quiz-animalier-hwqbca.mp4",
  "E07": "le-veterinaire-66ckyk.mp4",
  "E09": "greg-sens-a-sj7kmm.mp4",
