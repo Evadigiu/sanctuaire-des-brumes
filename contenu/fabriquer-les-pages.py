@@ -462,6 +462,10 @@ CHEMINS = {
 # L'etape ou le joueur rend ses conclusions.
 CONCLUSIONS = "E15"
 
+# Les partenaires, pour le texte de remplacement de leur planche de logos
+# (assets/img/partenaires.webp) : c'est ce que lit un lecteur d'ecran.
+PARTENAIRES = ("Les Pouss'murs, Melfor, Maisons Clever'Hom, Mercedes-Benz Kroely, Fimaris, Olivia's Garden, Xperience Park, Aveline, Costco Wholesale, Énergie de l'Est, L'Alsace, JDS")
+
 NON_CONSTRUIT   = {}
 
 def e(t): return html.escape(t, quote=True)
@@ -828,7 +832,14 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
             h.append('  <button data-scanner>Scanner le QR code</button>')
             h.append('  <a href="%s" class="btn btn-test" data-lien-test hidden>Raccourci de test</a>' % e(lg["lien"]))
         else:
-            h.append('  <p class="muted">Fin du parcours.</p>')
+            # La derniere page du jeu : on remercie, et on remercie les
+            # partenaires. Leurs logos ont leur plaque claire (style.css).
+            h.append('  <p class="ecran-titre">Merci d\'avoir mené l\'enquête</p>')
+            h.append('  <div class="partenaires">')
+            h.append('    <div class="partenaires-titre">Merci à nos partenaires</div>')
+            h.append('    <div class="partenaires-plaque"><img src="../assets/img/partenaires.webp" '
+                     'loading="lazy" alt="%s"></div>' % e(PARTENAIRES))
+            h.append('  </div>')
         # L'ecran de sortie n'avait aucun bouton de retour. C'est pourtant
         # celui ou le joueur reste le plus longtemps, puisqu'il y lit son
         # chemin : une fois arrive la, plus moyen de revoir le temoignage
