@@ -299,8 +299,15 @@ PHOTO = {
  "E15": ("aveu-greg.webp", "L'aveu de Greg", 5),
 }
 
+# Les carrousels de photos : l'ecran ou ils apparaissent, le texte du
+# bouton qui les ouvre, et les photos dans l'ordre.
 GALERIE = {
- "E11": [("sac-%d.webp" % i, "Objet trouvé dans le sac") for i in range(1, 6)],
+ "E11": {"ecran": 1, "bouton": "Voir le contenu du sac",
+         "photos": [("sac-%d.webp" % i, "Objet trouvé dans le sac") for i in range(1, 6)]},
+ # Les images que le commissaire envoie juste apres son appel.
+ "E12": {"ecran": 3, "bouton": "Voir les images",
+         "photos": [("commissaire-%d.webp" % i, "Image envoyée par le commissaire")
+                    for i in range(1, 5)]},
 }
 
 # ------------------------------------------------------------
@@ -824,21 +831,30 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
     if c in quiz and est_media:
         h.append(bloc_quiz(c, etape["lettre"]))
 
-    if c in GALERIE and lg["n"] == 1:
+    galerie = GALERIE.get(c) if c in GALERIE and lg["n"] == GALERIE[c]["ecran"] else None
+    # Le texte de l'ecran AVANT le carrousel : il dit ce qu'on va voir. Pose
+    # dessous, il arrivait apres le bouton qui l'annoncait.
+    if galerie and txt and txt != "/":
+        for p in [x.strip() for x in txt.split("\n") if x.strip()]:
+            h.append('  <p>%s</p>' % e(p))
+        txt = ""
+    if galerie:
         # Les photos ne s'affichent qu'au clic sur « Voir » : l'ecran reste
         # lisible a l'arrivee, et rien ne se telecharge tant que le groupe
         # n'a pas decide de regarder.
         h.append('  <div class="galerie" data-galerie>')
-        h.append('    <button data-galerie-ouvrir>Voir le contenu du sac</button>')
+        h.append('    <button data-galerie-ouvrir>%s</button>' % e(galerie["bouton"]))
         h.append('    <div data-galerie-vue hidden>')
-        for i, (fichier, texte) in enumerate(GALERIE[c]):
+        for i, (fichier, texte) in enumerate(galerie["photos"]):
             h.append('      <img class="photo-borne" loading="lazy" '
                      'data-galerie-photo src="../assets/img/%s" alt="%s"%s>'
                      % (e(fichier), e(texte), "" if i == 0 else " hidden"))
         h.append('      <div class="galerie-barre">')
-        h.append('        <button class="btn-secondary" data-galerie-prec>Précédent</button>')
+        # « Précédente » et « Suivante », au feminin, avec leur fleche : un
+        # bouton « Suivant » ici se confondait avec celui qui quitte l'ecran.
+        h.append('        <button class="btn-secondary" data-galerie-prec aria-label="Image précédente">‹ Précédente</button>')
         h.append('        <span class="galerie-compte" data-galerie-compte></span>')
-        h.append('        <button class="btn-secondary" data-galerie-suiv>Suivant</button>')
+        h.append('        <button class="btn-secondary" data-galerie-suiv aria-label="Image suivante">Suivante ›</button>')
         h.append('      </div>')
         h.append('    </div>')
         h.append('  </div>')
