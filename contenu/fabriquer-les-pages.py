@@ -296,7 +296,7 @@ PHOTO = {
  "E08": ("empreinte-renard.webp", "Une empreinte fraîche dans la boue", 3),
  "E12": ("appel-commissaire.webp", "Appel entrant", 1),
  # L'aveu de Greg, apres la video de la serre : la derniere piece au dossier.
- "E15": ("aveu-greg.webp", "L'aveu de Greg", 5),
+ "E15": ("aveu-greg.webp", "La lettre de Greg", 5),
 }
 
 # Les carrousels de photos : l'ecran ou ils apparaissent, le texte du
@@ -730,7 +730,26 @@ def bloc_lettre_du_quiz(lettre):
     ])
 
 
-# L'invitation qui suit le denouement, sur la borne de la serre.
+# LES CONCLUSIONS, a la borne de la serre. Un choix parmi quatre, sans
+# verdict sur le moment : le groupe part aussitot vers la video de la serre,
+# puis la lettre de Greg. Ce n'est qu'apres qu'il apprend s'il avait vu
+# juste (etincelles, ou pas). « bonne » compte a partir de 0 ; la bonne
+# reponse donne le denouement « Bon » du cahier, les autres « Mauvais ».
+CONCLUSIONS_QCM = {
+    "props": [
+        "Greg l'a kidnappée.",
+        "Deux hommes entrés dans le parc après sa fermeture sont à l'origine "
+        "de sa disparition.",
+        "Elle a eu un accident de voiture.",
+        "Elle s'est endormie.",
+    ],
+    "bonne": 3,
+    "juste": "Bon",
+    "faux": "Mauvais",
+}
+
+# L'invitation au photocall : un ecran a part, apres le verdict et avant
+# les remerciements. Pour tous les groupes.
 PHOTOCALL = {
     "titre": "Un dernier cliché pour le dossier",
     "textes": [
@@ -769,6 +788,39 @@ def bloc_popquiz(code):
     h.append('  <p class="quiz-verdict quiz-faux" data-bonus-rate hidden>%s</p>'
              % e(q["rate"]))
     h.append('  <button data-suivant data-bonus-suivant hidden>Continuer</button>')
+    h.append('  <button class="btn-secondary" data-retour>Revenir en arrière</button>')
+    h.append('</section>')
+    return "\n".join(h)
+
+
+def bloc_verdict():
+    """Le verdict, apres la video et la lettre : le denouement qui
+    correspond au choix du groupe. Les etincelles sont dans etape.js."""
+    h = ['<section class="ecran card" data-verdict-final hidden>']
+    for fin in denouements:
+        if fin["nom"] not in (CONCLUSIONS_QCM["juste"], CONCLUSIONS_QCM["faux"]):
+            continue
+        h.append('  <div class="card indice denouement" data-denouement="%s" hidden>'
+                 % e(fin["nom"]))
+        h.append('    <div class="eyebrow">%s</div>' % e(fin["titre"]))
+        for par in [x.strip() for x in fin["texte"].split("\n") if x.strip()]:
+            h.append('    <p>%s</p>' % e(par))
+        h.append('  </div>')
+    h.append('  <button data-suivant>Suivant</button>')
+    h.append('  <button class="btn-secondary" data-retour>Revenir en arrière</button>')
+    h.append('</section>')
+    return "\n".join(h)
+
+
+def bloc_photocall():
+    """L'invitation au photocall, sur son propre ecran."""
+    h = ['<section class="ecran card photocall" hidden>',
+         '  <div class="ecran-titre">%s</div>' % e(PHOTOCALL["titre"])]
+    for par in PHOTOCALL["textes"]:
+        h.append('  <p>%s</p>' % e(par))
+    h.append('  <a class="btn" href="%s" target="_blank" rel="noopener">%s</a>'
+             % (e(PHOTOCALL["lien"]), e(PHOTOCALL["bouton"])))
+    h.append('  <button data-suivant>Suivant</button>')
     h.append('  <button class="btn-secondary" data-retour>Revenir en arrière</button>')
     h.append('</section>')
     return "\n".join(h)
@@ -924,27 +976,14 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
         h.append('    <p>Entrez dans la serre.</p>')
         h.append('  </div>')
 
-    if c == CONCLUSIONS and lg["n"] == 3 and denouements:
-        h.append('  <textarea id="conclusions" rows="6" '
-                 'placeholder="Racontez ce qui est arrivé à Isabelle."></textarea>')
-        h.append('  <button id="validerConclusions">Rendre mon enquête</button>')
-        h.append('  <p class="quiz-verdict quiz-faux" id="conclusionsVides" hidden>'
-                 'Écrivez quelques mots avant de rendre votre enquête.</p>')
-        for i, fin in enumerate(denouements):
-            h.append('  <div class="card indice denouement" data-denouement="%s" hidden>'
-                     % e(fin["nom"]))
-            h.append('    <div class="eyebrow">%s</div>' % e(fin["titre"]))
-            for par in [x.strip() for x in fin["texte"].split("\n") if x.strip()]:
-                h.append('    <p>%s</p>' % e(par))
-            h.append('  </div>')
-        # Pour tous les groupes, quelle que soit leur fin : la photo devant
-        # le photocall de la serre. Cachee jusqu'au verdict.
-        h.append('  <div class="card photocall" data-photocall hidden>')
-        h.append('    <div class="eyebrow">%s</div>' % e(PHOTOCALL["titre"]))
-        for par in PHOTOCALL["textes"]:
-            h.append('    <p>%s</p>' % e(par))
-        h.append('    <a class="btn" href="%s" target="_blank" rel="noopener">%s</a>'
-                 % (e(PHOTOCALL["lien"]), e(PHOTOCALL["bouton"])))
+    conclusions_qcm = (c == CONCLUSIONS and lg["n"] == 3)
+    if conclusions_qcm:
+        q = CONCLUSIONS_QCM
+        h.append('  <div data-conclusions data-bonne="%d" data-juste="%s" data-faux="%s">'
+                 % (q["bonne"], e(q["juste"]), e(q["faux"])))
+        for n, prop in enumerate(q["props"]):
+            h.append('    <button class="quiz-prop" data-conclusion="%d">%s</button>'
+                     % (n, e(prop)))
         h.append('  </div>')
 
     if c in NON_CONSTRUIT and lg["n"] == 3:
@@ -1030,6 +1069,10 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
         # groupe sur une borne.
         if c in quiz and est_media:
             h.append('  <button data-suivant data-quiz-suivant hidden>Suivant</button>')
+        elif conclusions_qcm:
+            # Cache : c'est le choix qui fait avancer. Il reparait pour un
+            # groupe qui revient en arriere, une fois sa reponse donnee.
+            h.append('  <button data-suivant data-conclusions-suivant hidden>Suivant</button>')
         else:
             h.append('  <button data-suivant>Suivant</button>')
         h.append('  <button class="btn-secondary" data-retour>Revenir en arrière</button>')
@@ -1151,6 +1194,10 @@ for c in PAGES:
     for i, x in enumerate(communs):
         dernier = (i == len(communs) - 1) and not (sorties["A"] or sorties["B"]) \
                   and not bonus_apres
+        # A la serre, le verdict puis le photocall s'intercalent avant la fin.
+        if c == CONCLUSIONS and dernier:
+            blocs.append(bloc_verdict())
+            blocs.append(bloc_photocall())
         blocs.append(bloc_ecran(et, x, dernier, None))
     if c in quiz and et["lettre"] and et["lettre"] not in ("-", "/"):
         blocs.append(bloc_lettre_du_quiz(et["lettre"]))
@@ -1202,11 +1249,8 @@ for c in PAGES:
         extra += '  galeriePhotos();\n'
     if c in CODE_CACHE:
         extra += '  codeATrouver("codeTrouve", "validerCode", "%s", "codeJuste", "codeACote");\n' % CODE_CACHE[c]
-    if c == CONCLUSIONS and denouements:
-        regles = [{"nom": f["nom"], "attendus": f["attendus"],
-                   "interdits": f["interdits"]} for f in denouements]
-        extra += ('  jugerLesConclusions("conclusions", "validerConclusions", '
-                  '%s);\n' % json.dumps(regles, ensure_ascii=False))
+    if c == CONCLUSIONS:
+        extra += '  conclusionsAChoix();\n'
     if c in CODE_DEMANDE:
         extra += '  porteACode("codeSerre", "validerSerre", "%s", "serreOuverte", "serreACote", "codePerdu");\n' % CODE_DEMANDE[c] 
 

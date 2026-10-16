@@ -45,6 +45,8 @@ def init(sens):
       rpc: async (nom, args) => {
         if (nom === "enregistrer_passage") { window.__scans.push(args);
           return { data: { ok: true }, error: null }; }
+        if (nom === "enregistrer_conclusions") { window.__scans.push(args);
+          return { data: { ok: true }, error: null }; }
         if (nom === "reprendre_partie") {
           const c = (args.p_code || "").trim().toUpperCase();
           if (c === "NEUF0000") return { data: { ok: false, pas_commencee: true,
@@ -88,10 +90,6 @@ def nouvelle_page(nav):
     situation du reseau d'un parc un dimanche de novembre.
     """
     page = nav.new_page()
-    # Le juge par IA (fonction Supabase) n'est pas joignable d'ici : on le
-    # coupe net, et c'est le juge par mots-cles, son repli, qui est teste.
-    # Les tests du juge par IA le remplacent par une reponse ecrite d'avance.
-    page.route("**/functions/v1/**", lambda r: r.abort())
     page.route("**/*.mp4", lambda r: r.abort())
     page.route("**/*.mp3", lambda r: r.abort())
     return page
@@ -799,18 +797,6 @@ with sync_playwright() as pw:
     page.close()
 
     # ------------------------------------------------------------
-    # LA FIN DE L'ENQUETE
-    #
-    # Le joueur ecrit librement ce qui est arrive a Isabelle, et le jeu
-    # cherche dans sa phrase les idees attendues. Aucune intelligence
-    # artificielle : le jugement porte sur des mots, et un test ecrit dans
-    # la page ne tombe pas en panne un dimanche a 15 h.
-    #
-    # On verifie surtout qu'il est INDULGENT. Un enfant de neuf ans qui tape
-    # sur le telephone de sa mere ecrit sans accents, en majuscules, avec
-    # des fautes. Trois heures d'enquete ne doivent pas se jouer la-dessus.
-    # ------------------------------------------------------------
-    # ------------------------------------------------------------
     # LE MOT DES QUATRE LETTRES (IRIS), au bureau de Greg en sens A.
     # Juste : felicitations, et le lieu reste a chercher, avec un indice
     # a la demande. Faux deux fois : le mot est donne, sans felicitations.
@@ -852,147 +838,98 @@ with sync_playwright() as pw:
              r["trouve"] and "IRIS" in r["faux"] and "Félicitations" not in r["bravo"]
              and r["bouton"] and r["scanner"], str(r))
 
-    print("\ne15 : les conclusions et les trois fins")
+    # ------------------------------------------------------------
+    # LA FIN DE L'ENQUETE, a la serre.
+    #
+    # Quatre propositions. Le choix mene droit a la video, SANS verdict ;
+    # puis la lettre de Greg ; puis le verdict, avec les etincelles si le
+    # groupe avait vu juste ; puis le photocall, sur son ecran ; puis les
+    # remerciements. Le choix est verrouille : revenir en arriere apres la
+    # video ne permet pas de le changer.
+    # ------------------------------------------------------------
+    print("\ne15 : les conclusions a choix")
 
-    def rendre(texte):
-        pg = nouvelle_page(nav); pg.add_init_script(init("horaire"))
+    ETAT_FIN = """() => {
+      const vis = Array.from(document.querySelectorAll(".ecran")).find(x => !x.hidden);
+      const d = Array.from(document.querySelectorAll("[data-denouement]")).filter(x => !x.hidden);
+      return { video: !!(vis && vis.querySelector("video")),
+               lettre: !!(vis && vis.querySelector("img.photo-borne")),
+               verdictEcran: !!(vis && vis.hasAttribute("data-verdict-final")),
+               photocall: !!(vis && vis.classList.contains("photocall")),
+               fin: !!(vis && vis.querySelector(".partenaires")),
+               choix: !!(vis && vis.querySelector("[data-conclusions]")),
+               denouement: d.length === 1 ? d[0].getAttribute("data-denouement") : (d.length ? "plusieurs" : null),
+               fete: !!document.querySelector(".celebration"),
+               verrou: Array.from(document.querySelectorAll("[data-conclusion]")).every(b => b.disabled),
+               rangements: (window.__scans || []).filter(x => x && x.p_denouement)
+                             .map(x => x.p_denouement) }; }"""
+
+    def suivant(pg):
+        pg.locator(".ecran:not([hidden]) [data-suivant]:visible").first.click()
+        pg.wait_for_timeout(150)
+
+    def conclure(choix, base_muette=False):
+        pg = nouvelle_page(nav)
+        i = init("horaire")
+        if base_muette:
+            i = i.replace('rpc: async (nom, args) => {',
+                          'rpc: async (nom, args) => { if (nom === "enregistrer_conclusions") '
+                          'throw new Error("base injoignable");')
+        pg.add_init_script(i)
         pg.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E15"]))
         pg.wait_for_timeout(300)
-        while not pg.is_visible("#conclusions"):
-            b = pg.query_selector(".ecran:not([hidden]) [data-suivant]")
-            if not b or not b.is_visible(): break
-            b.click(); pg.wait_for_timeout(100)
-        pg.fill("#conclusions", texte)
-        pg.click("#validerConclusions"); pg.wait_for_timeout(200)
-        fin = pg.evaluate("""() => {
-          const d = Array.from(document.querySelectorAll("[data-denouement]"))
-                         .filter(x => !x.hidden);
-          return { nb: d.length,
-                   nom: d.length ? d[0].getAttribute("data-denouement") : null,
-                   vide: !document.getElementById("conclusionsVides").hidden,
-                   fete: !!document.querySelector(".celebration"),
-                   photocall: !document.querySelector("[data-photocall]").hidden }; }""")
-        if fin["fete"]:
+        etapes = {}
+        for _ in range(4):
+            if pg.is_visible("[data-conclusions]"): break
+            suivant(pg)
+        etapes["avant"] = pg.evaluate(ETAT_FIN)
+        pg.locator("[data-conclusion]").nth(choix).click(); pg.wait_for_timeout(200)
+        etapes["video"] = pg.evaluate(ETAT_FIN)
+        suivant(pg); etapes["lettre"] = pg.evaluate(ETAT_FIN)
+        suivant(pg); pg.wait_for_timeout(200); etapes["verdict"] = pg.evaluate(ETAT_FIN)
+        if etapes["verdict"]["fete"]:
             pg.click("#celebrationFermer"); pg.wait_for_timeout(600)
-            fin["fete_fermee"] = not pg.query_selector(".celebration")
+            etapes["verdict"]["fete_fermee"] = not pg.query_selector(".celebration")
+        suivant(pg); etapes["photocall"] = pg.evaluate(ETAT_FIN)
+        suivant(pg); etapes["fin"] = pg.evaluate(ETAT_FIN)
+        # Retour jusqu'au choix : il est verrouille.
+        for _ in range(5):
+            if pg.is_visible("[data-conclusions]"): break
+            pg.locator(".ecran:not([hidden]) [data-retour]").first.click(); pg.wait_for_timeout(100)
+        etapes["retour"] = pg.evaluate(ETAT_FIN)
         pg.close()
-        return fin
+        return etapes
 
-    CAS = [
-      ("Isabelle a bu la tisane à la valériane du botaniste, elle était "
-       "fatiguée et elle s'est endormie dans la serre.", "Bon",
-       "la bonne conclusion donne la bonne fin"),
-      ("isabelle a bu une tizane a la valeriane et elle sest endormi dans "
-       "la serre", "Bon",
-       "sans accents ni orthographe, la bonne fin quand meme"),
-      ("ELLE A BU LA TISANE, S'EST ENDORMIE DANS LA SERRE", "Bon",
-       "en majuscules aussi"),
-      ("Le botaniste l'a empoisonnée avec sa tisane.", "Moyen",
-       "l'empoisonnement donne la fin intermediaire"),
-      ("Le botaniste l'a tuée et a caché le corps.", "Mauvais",
-       "le meurtre donne la mauvaise fin"),
-      ("Elle a bu la tisane, s'est endormie dans la serre, puis il l'a tuée.",
-       "Mauvais",
-       "un mot qui disqualifie l'emporte sur les bons mots"),
-      ("Elle est partie en vacances aux Maldives sans prévenir personne.",
-       "Mauvais",
-       "une conclusion inattendue recoit la fin par defaut"),
-      # Le cas qui a fait retirer « morte » des mots qui disqualifient : un
-      # groupe qui a tout compris ecrit volontiers la phrase a la forme
-      # negative. Les mots-cles ne voient pas la negation, et la meilleure
-      # conclusion du week-end aurait recu la pire des fins.
-      ("Elle n'est pas morte du tout ! Elle a bu la tisane à la valériane, "
-       "elle s'est endormie dans la serre.", "Bon",
-       "une negation ne fait pas basculer une bonne conclusion"),
-      # Les negations qui faisaient basculer la meilleure conclusion dans la
-      # pire des fins, relevees mercredi.
-      ("Elle n'a pas été enlevée : elle a bu la tisane du botaniste et s'est "
-       "endormie dans la serre", "Bon",
-       "« n'a pas ete enlevee » ne disqualifie plus"),
-      ("Personne ne l'a tuée, elle a bu une tisane et s'est endormie dans la serre",
-       "Bon", "« personne ne l'a tuee » ne disqualifie plus"),
-      ("C'est Greg qui l'a enlevée pour se venger.", "Mauvais",
-       "un enlevement affirme reste disqualifiant"),
-      ("Elle a pris un somnifère par erreur et fait une sieste dans la serre",
-       "Bon", "les synonymes du cahier comptent"),
-    ]
-    for texte, attendu, nom in CAS:
-        f = rendre(texte)
-        verifier(nom, f["nb"] == 1 and f["nom"] == attendu, str(f))
-        verifier("  et les etincelles " + ("jaillissent" if attendu == "Bon" else "restent au fourreau"),
-                 f["fete"] == (attendu == "Bon") and f.get("fete_fermee", True), str(f))
-        verifier("  et l'invitation au photocall s'affiche", f["photocall"], str(f))
+    BONNE = int(open(os.path.join(RACINE, PARC["pages"]["E15"], "index.html"))
+                .read().split('data-conclusions data-bonne="', 1)[1].split('"', 1)[0])
+    for choix in range(4):
+        juste = (choix == BONNE)
+        f = conclure(choix)
+        nom = "reponse %d (%s)" % (choix + 1, "juste" if juste else "fausse")
+        verifier(nom + " : le choix est propose apres l'accueil", f["avant"]["choix"], str(f["avant"]))
+        verifier(nom + " : droit a la video, sans verdict",
+                 f["video"]["video"] and f["video"]["denouement"] is None and not f["video"]["fete"],
+                 str(f["video"]))
+        verifier(nom + " : puis la lettre de Greg, toujours sans verdict",
+                 f["lettre"]["lettre"] and f["lettre"]["denouement"] is None, str(f["lettre"]))
+        verifier(nom + " : puis le verdict, " + ("Bon" if juste else "Mauvais"),
+                 f["verdict"]["verdictEcran"]
+                 and f["verdict"]["denouement"] == ("Bon" if juste else "Mauvais"), str(f["verdict"]))
+        verifier(nom + " : etincelles " + ("oui" if juste else "non"),
+                 f["verdict"]["fete"] == juste and f["verdict"].get("fete_fermee", True), str(f["verdict"]))
+        verifier(nom + " : le photocall a son ecran, puis les remerciements",
+                 f["photocall"]["photocall"] and f["fin"]["fin"], str(f["photocall"]) + str(f["fin"]))
+        verifier(nom + " : la reponse est rangee une fois",
+                 f["verdict"]["rangements"] == [("Bon" if juste else "Mauvais")],
+                 str(f["verdict"]["rangements"]))
+        verifier(nom + " : de retour au choix, il est verrouille",
+                 f["retour"]["choix"] and f["retour"]["verrou"], str(f["retour"]))
 
-    # LE JUGE PAR IA. On remplace la fonction Supabase par une reponse ecrite
-    # d'avance : le verdict de l'IA l'emporte sur les mots-cles, son mot
-    # s'affiche au-dessus du denouement, et une reponse invalide fait
-    # retomber sur les mots-cles.
-    def rendre_ia(texte, reponse):
-        pg = nouvelle_page(nav); pg.add_init_script(init("horaire"))
-        pg.unroute("**/functions/v1/**")
-        pg.route("**/functions/v1/juger-conclusions",
-                 lambda r: r.fulfill(status=200, content_type="application/json", body=reponse))
-        pg.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E15"]))
-        pg.wait_for_timeout(300)
-        while not pg.is_visible("#conclusions"):
-            b = pg.query_selector(".ecran:not([hidden]) [data-suivant]")
-            if not b or not b.is_visible(): break
-            b.click(); pg.wait_for_timeout(100)
-        pg.fill("#conclusions", texte)
-        pg.click("#validerConclusions"); pg.wait_for_timeout(500)
-        fin = pg.evaluate("""() => {
-          const d = Array.from(document.querySelectorAll("[data-denouement]")).filter(x => !x.hidden);
-          const c = d.length ? d[0].querySelector(".commentaire-commissaire") : null;
-          return { nb: d.length, nom: d.length ? d[0].getAttribute("data-denouement") : null,
-                   commentaire: c ? c.textContent : "", html: c ? c.innerHTML : "",
-                   rangements: window.__scans.filter(x => x && x.p_denouement).length }; }""")
-        pg.close()
-        return fin
-
-    import json as _json
-    f = rendre_ia("Le botaniste et sa plante, elle somnole dans un coin",
-                  _json.dumps({"ok": True, "denouement": "Bon",
-                               "commentaire": "Bien vu pour la plante <b>de Louis</b>."}))
-    verifier("IA : son verdict l'emporte sur les mots-cles",
-             f["nb"] == 1 and f["nom"] == "Bon", str(f))
-    verifier("IA : son mot s'affiche au-dessus du denouement",
-             "Bien vu pour la plante" in f["commentaire"] and "Le commissaire Jean" in f["commentaire"], str(f))
-    verifier("IA : son texte n'est jamais lu comme du HTML",
-             "<b>" not in f["html"] and "&lt;b&gt;" in f["html"], f["html"])
-    f = rendre_ia("Elle a bu la tisane et s'est endormie dans la serre",
-                  _json.dumps({"ok": True, "denouement": "Excellent", "commentaire": "?"}))
-    verifier("IA : verdict invalide, repli sur les mots-cles",
-             f["nb"] == 1 and f["nom"] == "Bon" and f["commentaire"] == "", str(f))
-    f = rendre_ia("Elle a bu la tisane et s'est endormie dans la serre",
-                  _json.dumps({"ok": False, "message": "Jugement indisponible."}))
-    verifier("IA en panne : repli sur les mots-cles, sans mot du commissaire",
-             f["nb"] == 1 and f["nom"] == "Bon" and f["commentaire"] == "", str(f))
-
-    # Deux mots jetes ne sont pas une enquete.
-    f = rendre("sais pas")
-    verifier("un texte trop court ne rend rien",
-             f["nb"] == 0 and f["vide"] and not f["fete"] and not f["photocall"], str(f))
-
-    # Et surtout : la fin s'affiche meme si la base ne repond pas. C'est le
-    # moment de l'enquete ou il faut le moins planter.
-    page = nouvelle_page(nav)
-    page.add_init_script(init("horaire").replace(
-        'rpc: async (nom, args) => {',
-        'rpc: async (nom, args) => { if (nom === "enregistrer_conclusions") '
-        'throw new Error("base injoignable");'))
-    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E15"]))
-    page.wait_for_timeout(300)
-    while not page.is_visible("#conclusions"):
-        b = page.query_selector(".ecran:not([hidden]) [data-suivant]")
-        if not b or not b.is_visible(): break
-        b.click(); page.wait_for_timeout(100)
-    page.fill("#conclusions",
-              "Elle a bu la tisane a la valeriane et s est endormie dans la serre")
-    page.click("#validerConclusions"); page.wait_for_timeout(300)
+    # Et surtout : la fin s'affiche meme si la base ne repond pas.
+    f = conclure(BONNE, base_muette=True)
     verifier("la base muette n'empeche pas la fin",
-             page.eval_on_selector_all(
-                 "[data-denouement]", "e=>e.filter(x=>!x.hidden).length") == 1)
-    page.close()
+             f["video"]["video"] and f["verdict"]["denouement"] == "Bon" and f["fin"]["fin"],
+             str(f["verdict"]))
 
     # ------------------------------------------------------------
     # LES QUESTIONS BONUS
