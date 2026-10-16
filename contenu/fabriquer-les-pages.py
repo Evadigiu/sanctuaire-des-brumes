@@ -303,7 +303,7 @@ PHOTO = {
 # bouton qui les ouvre, et les photos dans l'ordre.
 GALERIE = {
  "E11": {"ecran": 1, "bouton": "Voir le contenu du sac",
-         "photos": [("sac-%d.webp" % i, "Objet trouvé dans le sac") for i in range(1, 6)]},
+         "photos": [("sac-%d.webp" % i, "Objet trouvé dans le sac") for i in range(1, 7)]},
  # Les images que le commissaire envoie juste apres son appel.
  "E12": {"ecran": 3, "bouton": "Voir les images",
          "photos": [("commissaire-%d.webp" % i, "Image envoyée par le commissaire")

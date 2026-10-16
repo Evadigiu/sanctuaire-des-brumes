@@ -483,14 +483,19 @@ with sync_playwright() as pw:
                  prec: document.querySelector("[data-galerie-prec]").disabled,
                  suiv: document.querySelector("[data-galerie-suiv]").disabled }; }""")
     v = vue()
-    verifier("cinq photos, la premiere a l'ecran",
-             v["total"] == 5 and v["visible"] == 0 and v["compte"] == "1 / 5", str(v))
+    # Le nombre de photos vient du sac reel (les fichiers sac-N.webp du
+    # depot), pas d'un chiffre ecrit ici : ajouter une photo au sac ne doit
+    # pas casser le test.
+    import glob as _glob
+    N = len(_glob.glob(os.path.join(RACINE, "assets/img/sac-*.webp")))
+    verifier("%d photos, la premiere a l'ecran" % N,
+             v["total"] == N and v["visible"] == 0 and v["compte"] == "1 / %d" % N, str(v))
     verifier("on ne peut pas remonter avant la premiere", v["prec"], str(v))
-    for _ in range(4):
+    for _ in range(N - 1):
         page.click("[data-galerie-suiv]"); page.wait_for_timeout(80)
     v = vue()
     verifier("on fait defiler jusqu'a la derniere",
-             v["visible"] == 4 and v["compte"] == "5 / 5" and v["suiv"], str(v))
+             v["visible"] == N - 1 and v["compte"] == "%d / %d" % (N, N) and v["suiv"], str(v))
 
     # Le nombre cache. Deux essais manques et on le donne : il est
     # indispensable pour entrer dans la serre.
