@@ -349,16 +349,14 @@ REFLEXION = {
                     "des loups et se faire dévorer ?",
         "oui": ("Très peu probable",
                 "On comprend le frisson, mais c'est très improbable. Un soigneur "
-                "n'entre jamais dans un enclos quand les loups s'y trouvent : les "
-                "animaux sont d'abord enfermés dans leurs loges, et l'on passe par "
-                "un sas à double porte. Et le loup n'a rien du monstre des contes : "
+                "n'entre jamais seul dans l'enclos des loups. Et le loup n'a rien "
+                "du monstre des contes : "
                 "il craint l'homme et l'évite. En Europe, les attaques de loups sur "
                 "des humains sont rarissimes depuis plus d'un siècle. D'ailleurs, "
                 "l'empreinte que vous venez d'identifier n'est pas celle d'un loup…"),
         "non": ("Bien vu",
-                "En effet. Un soigneur n'entre jamais dans un enclos quand les loups "
-                "s'y trouvent : les animaux sont d'abord enfermés dans leurs loges, "
-                "et l'on passe par un sas à double porte. Le loup, lui, craint "
+                "En effet. Un soigneur n'entre jamais seul dans l'enclos des loups. "
+                "Le loup, lui, craint "
                 "l'homme et l'évite : en Europe, les attaques de loups sur des "
                 "humains sont rarissimes depuis plus d'un siècle. Et l'empreinte que "
                 "vous venez d'identifier n'est pas celle d'un loup…"),
