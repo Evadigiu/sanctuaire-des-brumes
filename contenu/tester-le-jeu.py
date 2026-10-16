@@ -827,7 +827,12 @@ with sync_playwright() as pw:
                          .filter(x => !x.hidden);
           return { nb: d.length,
                    nom: d.length ? d[0].getAttribute("data-denouement") : null,
-                   vide: !document.getElementById("conclusionsVides").hidden }; }""")
+                   vide: !document.getElementById("conclusionsVides").hidden,
+                   fete: !!document.querySelector(".celebration"),
+                   photocall: !document.querySelector("[data-photocall]").hidden }; }""")
+        if fin["fete"]:
+            pg.click("#celebrationFermer"); pg.wait_for_timeout(600)
+            fin["fete_fermee"] = not pg.query_selector(".celebration")
         pg.close()
         return fin
 
@@ -872,6 +877,9 @@ with sync_playwright() as pw:
     for texte, attendu, nom in CAS:
         f = rendre(texte)
         verifier(nom, f["nb"] == 1 and f["nom"] == attendu, str(f))
+        verifier("  et les etincelles " + ("jaillissent" if attendu == "Bon" else "restent au fourreau"),
+                 f["fete"] == (attendu == "Bon") and f.get("fete_fermee", True), str(f))
+        verifier("  et l'invitation au photocall s'affiche", f["photocall"], str(f))
 
     # LE JUGE PAR IA. On remplace la fonction Supabase par une reponse ecrite
     # d'avance : le verdict de l'IA l'emporte sur les mots-cles, son mot
@@ -921,7 +929,7 @@ with sync_playwright() as pw:
     # Deux mots jetes ne sont pas une enquete.
     f = rendre("sais pas")
     verifier("un texte trop court ne rend rien",
-             f["nb"] == 0 and f["vide"], str(f))
+             f["nb"] == 0 and f["vide"] and not f["fete"] and not f["photocall"], str(f))
 
     # Et surtout : la fin s'affiche meme si la base ne repond pas. C'est le
     # moment de l'enquete ou il faut le moins planter.

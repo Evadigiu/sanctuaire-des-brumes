@@ -509,13 +509,16 @@ POSTERS = {}
 # dizaines de kilo-octets chacune, servies une fois puis gardees en memoire
 # par le telephone.
 # ------------------------------------------------------------
-CHEMINS = {
- ("E01", "A"): "chemin-e01-a.webp",
- # ("E02", "A"): a refaire. L'ancien plan menait a la salle de seminaire,
- #                 or la borne des cameras est passee a l'aire de pique-nique
- #                 le 07/10/2026. Un plan faux envoie les joueurs ailleurs :
- #                 mieux vaut aucun plan en attendant le nouveau.
-}
+# Un plan par TRAJET, pas par ecran : de l'enclos des loups a la passante,
+# le chemin est le meme dans les deux sens, et une seule image le sert.
+# Son nom se deduit du trajet : chemin-e04-vers-e05.webp. Chaque ecran
+# « Ou aller ensuite » le demande ; s'il n'est pas encore dans assets/img/,
+# l'image se retire d'elle-meme (onerror), sans cadre casse. Deposer un
+# plan suffit donc a le faire apparaitre, sans refabriquer les pages.
+def nom_du_plan(depart, arrivee):
+    return "chemin-%s-vers-%s.webp" % (depart.lower(), arrivee.lower())
+
+CHEMINS = {}   # exceptions eventuelles : (code, sens) -> fichier
 
 
 # L'etape ou le joueur rend ses conclusions.
@@ -722,8 +725,21 @@ def bloc_lettre_du_quiz(lettre):
     ])
 
 
-CONSIGNE_BONUS = ("Question Bonus : répondez correctement à la question "
-                  "suivante pour gagner un indice supplémentaire.")
+# L'invitation qui suit le denouement, sur la borne de la serre.
+PHOTOCALL = {
+    "titre": "Un dernier cliché pour le dossier",
+    "textes": [
+        "Avant de quitter la serre, prenez-vous en photo devant le photocall, "
+        "et postez-la sur Instagram en identifiant @pomelolab.",
+        "Chaque jour, la meilleure photo est sélectionnée et reçoit un cadeau surprise.",
+    ],
+    "bouton": "Ouvrir Instagram",
+    "lien": "https://www.instagram.com/pomelolab/",
+}
+
+# Le titre « Question bonus » est deja ecrit en grand juste au-dessus.
+CONSIGNE_BONUS = ("Répondez correctement à la question suivante pour "
+                  "gagner un indice supplémentaire.")
 
 
 def bloc_popquiz(code):
@@ -916,23 +932,31 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
             for par in [x.strip() for x in fin["texte"].split("\n") if x.strip()]:
                 h.append('    <p>%s</p>' % e(par))
             h.append('  </div>')
+        # Pour tous les groupes, quelle que soit leur fin : la photo devant
+        # le photocall de la serre. Cachee jusqu'au verdict.
+        h.append('  <div class="card photocall" data-photocall hidden>')
+        h.append('    <div class="eyebrow">%s</div>' % e(PHOTOCALL["titre"]))
+        for par in PHOTOCALL["textes"]:
+            h.append('    <p>%s</p>' % e(par))
+        h.append('    <a class="btn" href="%s" target="_blank" rel="noopener">%s</a>'
+                 % (e(PHOTOCALL["lien"]), e(PHOTOCALL["bouton"])))
+        h.append('  </div>')
 
     if c in NON_CONSTRUIT and lg["n"] == 3:
         h.append('  <!-- A CONSTRUIRE : %s -->' % NON_CONSTRUIT[c])
         h.append('  <p class="a-construire">%s</p>' % e(NON_CONSTRUIT[c]))
 
     if est_sortie:
-        plan = CHEMINS.get((c, sens_attr))
+        suite = etape.get("suite" + sens_attr) if sens_attr else None
+        plan = CHEMINS.get((c, sens_attr)) or (nom_du_plan(c, suite) if suite else None)
         if plan:
             # loading="lazy" : le plan ne se telecharge qu'en arrivant a cet
-            # ecran, pas au chargement de la borne.
+            # ecran, pas au chargement de la borne. onerror : pas encore
+            # depose, il se retire au lieu d'afficher une image cassee.
             h.append('  <img class="plan-chemin" loading="lazy" src="../assets/img/%s"'
                      % e(plan))
-            h.append('       alt="Plan du parc : le chemin à suivre jusqu\'à la borne suivante">')
-        else:
-            h.append('  <!-- A AJOUTER : le plan qui montre où aller. Déposer l\'image')
-            h.append('       dans assets/img/ et ajouter sa ligne à CHEMINS, en haut')
-            h.append('       de contenu/fabriquer-les-pages.py. -->')
+            h.append('       alt="Plan du parc : le chemin à suivre jusqu\'à la borne suivante"'
+                     ' onerror="this.remove()">')
 
     if c in COUP_DE_POUCE and lg["n"] == 1:
         h.append('  <div data-coup-de-pouce>')
