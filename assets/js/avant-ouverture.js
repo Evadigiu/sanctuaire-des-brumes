@@ -7,8 +7,10 @@
 // « partie introuvable » dans le tableau de bord.
 //
 // Jusqu'à l'ouverture, toutes les pages du jeu se couvrent donc d'une
-// fenêtre qui renvoie vers la billetterie. Elle ne se ferme pas : derrière,
-// il n'y a rien que le visiteur puisse faire avant samedi.
+// fenêtre qui renvoie vers la billetterie. Elle ne se ferme que par
+// « J'ai déjà mon billet » : les invités de l'inauguration du 16 octobre
+// jouent avec de vrais billets, et un curieux sans code valable n'ira pas
+// plus loin que le formulaire du départ.
 //
 // Elle disparaît d'elle-même à l'heure d'ouverture, sans mise en ligne.
 // Ce fichier peut être retiré après coup, mais rien ne presse : passé
@@ -65,6 +67,10 @@ function avantOuverture() {
     + '  <p>Ce jeu ne démarre que le <strong>samedi 17 octobre</strong>.</p>'
     + '  <p>Prenez vos billets ici :</p>'
     + '  <a class="btn" href="' + BILLETTERIE + '">Prendre mes billets</a>'
+    // Les invités de l'inauguration (16 octobre) jouent avec de vrais
+    // billets. Les laisser passer ne livre rien au curieux : sans code
+    // valable, la borne ne démarre pas.
+    + '  <button type="button" class="btn-secondary" id="dejaUnBillet">J\'ai déjà mon billet</button>'
     + '  <div class="avant-ouverture-equipe">'
     + '    <button type="button" class="btn-lien" id="accesEquipe">Accès équipe</button>'
     + '    <div id="zoneEquipe" hidden>'
@@ -84,6 +90,11 @@ function avantOuverture() {
   const zone = fond.querySelector("#zoneEquipe");
   const champ = fond.querySelector("#motEquipe");
   const erreur = fond.querySelector("#erreurEquipe");
+
+  fond.querySelector("#dejaUnBillet").addEventListener("click", () => {
+    poserLePasseEquipe();
+    window.location.reload();
+  });
 
   fond.querySelector("#accesEquipe").addEventListener("click", () => {
     zone.hidden = false;
