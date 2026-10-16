@@ -295,6 +295,8 @@ APPEL_AUDIO     = {"E12"}
 PHOTO = {
  "E08": ("empreinte-renard.webp", "Une empreinte fraîche dans la boue", 3),
  "E12": ("appel-commissaire.webp", "Appel entrant", 1),
+ # L'aveu de Greg, apres la video de la serre : la derniere piece au dossier.
+ "E15": ("aveu-greg.webp", "L'aveu de Greg", 5),
 }
 
 GALERIE = {
