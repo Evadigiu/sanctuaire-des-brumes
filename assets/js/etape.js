@@ -672,136 +672,93 @@ function brancherConfirmationIndice() {
   });
 }
 
-/**
- * LE JUGEMENT DES CONCLUSIONS.
- *
- * Le joueur écrit librement ce qui est arrivé à Isabelle, et le jeu
- * cherche dans sa phrase les idées attendues.
- *
- * La comparaison est volontairement indulgente. Un enfant de neuf ans qui
- * tape sur le téléphone de sa mère écrit « valeriane », « valérianne » ou
- * « la tizane » : on retire donc les accents, on passe tout en minuscules,
- * et on cherche des DÉBUTS de mots — « endorm » attrape endormie, endormi
- * et s'endormait. Trois heures d'enquête ne doivent pas se jouer sur un
- * accent.
- *
- * Les règles viennent du cahier, pas du code : les fins sont essayées de
- * haut en bas et la dernière sert de défaut, donc une conclusion
- * inattendue reçoit toujours une réponse.
- */
+/** Minuscules, sans accents : pour comparer des saisies avec indulgence. */
 function sansAccent(t) {
   return String(t || "").toLowerCase()
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
-function jugerLesConclusions(idChamp, idBouton, regles) {
-  const champ = document.getElementById(idChamp);
-  const bouton = document.getElementById(idBouton);
-  const vides = document.getElementById("conclusionsVides");
-  if (!champ || !bouton || !regles || !regles.length) return;
+/**
+ * LES CONCLUSIONS, à la borne de la serre.
+ *
+ * Quatre propositions. Le groupe choisit, et part aussitôt vers la vidéo de
+ * la serre, sans savoir s'il avait raison : la vidéo, puis la lettre de
+ * Greg, racontent la vérité. C'est seulement à l'écran du verdict qu'il
+ * apprend s'il avait vu juste, avec les étincelles, ou non.
+ *
+ * Le choix est verrouillé : un groupe qui revient en arrière après la vidéo
+ * retrouve sa réponse, il ne peut plus la changer. Il est gardé dans le
+ * navigateur, pour survivre à un téléphone qui se verrouille.
+ *
+ * (Ce choix remplace le texte libre jugé par IA, abandonné : les réponses
+ * étaient trop difficiles à départager.)
+ */
+const CHOIX_CONCLUSION_KEY = "sdb_conclusion_choix";
 
-  /** Le texte contient-il l'une des façons de dire la même chose ? */
-  function contient(texte, groupe) {
-    return groupe.split("|").map(m => sansAccent(m).trim())
-                 .filter(Boolean)
-                 .some(m => texte.indexOf(m) !== -1);
-  }
+function conclusionsAChoix() {
+  const zone = document.querySelector("[data-conclusions]");
+  const verdict = document.querySelector("[data-verdict-final]");
+  if (!zone || !verdict) return;
+  const ecran = zone.closest(".ecran");
+  const suivant = ecran && ecran.querySelector("[data-conclusions-suivant]");
+  const props = Array.from(zone.querySelectorAll("[data-conclusion]"));
+  const bonne = parseInt(zone.getAttribute("data-bonne"), 10);
+  const session = getSession();
+  const cle = CHOIX_CONCLUSION_KEY + "_" + ((session && session.codeId) || "");
 
-  // Un mot qui disqualifie ne compte pas s'il est NIÉ dans sa proposition :
-  // « elle n'a pas été enlevée », « personne ne l'a tuée », « ni tuée ni
-  // enlevée ». Le groupe qui a tout compris écrit volontiers ainsi, et la
-  // meilleure conclusion recevait la pire des fins. On ne regarde que la
-  // proposition du mot (jusqu'à la virgule ou au « mais » qui précède) :
-  // « elle a dormi, puis il l'a tuée » reste disqualifiant.
-  const NEGATION = /(^|[^a-z])(pas|jamais|ni|personne|aucun|aucune|non|sans|nullement|ne)(?![a-z])|(^|[^a-z])n'/;
-  function nie(texte, i) {
-    let avant = texte.slice(Math.max(0, i - 40), i);
-    const coupure = Math.max(avant.lastIndexOf(","), avant.lastIndexOf("."),
-                             avant.lastIndexOf(";"), avant.lastIndexOf("!"),
-                             avant.lastIndexOf("?"), avant.lastIndexOf(" mais "),
-                             avant.lastIndexOf(" puis "));
-    if (coupure >= 0) avant = avant.slice(coupure + 1);
-    return NEGATION.test(avant);
+  function lireChoix() {
+    try { const v = localStorage.getItem(cle); return v === null ? null : parseInt(v, 10); }
+    catch (e) { return null; }
   }
-  function contientSansNegation(texte, groupe) {
-    return groupe.split("|").map(m => sansAccent(m).trim()).filter(Boolean)
-      .some(m => {
-        let i = texte.indexOf(m);
-        while (i !== -1) {
-          if (!nie(texte, i)) return true;
-          i = texte.indexOf(m, i + 1);
-        }
-        return false;
-      });
-  }
-  function convient(texte, regle) {
-    const attendus = (regle.attendus || "").split(";").filter(g => g.trim());
-    const interdits = (regle.interdits || "").trim();
-    if (interdits && contientSansNegation(texte, interdits)) return false;
-    return attendus.every(g => contient(texte, g));
-  }
-  function jugeLocal(brut) {
-    const texte = sansAccent(brut).replace(/[’`]/g, "'");
-    return (regles.find(r => convient(texte, r)) || regles[regles.length - 1]).nom;
-  }
-
-  /** Affiche le dénouement, précédé du mot du commissaire s'il y en a un. */
-  function devoiler(nom, commentaire) {
-    document.querySelectorAll("[data-denouement]").forEach(d => {
-      d.hidden = (d.getAttribute("data-denouement") !== nom);
-      const vieux = d.querySelector(".commentaire-commissaire");
-      if (vieux) vieux.remove();
-      if (!d.hidden && commentaire) {
-        const p = document.createElement("p");
-        p.className = "commentaire-commissaire";
-        p.textContent = "« " + commentaire + " »";     // textContent : jamais de HTML venu d'ailleurs
-        const signe = document.createElement("span");
-        signe.textContent = "Le commissaire Jean";
-        p.appendChild(signe);
-        const titre = d.querySelector(".eyebrow");
-        if (titre) titre.insertAdjacentElement("afterend", p); else d.prepend(p);
-      }
+  function verrouiller(n) {
+    props.forEach((b, m) => {
+      b.disabled = true;
+      b.classList.toggle("est-choisie", m === n);
     });
-    // L'invitation au photocall, pour tous les groupes, sous leur fin.
-    const photocall = document.querySelector("[data-photocall]");
-    if (photocall) photocall.hidden = false;
-    if (nom === "Bon") celebrer();
+    if (suivant) suivant.hidden = false;
   }
 
-  bouton.addEventListener("click", async () => {
-    const brut = champ.value.trim();
-    if (brut.length < 10) {           // deux mots jetés ne sont pas une enquête
-      if (vides) vides.hidden = false;
-      return;
-    }
-    if (vides) vides.hidden = true;
-    champ.disabled = true;
-    bouton.disabled = true;
-    const libelle = bouton.textContent;
-    bouton.textContent = "Le commissaire lit vos conclusions…";
+  const deja = lireChoix();
+  if (deja !== null && !isNaN(deja)) verrouiller(deja);
 
-    // L'IA d'abord. Elle répond en quelques secondes, ou pas du tout : au
-    // bout de 9 secondes, ou à la moindre panne, le juge par mots-clés prend
-    // le relais. La fin s'affiche TOUJOURS — c'est le moment de l'enquête
-    // où il faut le moins planter.
-    const verdict = await jugerParIA(brut);
-    bouton.textContent = libelle;
-    if (verdict) { devoiler(verdict.denouement, verdict.commentaire); return; }
-
-    const nom = jugeLocal(brut);
-    devoiler(nom, "");
-    // On garde la trace de ce qu'ils ont écrit, mais JAMAIS au prix de la
-    // fin du jeu : si la base ne répond pas, le dénouement s'affiche quand même.
-    try { enregistrerConclusions(brut, nom); } catch (e) { }
+  props.forEach((b, n) => {
+    b.addEventListener("click", () => {
+      if (lireChoix() !== null) return;
+      try { localStorage.setItem(cle, String(n)); } catch (e) { }
+      verrouiller(n);
+      // On garde la trace de leur réponse pour le tableau de bord, mais
+      // JAMAIS au prix de la fin du jeu.
+      const nom = (n === bonne) ? zone.getAttribute("data-juste") : zone.getAttribute("data-faux");
+      try { enregistrerConclusions(b.textContent.trim(), nom); } catch (e) { }
+      // Droit à la vidéo, sans verdict.
+      if (suivant) suivant.click();
+    });
   });
+
+  // Le verdict s'écrit à l'arrivée sur son écran, pas avant.
+  let celebre = false;
+  function montrerVerdict() {
+    const n = lireChoix();
+    const juste = (n === bonne);
+    // Sans réponse retrouvée (mémoire du navigateur effacée), on montre la
+    // vérité, sans étincelles : elle est de toute façon dans la vidéo.
+    const nom = juste || n === null ? zone.getAttribute("data-juste") : zone.getAttribute("data-faux");
+    verdict.querySelectorAll("[data-denouement]").forEach(d => {
+      d.hidden = (d.getAttribute("data-denouement") !== nom);
+    });
+    if (juste && !celebre) { celebre = true; celebrer(); }
+  }
+  new MutationObserver(() => { if (!verdict.hidden) montrerVerdict(); })
+    .observe(verdict, { attributes: true, attributeFilter: ["hidden"] });
+  if (!verdict.hidden) montrerVerdict();
 }
 
 /**
  * LE BON DÉNOUEMENT : la récompense.
  *
- * Le groupe a trouvé. Des étincelles d'or jaillissent du bas de l'écran,
- * le téléphone vibre, un grand titre les félicite. Un bouton referme le
- * tout sur le dénouement, qui attend dessous. Rien ici ne peut bloquer la
+ * Le groupe avait vu juste. Des étincelles d'or jaillissent du bas de
+ * l'écran, le téléphone vibre, un grand titre les félicite. Un bouton
+ * referme le tout sur le dénouement, qui attend dessous. Rien ici ne peut bloquer la
  * fin : sans canvas ou sans vibration, il reste le texte.
  */
 function celebrer() {
@@ -893,38 +850,6 @@ function celebrer() {
     else window.removeEventListener("resize", dimensionner);
   }
   requestAnimationFrame(image);
-}
-
-/**
- * Demande son verdict au commissaire (la fonction Supabase juger-conclusions,
- * qui interroge Claude). Rend { denouement, commentaire }, ou null si quoi
- * que ce soit cloche : pas de partie, pas de réseau, fonction absente, IA
- * lente ou en panne. Le jeu ne dépend jamais de cette réponse.
- */
-async function jugerParIA(texte) {
-  const session = getSession();
-  if (!session || !session.codeId) return null;
-  if (typeof SUPABASE_URL === "undefined" || typeof SUPABASE_ANON_KEY === "undefined") return null;
-  const arret = new AbortController();
-  const minuteur = setTimeout(() => arret.abort(), 9000);
-  try {
-    const r = await fetch(SUPABASE_URL + "/functions/v1/juger-conclusions", {
-      method: "POST",
-      signal: arret.signal,
-      headers: { "Content-Type": "application/json",
-                 apikey: SUPABASE_ANON_KEY,
-                 Authorization: "Bearer " + SUPABASE_ANON_KEY },
-      body: JSON.stringify({ code_id: session.codeId, texte: String(texte).slice(0, 1000) }),
-    });
-    const d = await r.json();
-    if (!d || !d.ok || ["Bon", "Moyen", "Mauvais"].indexOf(d.denouement) === -1) return null;
-    return { denouement: d.denouement, commentaire: String(d.commentaire || "").slice(0, 400) };
-  } catch (e) {
-    console.warn("Verdict de l'IA indisponible, juge par mots-clés :", e && e.message);
-    return null;
-  } finally {
-    clearTimeout(minuteur);
-  }
 }
 
 /**

@@ -835,4 +835,15 @@ body.sous-fenetre { overflow: hidden; }
   .celebration, .celebration h1 { animation: none; }
 }
 
-.photocall { border: 2px dashed var(--gold); text-align: center; }
+/* Les conclusions a choix : un peu d'air avant « Revenir en arriere »,
+   qu'on ne doit pas prendre pour une cinquieme reponse. */
+[data-conclusions] { margin: 12px 0 20px; }
+[data-conclusions] .quiz-prop { width: 100%; }
+.photocall { text-align: center; }
+.photocall .ecran-titre {
+  font-family: var(--titre);
+  font-size: 1.8rem;
+  letter-spacing: 1px;
+  color: var(--gold-bright);
+  line-height: 1.1;
+}

@@ -35,36 +35,21 @@
 </section>
 <section class="ecran card" hidden>
   <!-- cahier : 3. Texte ou epreuve -->
-  <p>Veuillez nous donner les conclusions de votr enquête. Qu&#x27;est arrivé à Isabelle ?</p>
-  <textarea id="conclusions" rows="6" placeholder="Racontez ce qui est arrivé à Isabelle."></textarea>
-  <button id="validerConclusions">Rendre mon enquête</button>
-  <p class="quiz-verdict quiz-faux" id="conclusionsVides" hidden>Écrivez quelques mots avant de rendre votre enquête.</p>
-  <div class="card indice denouement" data-denouement="Bon" hidden>
-    <div class="eyebrow">Vous avez élucidé le mystère</div>
-    <p>C&#x27;est exactement cela. Isabelle a bu la tisane à la valériane de son collègue botaniste. Prise d&#x27;une grande fatigue, elle est retournée à la serre pour lui dire que le dosage était bien trop fort — et s&#x27;y est endormie. Personne n&#x27;a disparu, personne n&#x27;a été enlevé : elle dormait, à deux pas de tout le monde.</p>
+  <p>Qu&#x27;est-il arrivé à Isabelle ?</p>
+  <div data-conclusions data-bonne="3" data-juste="Bon" data-faux="Mauvais">
+    <button class="quiz-prop" data-conclusion="0">Greg l&#x27;a kidnappée.</button>
+    <button class="quiz-prop" data-conclusion="1">Deux hommes entrés dans le parc après sa fermeture sont à l&#x27;origine de sa disparition.</button>
+    <button class="quiz-prop" data-conclusion="2">Elle a eu un accident de voiture.</button>
+    <button class="quiz-prop" data-conclusion="3">Elle s&#x27;est endormie.</button>
   </div>
-  <div class="card indice denouement" data-denouement="Moyen" hidden>
-    <div class="eyebrow">Vous brûlez</div>
-    <p>Vous tenez le bon fil : la tisane du botaniste est bien à l&#x27;origine de tout. Mais il n&#x27;a empoisonné personne. Le dosage de valériane était trop fort, Isabelle s&#x27;est sentie épuisée, elle est retournée à la serre pour le lui dire, et s&#x27;y est endormie. Une maladresse, pas un crime.</p>
-  </div>
-  <div class="card indice denouement" data-denouement="Mauvais" hidden>
-    <div class="eyebrow">L&#x27;enquête reste ouverte</div>
-    <p>Ce n&#x27;est pas ce qui s&#x27;est passé. Isabelle n&#x27;a pas été enlevée, et personne ne lui a voulu de mal. Elle a bu la tisane à la valériane du botaniste, dont le dosage était bien trop fort. Épuisée, elle est retournée à la serre pour l&#x27;avertir, et s&#x27;y est endormie. Elle dormait, à deux pas de vous, pendant que vous la cherchiez.</p>
-  </div>
-  <div class="card photocall" data-photocall hidden>
-    <div class="eyebrow">Un dernier cliché pour le dossier</div>
-    <p>Avant de quitter la serre, prenez-vous en photo devant le photocall, et postez-la sur Instagram en identifiant @pomelolab.</p>
-    <p>Chaque jour, la meilleure photo est sélectionnée et reçoit un cadeau surprise.</p>
-    <a class="btn" href="https://www.instagram.com/pomelolab/" target="_blank" rel="noopener">Ouvrir Instagram</a>
-  </div>
-  <!-- Note du cahier de contenu : Champ IA pour donner ses conclusions -->
-  <button data-suivant>Suivant</button>
+  <!-- Note du cahier de contenu : Choix multiple : les quatre propositions sont dans CONCLUSIONS_QCM (fabriquer-les-pages.py) -->
+  <button data-suivant data-conclusions-suivant hidden>Suivant</button>
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
 </section>
 <section class="ecran card" hidden>
   <!-- cahier : 4. Vidéo point of view -->
   <video controls preload="none" poster="">
-    <source src="https://sanctuaire-brumes.b-cdn.net/la-serre-h264.mp4" type="video/mp4">
+    <source src="https://sanctuaire-brumes.b-cdn.net/la-serre-4.mp4" type="video/mp4">
     <p>Votre navigateur ne lit pas cette vidéo. Prévenez un membre de l'équipe sur place.</p>
   </video>
   <!-- Note du cahier de contenu : point of view de la soirée d'Isabelle -->
@@ -72,9 +57,29 @@
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
 </section>
 <section class="ecran card" hidden>
-  <!-- cahier : 5. Photo : l'aveu de Greg -->
-  <img class="photo-borne" src="../assets/img/aveu-greg.webp" alt="L&#x27;aveu de Greg">
-  <p>Une dernière pièce au dossier : l&#x27;aveu de Greg.</p>
+  <!-- cahier : 5. Photo : la lettre de Greg -->
+  <img class="photo-borne" src="../assets/img/aveu-greg.webp" alt="La lettre de Greg">
+  <p>Une dernière pièce au dossier : la lettre de Greg.</p>
+  <button data-suivant>Suivant</button>
+  <button class="btn-secondary" data-retour>Revenir en arrière</button>
+</section>
+<section class="ecran card" data-verdict-final hidden>
+  <div class="card indice denouement" data-denouement="Bon" hidden>
+    <div class="eyebrow">Vous avez élucidé le mystère</div>
+    <p>C&#x27;est exactement cela. Isabelle a bu la tisane à la valériane de son collègue botaniste. Prise d&#x27;une grande fatigue, elle est retournée à la serre pour lui dire que le dosage était bien trop fort — et s&#x27;y est endormie. Personne n&#x27;a disparu, personne n&#x27;a été enlevé : elle dormait, à deux pas de tout le monde.</p>
+  </div>
+  <div class="card indice denouement" data-denouement="Mauvais" hidden>
+    <div class="eyebrow">L&#x27;enquête reste ouverte</div>
+    <p>Ce n&#x27;est pas ce qui s&#x27;est passé. Isabelle n&#x27;a pas été enlevée, et personne ne lui a voulu de mal. Elle a bu la tisane à la valériane du botaniste, dont le dosage était bien trop fort. Épuisée, elle est retournée à la serre pour l&#x27;avertir, et s&#x27;y est endormie. Elle dormait, à deux pas de vous, pendant que vous la cherchiez.</p>
+  </div>
+  <button data-suivant>Suivant</button>
+  <button class="btn-secondary" data-retour>Revenir en arrière</button>
+</section>
+<section class="ecran card photocall" hidden>
+  <div class="ecran-titre">Un dernier cliché pour le dossier</div>
+  <p>Avant de quitter la serre, prenez-vous en photo devant le photocall, et postez-la sur Instagram en identifiant @pomelolab.</p>
+  <p>Chaque jour, la meilleure photo est sélectionnée et reçoit un cadeau surprise.</p>
+  <a class="btn" href="https://www.instagram.com/pomelolab/" target="_blank" rel="noopener">Ouvrir Instagram</a>
   <button data-suivant>Suivant</button>
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
 </section>
@@ -143,7 +148,7 @@
 <script src="../assets/js/scanner.js"></script>
 <script>
   demarrerEtape();
-  jugerLesConclusions("conclusions", "validerConclusions", [{"nom": "Bon", "attendus": "tisane|valeriane|infusion|plante|breuvage|boisson|somnifere;endorm|sommeil|assoupi|dort|dormi|somnol|sieste;serre", "interdits": "tuee|assassin|meurtre|cadavre|kidnapp|enlevee|enleve par"}, {"nom": "Moyen", "attendus": "empoisonn|poison|intoxi|drogu|tisane|valeriane", "interdits": "tuee|assassin|meurtre|cadavre|kidnapp|enlevee|enleve par"}, {"nom": "Mauvais", "attendus": "", "interdits": ""}]);
+  conclusionsAChoix();
 </script>
 
 </body>
