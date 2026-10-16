@@ -733,19 +733,19 @@ def bloc_lettre_du_quiz(lettre):
 # LES CONCLUSIONS, a la borne de la serre. Un choix parmi quatre, sans
 # verdict sur le moment : le groupe part aussitot vers la video de la serre,
 # puis la lettre de Greg. Ce n'est qu'apres qu'il apprend s'il avait vu
-# juste (etincelles, ou pas). « bonne » compte a partir de 0 ; la bonne
-# reponse donne le denouement « Bon » du cahier, les autres « Mauvais ».
+# juste (etincelles, ou pas). Chaque proposition mene a l'un des
+# denouements du cahier (onglet Denouements) ; seul « Bon » a les etincelles.
+# La bonne reponse n'est pas la derniere : on la trouverait par elimination.
 CONCLUSIONS_QCM = {
     "props": [
-        "Greg l'a kidnappée.",
-        "Deux hommes entrés dans le parc après sa fermeture sont à l'origine "
-        "de sa disparition.",
-        "Elle a eu un accident de voiture.",
-        "Elle s'est endormie.",
+        ("Greg l'a kidnappée.", "Mauvais"),
+        ("Deux hommes entrés dans le parc après sa fermeture sont à l'origine "
+         "de sa disparition.", "Mauvais"),
+        ("Louis l'a empoisonnée avec sa tisane.", "Moyen"),
+        ("Elle s'est endormie.", "Bon"),
+        ("Elle a eu un accident de voiture.", "Mauvais"),
     ],
-    "bonne": 3,
     "juste": "Bon",
-    "faux": "Mauvais",
 }
 
 # L'invitation au photocall : un ecran a part, apres le verdict et avant
@@ -758,7 +758,9 @@ PHOTOCALL = {
         "Chaque jour, la meilleure photo est sélectionnée et reçoit un cadeau surprise.",
     ],
     "bouton": "Ouvrir Instagram",
-    "lien": "https://www.instagram.com/pomelolab/",
+    # L'accueil d'Instagram, pas un compte : sur un telephone ou l'appli
+    # est installee, le lien l'ouvre ; sinon, il ouvre le site.
+    "lien": "https://www.instagram.com/",
 }
 
 # Le titre « Question bonus » est deja ecrit en grand juste au-dessus.
@@ -797,8 +799,13 @@ def bloc_verdict():
     """Le verdict, apres la video et la lettre : le denouement qui
     correspond au choix du groupe. Les etincelles sont dans etape.js."""
     h = ['<section class="ecran card" data-verdict-final hidden>']
+    utiles = set(f for _, f in CONCLUSIONS_QCM["props"])
+    connues = set(f["nom"] for f in denouements)
+    if utiles - connues:
+        sys.exit("CONCLUSIONS_QCM renvoie a un denouement absent du cahier : %s"
+                 % ", ".join(sorted(utiles - connues)))
     for fin in denouements:
-        if fin["nom"] not in (CONCLUSIONS_QCM["juste"], CONCLUSIONS_QCM["faux"]):
+        if fin["nom"] not in utiles:
             continue
         h.append('  <div class="card indice denouement" data-denouement="%s" hidden>'
                  % e(fin["nom"]))
@@ -979,11 +986,10 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
     conclusions_qcm = (c == CONCLUSIONS and lg["n"] == 3)
     if conclusions_qcm:
         q = CONCLUSIONS_QCM
-        h.append('  <div data-conclusions data-bonne="%d" data-juste="%s" data-faux="%s">'
-                 % (q["bonne"], e(q["juste"]), e(q["faux"])))
-        for n, prop in enumerate(q["props"]):
-            h.append('    <button class="quiz-prop" data-conclusion="%d">%s</button>'
-                     % (n, e(prop)))
+        h.append('  <div data-conclusions data-juste="%s">' % e(q["juste"]))
+        for n, (prop, fin) in enumerate(q["props"]):
+            h.append('    <button class="quiz-prop" data-conclusion="%d" data-fin="%s">%s</button>'
+                     % (n, e(fin), e(prop)))
         h.append('  </div>')
 
     if c in NON_CONSTRUIT and lg["n"] == 3:

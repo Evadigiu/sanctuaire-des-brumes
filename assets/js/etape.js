@@ -702,7 +702,8 @@ function conclusionsAChoix() {
   const ecran = zone.closest(".ecran");
   const suivant = ecran && ecran.querySelector("[data-conclusions-suivant]");
   const props = Array.from(zone.querySelectorAll("[data-conclusion]"));
-  const bonne = parseInt(zone.getAttribute("data-bonne"), 10);
+  const juste = zone.getAttribute("data-juste");
+  const finDe = n => (props[n] && props[n].getAttribute("data-fin")) || null;
   const session = getSession();
   const cle = CHOIX_CONCLUSION_KEY + "_" + ((session && session.codeId) || "");
 
@@ -728,8 +729,7 @@ function conclusionsAChoix() {
       verrouiller(n);
       // On garde la trace de leur réponse pour le tableau de bord, mais
       // JAMAIS au prix de la fin du jeu.
-      const nom = (n === bonne) ? zone.getAttribute("data-juste") : zone.getAttribute("data-faux");
-      try { enregistrerConclusions(b.textContent.trim(), nom); } catch (e) { }
+      try { enregistrerConclusions(b.textContent.trim(), finDe(n)); } catch (e) { }
       // Droit à la vidéo, sans verdict.
       if (suivant) suivant.click();
     });
@@ -739,14 +739,14 @@ function conclusionsAChoix() {
   let celebre = false;
   function montrerVerdict() {
     const n = lireChoix();
-    const juste = (n === bonne);
+    const fin = (n === null) ? null : finDe(n);
     // Sans réponse retrouvée (mémoire du navigateur effacée), on montre la
     // vérité, sans étincelles : elle est de toute façon dans la vidéo.
-    const nom = juste || n === null ? zone.getAttribute("data-juste") : zone.getAttribute("data-faux");
+    const nom = fin || juste;
     verdict.querySelectorAll("[data-denouement]").forEach(d => {
       d.hidden = (d.getAttribute("data-denouement") !== nom);
     });
-    if (juste && !celebre) { celebre = true; celebrer(); }
+    if (fin === juste && !celebre) { celebre = true; celebrer(); }
   }
   new MutationObserver(() => { if (!verdict.hidden) montrerVerdict(); })
     .observe(verdict, { attributes: true, attributeFilter: ["hidden"] });
