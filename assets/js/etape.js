@@ -358,6 +358,19 @@ function proposerDeRetrouverLaPartie(ancienneTrouvee) {
  * Un code déjà activé rouvre sa partie au lieu d'être refusé (le guichet
  * activer_code s'en charge) : le même formulaire sert donc à reprendre.
  */
+/**
+ * Les logos des partenaires, sur leur plaque claire. Une seule image : la
+ * planche fournie par l'organisation. Sans lien : un logo touché par erreur
+ * ferait quitter l'enquête.
+ */
+function blocPartenaires(titre) {
+  return '<div class="partenaires">'
+    + '<div class="partenaires-titre">' + titre + '</div>'
+    + '<div class="partenaires-plaque"><img src="' + BASE_PATH + 'assets/img/partenaires.webp" '
+    + 'loading="lazy" alt="Les Pouss\'murs, Melfor, Maisons Clever\'Hom, Mercedes-Benz Kroely, Fimaris, Olivia\'s Garden, Xperience Park, Aveline, Costco Wholesale, Énergie de l\'Est, L\'Alsace, JDS"></div>'
+    + '</div>';
+}
+
 function accueillirAuDepart() {
   const wrap = document.querySelector(".wrap");
   const codeBorne = document.body.getAttribute("data-etape") || "";
@@ -372,6 +385,7 @@ function accueillirAuDepart() {
     + '<p>Armez-vous de bon sens et observez bien ce qu\'il se passe autour de vous. Suivez les consignes qui vous sont données et respectez le sens des énigmes qui vous est proposé.</p>'
     + '<p>Vous aurez 3 heures, à partir du moment où vous démarrez, pour terminer l\'enquête.</p>'
     + '<p class="muted">Merci de ne pas toucher aux décors : d\'autres enquêteurs passeront après vous.</p>'
+    + blocPartenaires("Ce jeu vous est proposé par")
     + '<button id="versSaisieDepart">Suivant</button>';
 
   const saisie = document.createElement("section");

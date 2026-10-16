@@ -705,3 +705,26 @@ footer .signature {
 .avant-ouverture-equipe { margin-top: 26px; }
 .avant-ouverture-equipe input { margin-top: 10px; }
 body.sous-fenetre { overflow: hidden; }
+
+/* ============================================================
+   LES PARTENAIRES
+   Leurs logos sont pour la plupart sombres : posés sur le fond du jeu,
+   la moitié disparaissait. Ils ont donc leur plaque claire, comme une
+   affiche apposée dans le décor.
+   ============================================================ */
+.partenaires { margin: 22px 0 6px; text-align: center; }
+.partenaires-titre {
+  font-family: var(--texte);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.78rem;
+  color: var(--gold);
+  margin-bottom: 10px;
+}
+.partenaires-plaque {
+  background: #F4F1EA;
+  border-radius: 8px;
+  padding: 12px;
+}
+.partenaires-plaque img { display: block; width: 100%; height: auto; }
