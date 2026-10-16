@@ -819,7 +819,7 @@ function celebrer() {
     + '<div class="celebration-texte">'
     + '  <div class="eyebrow">Affaire résolue</div>'
     + '  <h1 id="celebrationTitre">Félicitations, enquêteurs&nbsp;!</h1>'
-    + '  <p class="celebration-accroche">Vous êtes les meilleurs enquêteurs que ce zoo ait jamais vus.</p>'
+    + '  <p class="celebration-accroche">Vous êtes les meilleurs détectives que ce zoo ait jamais vus.</p>'
     + '  <p>Isabelle est vivante, elle a dormi comme une marmotte. Le commissaire Jean est soulagé…</p>'
     + '  <p>Louis, lui, a promis de goûter ses tisanes avant de les servir. '
     + 'Greg a proposé de s\u2019en charger. On a refusé.</p>'
