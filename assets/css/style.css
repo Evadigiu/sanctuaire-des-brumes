@@ -372,6 +372,48 @@ video {
 .popquiz-question { font-weight: 700; margin-bottom: 4px; }
 .popquiz .quiz-prop { width: 100%; }
 
+/* La question bonus (pas la question de reflexion, qui partage la classe
+   .popquiz) : elle surgit, elle doit claquer. Fond bordeaux, cadre or,
+   gros titre dans la police de l'affiche, entree qui rebondit. */
+[data-popquiz] {
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(228, 200, 122, 0.22), transparent 60%),
+    linear-gradient(160deg, #5A1420 0%, #2A0B14 55%, #12070C 100%);
+  border: 2px solid var(--gold-bright);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 28px rgba(228, 200, 122, 0.35);
+  animation: bonus-surgit 0.55s cubic-bezier(.2, 1.4, .4, 1) both;
+}
+[data-popquiz] .ecran-titre {
+  font-family: var(--titre);
+  font-size: 2.1rem;
+  line-height: 1.05;
+  letter-spacing: 1px;
+  text-transform: uppercase;            /* DCC Ash n'a que des capitales */
+  color: var(--gold-bright);
+  text-shadow: 0 0 14px rgba(228, 200, 122, 0.55), 0 2px 0 #000;
+  text-align: center;
+  margin-bottom: 10px;
+}
+[data-popquiz] .ecran-titre::before { content: "✦ "; }
+[data-popquiz] .ecran-titre::after { content: " ✦"; }
+[data-popquiz] .popquiz-consigne {
+  color: #F3E3E0;
+  text-align: center;
+  border-bottom: 1px solid rgba(228, 200, 122, 0.4);
+}
+[data-popquiz] .popquiz-question { font-size: 1.1rem; color: #FFF; }
+[data-popquiz] .quiz-prop {
+  background: rgba(0, 0, 0, 0.35);
+  border-color: rgba(228, 200, 122, 0.55);
+}
+@keyframes bonus-surgit {
+  0%   { opacity: 0; transform: scale(0.82) rotate(-1.5deg); }
+  100% { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-popquiz] { animation: none; }
+}
+
 .petite-note { font-size: 0.85rem; margin-top: 8px; }
 
 /* Les photos posees dans une borne : l'empreinte, l'appel, le sac. */
@@ -396,17 +438,6 @@ video {
   color: var(--fog);
   white-space: nowrap;
 }
-
-/* La question bonus. Elle doit se distinguer d'un ecran ordinaire au
-   premier coup d'oeil : c'est une surprise, pas une etape de plus. */
-.popquiz { border-color: var(--gold); }
-.popquiz-consigne {
-  color: var(--gold-bright);
-  font-size: 0.95rem;
-  border-bottom: 1px solid var(--hair);
-  padding-bottom: 12px;
-}
-.popquiz-question { font-weight: 700; margin-bottom: 4px; }
 
 /* ------------------------------------------------------------
    LE QUIZ QUI SUIT LA VIDEO
@@ -747,3 +778,51 @@ body.sous-fenetre { overflow: hidden; }
   letter-spacing: 1px;
   text-transform: uppercase;
 }
+
+/* ------------------------------------------------------------
+   LA FIN : la recompense du bon denouement, puis le photocall
+   ------------------------------------------------------------ */
+.celebration {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: radial-gradient(circle at 50% 40%, #4A111C, #0B0D14 72%);
+  animation: celebration-entre 0.4s ease-out both;
+}
+.celebration canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.celebration-texte {
+  position: relative;
+  max-width: 440px;
+  text-align: center;
+}
+.celebration h1 {
+  font-family: var(--titre);
+  font-size: clamp(2.4rem, 11vw, 3.6rem);
+  line-height: 1;
+  color: var(--gold-bright);
+  text-shadow: 0 0 22px rgba(228, 200, 122, 0.7), 0 3px 0 #000;
+  margin: 8px 0 14px;
+  animation: celebration-titre 0.7s cubic-bezier(.2, 1.5, .4, 1) 0.15s both;
+}
+.celebration-accroche { font-size: 1.15rem; font-weight: 700; color: #FFF; }
+.celebration-part { opacity: 0; transition: opacity 0.4s; }
+@keyframes celebration-entre { from { opacity: 0; } to { opacity: 1; } }
+@keyframes celebration-titre {
+  0%   { opacity: 0; transform: scale(0.4); }
+  100% { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .celebration, .celebration h1 { animation: none; }
+}
+
+.photocall { border: 2px dashed var(--gold); text-align: center; }

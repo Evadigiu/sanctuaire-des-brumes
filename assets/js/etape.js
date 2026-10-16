@@ -762,6 +762,10 @@ function jugerLesConclusions(idChamp, idBouton, regles) {
         if (titre) titre.insertAdjacentElement("afterend", p); else d.prepend(p);
       }
     });
+    // L'invitation au photocall, pour tous les groupes, sous leur fin.
+    const photocall = document.querySelector("[data-photocall]");
+    if (photocall) photocall.hidden = false;
+    if (nom === "Bon") celebrer();
   }
 
   bouton.addEventListener("click", async () => {
@@ -790,6 +794,106 @@ function jugerLesConclusions(idChamp, idBouton, regles) {
     // fin du jeu : si la base ne répond pas, le dénouement s'affiche quand même.
     try { enregistrerConclusions(brut, nom); } catch (e) { }
   });
+}
+
+/**
+ * LE BON DÉNOUEMENT : la récompense.
+ *
+ * Le groupe a trouvé. Des étincelles d'or jaillissent du bas de l'écran,
+ * le téléphone vibre, un grand titre les félicite. Un bouton referme le
+ * tout sur le dénouement, qui attend dessous. Rien ici ne peut bloquer la
+ * fin : sans canvas ou sans vibration, il reste le texte.
+ */
+function celebrer() {
+  if (document.querySelector(".celebration")) return;
+  const calme = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (navigator.vibrate) { try { navigator.vibrate([80, 60, 80, 60, 220]); } catch (e) { } }
+
+  const fond = document.createElement("div");
+  fond.className = "celebration";
+  fond.setAttribute("role", "dialog");
+  fond.setAttribute("aria-modal", "true");
+  fond.setAttribute("aria-labelledby", "celebrationTitre");
+  fond.innerHTML =
+      '<canvas aria-hidden="true"></canvas>'
+    + '<div class="celebration-texte">'
+    + '  <div class="eyebrow">Affaire résolue</div>'
+    + '  <h1 id="celebrationTitre">Félicitations, enquêteurs&nbsp;!</h1>'
+    + '  <p class="celebration-accroche">Vous êtes les meilleurs limiers que ce zoo ait jamais vus.</p>'
+    + '  <p>Isabelle est vivante. Le commissaire Jean est soulagé… et un peu embêté&nbsp;: '
+    + 'il va falloir annuler la couronne de fleurs, déjà commandée.</p>'
+    + '  <p>Louis, lui, a promis de goûter ses tisanes avant de les servir. '
+    + 'Greg a proposé de s\'en charger. On a refusé.</p>'
+    + '  <button type="button" id="celebrationFermer">Lire le dénouement</button>'
+    + '</div>';
+  document.body.appendChild(fond);
+
+  let encore = true;
+  function fermer() {
+    encore = false;
+    fond.classList.add("celebration-part");
+    setTimeout(() => fond.remove(), 400);
+    const fin = document.querySelector("[data-denouement]:not([hidden])");
+    if (fin) fin.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  const bouton = fond.querySelector("#celebrationFermer");
+  bouton.addEventListener("click", fermer);
+  bouton.focus({ preventScroll: true });
+
+  const toile = fond.querySelector("canvas");
+  const ctx = toile.getContext && toile.getContext("2d");
+  if (calme || !ctx) return;
+
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  let L = 0, H = 0;
+  function dimensionner() {
+    L = window.innerWidth; H = window.innerHeight;
+    toile.width = L * dpr; toile.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  dimensionner();
+  window.addEventListener("resize", dimensionner);
+
+  const COULEURS = ["#E4C87A", "#FFF3C4", "#C9A24B", "#FFFFFF", "#E8604C"];
+  const etincelles = [];
+  // Trois gerbes : deux depuis les coins du bas, une depuis le centre.
+  function gerbe(x, y, n, angle, ouverture) {
+    for (let i = 0; i < n; i++) {
+      const a = angle + (Math.random() - 0.5) * ouverture;
+      const v = 7 + Math.random() * 9;
+      etincelles.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v,
+                        vie: 1, usure: 0.008 + Math.random() * 0.012,
+                        taille: 1.5 + Math.random() * 2.5,
+                        couleur: COULEURS[(Math.random() * COULEURS.length) | 0] });
+    }
+  }
+  gerbe(0, H, 70, -Math.PI / 3, 0.9);
+  gerbe(L, H, 70, -2 * Math.PI / 3, 0.9);
+  setTimeout(() => { if (encore) gerbe(L / 2, H, 90, -Math.PI / 2, 1.1); }, 450);
+  setTimeout(() => { if (encore) gerbe(L / 2, H * 0.35, 80, 0, Math.PI * 2); }, 1100);
+
+  const debut = performance.now();
+  function image(t) {
+    if (!encore || !fond.isConnected) return;
+    ctx.clearRect(0, 0, L, H);
+    ctx.globalCompositeOperation = "lighter";
+    for (let i = etincelles.length - 1; i >= 0; i--) {
+      const p = etincelles[i];
+      p.vx *= 0.985; p.vy = p.vy * 0.985 + 0.18;      // l'air freine, la pesanteur tire
+      p.x += p.vx; p.y += p.vy;
+      p.vie -= p.usure;
+      if (p.vie <= 0 || p.y > H + 20) { etincelles.splice(i, 1); continue; }
+      ctx.globalAlpha = Math.max(0, p.vie);
+      ctx.fillStyle = p.couleur;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.taille * (0.5 + p.vie), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    if (etincelles.length || t - debut < 1500) requestAnimationFrame(image);
+    else window.removeEventListener("resize", dimensionner);
+  }
+  requestAnimationFrame(image);
 }
 
 /**

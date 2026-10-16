@@ -725,8 +725,21 @@ def bloc_lettre_du_quiz(lettre):
     ])
 
 
-CONSIGNE_BONUS = ("Question Bonus : répondez correctement à la question "
-                  "suivante pour gagner un indice supplémentaire.")
+# L'invitation qui suit le denouement, sur la borne de la serre.
+PHOTOCALL = {
+    "titre": "Un dernier cliché pour le dossier",
+    "textes": [
+        "Avant de quitter la serre, prenez-vous en photo devant le photocall, "
+        "et postez-la sur Instagram en identifiant @pomelolab.",
+        "Chaque jour, la meilleure photo est sélectionnée et reçoit un cadeau surprise.",
+    ],
+    "bouton": "Ouvrir Instagram",
+    "lien": "https://www.instagram.com/pomelolab/",
+}
+
+# Le titre « Question bonus » est deja ecrit en grand juste au-dessus.
+CONSIGNE_BONUS = ("Répondez correctement à la question suivante pour "
+                  "gagner un indice supplémentaire.")
 
 
 def bloc_popquiz(code):
@@ -919,6 +932,15 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
             for par in [x.strip() for x in fin["texte"].split("\n") if x.strip()]:
                 h.append('    <p>%s</p>' % e(par))
             h.append('  </div>')
+        # Pour tous les groupes, quelle que soit leur fin : la photo devant
+        # le photocall de la serre. Cachee jusqu'au verdict.
+        h.append('  <div class="card photocall" data-photocall hidden>')
+        h.append('    <div class="eyebrow">%s</div>' % e(PHOTOCALL["titre"]))
+        for par in PHOTOCALL["textes"]:
+            h.append('    <p>%s</p>' % e(par))
+        h.append('    <a class="btn" href="%s" target="_blank" rel="noopener">%s</a>'
+                 % (e(PHOTOCALL["lien"]), e(PHOTOCALL["bouton"])))
+        h.append('  </div>')
 
     if c in NON_CONSTRUIT and lg["n"] == 3:
         h.append('  <!-- A CONSTRUIRE : %s -->' % NON_CONSTRUIT[c])
