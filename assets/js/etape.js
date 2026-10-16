@@ -175,8 +175,18 @@ function demarrerEtape() {
 
 /** Le média est-il sur l'écran que le joueur a sous les yeux ? */
 function mediaVisible(m) {
+  // Une vidéo en plein écran est, par définition, sous les yeux du joueur.
+  // Sur iPhone, le lecteur natif passe PAR-DESSUS la page, que le navigateur
+  // peut alors tenir pour cachée : sans cette exception, la garde coupait la
+  // vidéo du commissaire en pleine lecture, vers 50 secondes, au moment où
+  // l'iPhone chargeait la suite.
+  //
+  // Mais l'écran passe avant tout : un écran quitté coupe sa vidéo, plein
+  // écran ou non.
   const ecran = m.closest(".ecran");
-  return !document.hidden && !!ecran && !ecran.hidden;
+  if (!ecran || ecran.hidden) return false;
+  if (m.webkitDisplayingFullscreen || document.fullscreenElement === m) return true;
+  return !document.hidden;
 }
 
 function couperLesMediasCaches() {
@@ -193,8 +203,10 @@ function garderLesMediasSousControle() {
   document.querySelectorAll("video, audio").forEach(m => {
     // La garde : un média qui démarre sur un écran caché, ou page masquée,
     // est arrêté aussitôt. C'est elle qui tient le cas de l'écran verrouillé.
+    // Seulement au DÉMARRAGE de la lecture (« play »), pas à chaque reprise
+    // après un chargement (« playing ») : celle-là, l'iPhone la déclenche
+    // seul en cours de lecture, et la couper arrêtait la vidéo.
     m.addEventListener("play", () => { if (!mediaVisible(m)) m.pause(); });
-    m.addEventListener("playing", () => { if (!mediaVisible(m)) m.pause(); });
     // Sortir du plein écran, c'est avoir fini de regarder. Sur iPhone, la
     // vidéo continuait alors dans la page, son compris.
     if (!m.hasAttribute("data-quiz-video")) {
@@ -209,7 +221,14 @@ function garderLesMediasSousControle() {
   });
   // Téléphone verrouillé, autre application, page quittée : tout s'arrête.
   // Au retour, rien ne repart sans que le joueur appuie sur lecture.
-  document.addEventListener("visibilitychange", () => { if (document.hidden) couperTousLesMedias(); });
+  // Une vidéo en plein écran n'est pas touchée : l'iPhone la met lui-même en
+  // pause au verrouillage, et la page peut sembler cachée pendant qu'on la regarde.
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) return;
+    document.querySelectorAll("video, audio").forEach(m => {
+      if (!(m.webkitDisplayingFullscreen || document.fullscreenElement === m)) m.pause();
+    });
+  });
   window.addEventListener("pagehide", couperTousLesMedias);
 }
 
