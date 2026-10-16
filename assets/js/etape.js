@@ -957,6 +957,7 @@ function brancherQuizVideo() {
     });
     majScore();
     if (attente) attente.hidden = true;
+    boutonFinal();
     if (bilan) {
       bilan.hidden = false;
       // La lettre est la récompense, et elle arrive sous le pli.
@@ -968,6 +969,22 @@ function brancherQuizVideo() {
 
   function libererSuivant() {
     if (suivant) suivant.hidden = false;
+  }
+
+  // « Passer la vidéo » : demandé sur le terrain. La vidéo dure près de
+  // quatre minutes, et un groupe pressé doit pouvoir avancer. Il perd les
+  // points des questions qu'il saute, pas la lettre : elle est sur l'écran
+  // d'après. Le même bouton devient « Suivant » une fois le quiz fini.
+  if (suivant) {
+    suivant.textContent = "Passer la vidéo";
+    suivant.classList.add("btn-secondary");
+    suivant.hidden = false;
+  }
+  function boutonFinal() {
+    if (!suivant) return;
+    suivant.textContent = "Suivant";
+    suivant.classList.remove("btn-secondary");
+    suivant.hidden = false;
   }
 
   /* Le quiz sans sa vidéo.
@@ -985,7 +1002,7 @@ function brancherQuizVideo() {
     questions[0].hidden = false;
     const chrono = questions[0].querySelector("[data-chrono]");
     if (chrono) chrono.hidden = true;
-    libererSuivant();
+    boutonFinal();
   }
 
   if (video) {

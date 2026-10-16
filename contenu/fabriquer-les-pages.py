@@ -442,7 +442,7 @@ MEDIAS = {
  "E02": "la-collegue-soigneuse-8bdz93.mp4",
  "E03": "la-videosurveillance-yag6qs.mp4",
  "E05": "la-passante-2-qri7tr.mp4",
- "E06": "quiz-animalier-hwqbca.mp4",
+ "E06": "quiz-animalier-2-hwqbca.mp4",   # version raccourcie, 6 questions
  "E07": "le-veterinaire-66ckyk.mp4",
  "E09": "greg-sens-a-sj7kmm.mp4",
  "E10": "bill-t87isj.mp4",
@@ -636,19 +636,33 @@ def bloc_quiz(code, lettre):
         h.append('    <p class="quiz-verdict" data-verdict hidden></p>')
         h.append('  </div>')
 
+    # Le bilan ne donne plus que le score. La lettre a son propre ecran,
+    # apres « Suivant » (voir bloc_lettre_du_quiz) : posee sous les
+    # questions, elle se voyait des la fin de la video, et elle n'arrivait
+    # jamais quand la video refusait de se charger.
     h.append('  <div class="quiz-bilan" data-bilan hidden>')
     h.append('    <p data-score></p>')
-    if lettre and lettre not in ("-", "/"):
-        # La lettre est donnee quel que soit le score. Le quiz est la pour
-        # faire regarder la video et apprendre quelque chose, pas pour
-        # arreter l'enquete de ceux qui ont mal repondu.
-        h.append('    <div class="card indice">')
-        h.append('      <div class="eyebrow">Vous avez trouvé une lettre</div>')
-        h.append('      <p class="lettre">%s</p>' % e(lettre))
-        h.append('    </div>')
     h.append('  </div>')
     h.append('</div>')
     return "\n".join(h)
+
+
+def bloc_lettre_du_quiz(lettre):
+    """L'ecran qui suit le quiz : la lettre, quel que soit le score.
+
+    Le quiz fait regarder la video et apprendre quelque chose ; il n'arrete
+    pas l'enquete de ceux qui ont mal repondu, ni de ceux dont la video ne
+    s'est pas chargee, ni de ceux qui l'ont passee."""
+    return "\n".join([
+        '<section class="ecran card" hidden>',
+        '  <div class="card indice">',
+        '    <div class="eyebrow">Vous avez trouvé une lettre</div>',
+        '    <p class="lettre">%s</p>' % e(lettre),
+        '  </div>',
+        '  <button data-suivant>Suivant</button>',
+        '  <button class="btn-secondary" data-retour>Revenir en arrière</button>',
+        '</section>',
+    ])
 
 
 CONSIGNE_BONUS = ("Question Bonus : répondez correctement à la question "
@@ -1036,6 +1050,8 @@ for c in PAGES:
         dernier = (i == len(communs) - 1) and not (sorties["A"] or sorties["B"]) \
                   and not bonus_apres
         blocs.append(bloc_ecran(et, x, dernier, None))
+    if c in quiz and et["lettre"] and et["lettre"] not in ("-", "/"):
+        blocs.append(bloc_lettre_du_quiz(et["lettre"]))
     if c in CONFIRMATION_INDICE and et["lettre"]:
         blocs.append(bloc_confirmation(et["lettre"], donnee=(c in LETTRE_DONNEE)))
     # « avant la sortie » : la question vient apres le temoignage, juste avant
