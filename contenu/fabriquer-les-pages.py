@@ -488,7 +488,7 @@ MEDIAS = {
  # le bouton « Décrocher ».
  "E12": "appel-du-commissaire-bm7fpb.mp3",
  "E14": "le-botaniste-acanpa.mp4",
- "E15": "la-serre-h264.mp4",
+ "E15": "la-serre-4.mp4",
  # Greg ne dit pas autre chose selon le sens par lequel on arrive : les
  # deux bornes portent la meme legende et renvoient toutes deux vers
  # Bill. Une seule video, donc, servie aux deux endroits. Ce ne sont pas
