@@ -21,6 +21,11 @@
   .stat-card { background: var(--panel); border: 1px solid var(--hair); border-radius: 8px; padding: 16px 20px; flex: 1; min-width: 160px; }
   .stat-card .num { font-size: 1.8rem; color: var(--gold-bright); font-weight: 700; }
   .stat-card .label { color: var(--fog); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+  /* Les codes derriere chaque chiffre : les 4 derniers caracteres. */
+  .codes { color: var(--ink); font-size: 0.82rem; margin-top: 6px; line-height: 1.6;
+           font-variant-numeric: tabular-nums; letter-spacing: 0.5px; }
+  .codes:empty { display: none; }
+  .codes .sens { color: var(--fog); }
   #gate { max-width: 360px; margin: 100px auto; text-align: center; }
 
   /* ============================================================
@@ -150,6 +155,7 @@
     </div>
     <div class="hero" id="creneauPersonnes">—</div>
     <div class="hero-unite">personnes parties</div>
+    <div class="codes" id="creneauCodesPersonnes"></div>
 
     <div class="jauge">
       <div class="jauge-piste"><div class="jauge-remplissage" id="creneauJauge" style="width:0%"></div></div>
@@ -157,9 +163,9 @@
     </div>
 
     <div class="creneau-chiffres">
-      <div class="chiffre"><div class="valeur" id="creneauGroupes">—</div><div class="etiquette">Groupes partis</div></div>
+      <div class="chiffre"><div class="valeur" id="creneauGroupes">—</div><div class="etiquette">Groupes partis</div><div class="codes" id="creneauCodesGroupes"></div></div>
       <div class="chiffre"><div class="valeur" id="creneauTaille">—</div><div class="etiquette">Personnes par groupe</div></div>
-      <div class="chiffre"><div class="valeur" id="creneauSens">—</div><div class="etiquette">Horaire / antihoraire</div></div>
+      <div class="chiffre"><div class="valeur" id="creneauSens">—</div><div class="etiquette">Horaire / antihoraire</div><div class="codes" id="creneauCodesSens"></div></div>
     </div>
 
     <div class="reserve" id="creneauReserve"></div>
@@ -251,8 +257,30 @@
     return { personnes, groupes: lignes.length, estimes, sens };
   }
 
+  // Les 4 derniers caracteres d'un code, lisibles et jamais pris pour du HTML.
+  function finDeCode(x) {
+    return x && x.code ? "···" + String(x.code).replace(/[^A-Za-z0-9]/g, "") : "···?";
+  }
+  function listeCodes(lignes, detail) {
+    return lignes.map(x => finDeCode(x) + (detail ? detail(x) : "")).join(" · ");
+  }
+  function personnesDe(x) {
+    return x.participants_reels ? " (" + x.participants_reels + ")"
+         : " (" + (x.max_participants || 0) + " prévues)";
+  }
+
   function majCreneau(lignes) {
     const c = compter(lignes);
+    // Qui est parti : le plus recent d'abord.
+    const parDate = lignes.slice().sort((a, b) => new Date(b.activated_at) - new Date(a.activated_at));
+    document.getElementById("creneauCodesPersonnes").textContent = listeCodes(parDate, personnesDe);
+    document.getElementById("creneauCodesGroupes").textContent = listeCodes(parDate);
+    const h = parDate.filter(x => x.direction === "horaire");
+    const a = parDate.filter(x => x.direction === "antihoraire");
+    document.getElementById("creneauCodesSens").innerHTML =
+        (h.length ? '<span class="sens">H :</span> ' + listeCodes(h) : "")
+      + (h.length && a.length ? "<br>" : "")
+      + (a.length ? '<span class="sens">A :</span> ' + listeCodes(a) : "");
     const etat = etatCreneau(c.personnes);
     const bloc = document.getElementById("creneau");
     bloc.style.setProperty("--etat", etat.couleur);
@@ -324,7 +352,9 @@
       // La table des codes est fermée depuis le correctif 6. On passe par
       // une vue qui ne montre que les nombres, jamais les codes eux-mêmes.
       .from("departs_recents")
-      .select("activated_at, participants_reels, max_participants, direction")
+      // « * » : la colonne du code n'existe qu'apres le correctif 11. Sans
+      // lui, le bloc compte comme avant, avec « ···? » a la place des codes.
+      .select("*")
       .gte("activated_at", depuis);
 
     if (error) {
@@ -505,9 +535,14 @@
     const statRow = document.getElementById("statRow");
     const activeCount = live ? live.length : 0;
     const staleCount = live ? live.filter(g => g.last_scan_at && (new Date() - new Date(g.last_scan_at)) / 60000 > 20).length : 0;
+    const enJeu = live || [];
+    const silencieux = enJeu.filter(g => g.last_scan_at && (new Date() - new Date(g.last_scan_at)) / 60000 > 20);
+    const nomBorne = t => String(t || "").replace(/[<>&"']/g, "");
     statRow.innerHTML = `
-      <div class="stat-card"><div class="num">${activeCount}</div><div class="label">Groupes en jeu</div></div>
-      <div class="stat-card"><div class="num">${staleCount}</div><div class="label">Sans scan depuis 20+ min</div></div>
+      <div class="stat-card"><div class="num">${activeCount}</div><div class="label">Groupes en jeu</div>
+        <div class="codes">${listeCodes(enJeu)}</div></div>
+      <div class="stat-card"><div class="num">${staleCount}</div><div class="label">Sans scan depuis 20+ min</div>
+        <div class="codes">${listeCodes(silencieux, g => " (" + nomBorne(g.last_point) + ")")}</div></div>
     `;
 
     // Réconciliation par jour

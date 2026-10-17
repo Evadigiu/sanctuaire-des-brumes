@@ -21,10 +21,11 @@ srv = socketserver.TCPServer(("127.0.0.1", 0), functools.partial(Muet, directory
 PORT = srv.server_address[1]
 threading.Thread(target=srv.serve_forever, daemon=True).start()
 
-def stub(codes, signalements=None):
+def stub(codes, signalements=None, live=None):
     return """
     window.__codes = %s;
     window.__sign = %s;
+    window.__live = %s;
     window.__rpc = [];
     window.supabase = { createClient: () => ({
       rpc: async (nom, args) => { window.__rpc.push([nom, args]);
@@ -35,7 +36,8 @@ def stub(codes, signalements=None):
       // "departs_recents" a remplace la lecture directe de "codes" au
       // correctif 6 : la table est fermee, le backoffice lit une vue.
       const donnees = t === "departs_recents" ? window.__codes
-                    : t === "signalements_recents" ? window.__sign : [];
+                    : t === "signalements_recents" ? window.__sign
+                    : t === "live_dashboard" ? window.__live : [];
       const rep = { data: donnees, error: null };
       const q = {
         select: () => q, order: () => Promise.resolve(rep), eq: () => q,
@@ -45,7 +47,8 @@ def stub(codes, signalements=None):
         then: (f) => Promise.resolve(rep).then(f),
       };
       return q; } }) };
-    """ % (json.dumps(codes), json.dumps(signalements or [], ensure_ascii=False))
+    """ % (json.dumps(codes), json.dumps(signalements or [], ensure_ascii=False),
+           json.dumps(live or [], ensure_ascii=False))
 
 def codes(nb_groupes, par_groupe, minutes=5, declare=True):
     from datetime import datetime, timedelta, timezone
@@ -153,6 +156,45 @@ with sync_playwright() as pw:
             v("   « Tout marquer traite » passe par le guichet, 30 fois",
               len(appels) == 30 and all(x[0] == "marquer_signalement_traite" for x in appels), str(len(appels)))
         page.close()
+
+    # Les codes derriere chaque chiffre : 4 caracteres, jamais le code entier.
+    print("\nLes codes a cote des chiffres")
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(timezone.utc)
+    departs = [dict(c, code="AB%02d" % i) for i, c in enumerate(codes(3, 4))]
+    departs[2]["participants_reels"] = None
+    live = [{"code": "AB00", "max_participants": 4, "direction": "horaire",
+             "last_point": "Bill", "last_scan_at": (now - timedelta(minutes=3)).isoformat()},
+            {"code": "AB01", "max_participants": 4, "direction": "antihoraire",
+             "last_point": "La passante", "last_scan_at": (now - timedelta(minutes=35)).isoformat()}]
+    page = nav.new_page()
+    page.add_init_script(stub(departs, [], live))
+    page.goto("http://127.0.0.1:%d/backoffice/dashboard.html" % PORT)
+    page.fill("#pwd", "brumes2026"); page.click("#enterBtn"); page.wait_for_timeout(400)
+    t = lambda sel: page.text_content(sel)
+    v("personnes parties : codes et nombre de chacun",
+      "···AB00 (4)" in t("#creneauCodesPersonnes") and "···AB02 (4 prévues)" in t("#creneauCodesPersonnes"),
+      t("#creneauCodesPersonnes"))
+    v("groupes partis : les trois codes", all("···AB0%d" % i in t("#creneauCodesGroupes") for i in range(3)),
+      t("#creneauCodesGroupes"))
+    v("sens : codes horaires et antihoraires a part",
+      t("#creneauCodesSens").startswith("H : ") and "A : ···AB01" in t("#creneauCodesSens")
+      and "···AB01" not in t("#creneauCodesSens").split("A :")[0]
+      and all(x in t("#creneauCodesSens").split("A :")[0] for x in ("···AB00", "···AB02")),
+      t("#creneauCodesSens"))
+    cartes = page.eval_on_selector_all("#statRow .stat-card .codes", "e=>e.map(x=>x.textContent)")
+    v("groupes en jeu : leurs codes", "···AB00" in cartes[0] and "···AB01" in cartes[0], str(cartes))
+    v("sans scan depuis 20 min : le code et sa derniere borne",
+      cartes[1].strip() == "···AB01 (La passante)", str(cartes))
+    page.close()
+    # Avant le correctif 11, la vue n'a pas de code : on compte quand meme.
+    page = nav.new_page()
+    page.add_init_script(stub(codes(2, 3), []))
+    page.goto("http://127.0.0.1:%d/backoffice/dashboard.html" % PORT)
+    page.fill("#pwd", "brumes2026"); page.click("#enterBtn"); page.wait_for_timeout(400)
+    v("sans le correctif 11 : le compte reste juste, codes en « ···? »",
+      t("#creneauGroupes").strip() == "2" and "···?" in t("#creneauCodesGroupes"), t("#creneauCodesGroupes"))
+    page.close()
 
     print("\nClore un signalement")
     page = nav.new_page()
