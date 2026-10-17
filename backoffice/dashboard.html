@@ -87,6 +87,16 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
   td.nombre { font-variant-numeric: tabular-nums; }
+  .historique-outils { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; margin: 12px 0; }
+  .historique-outils label { color: var(--fog); font-size: 0.85rem; display: flex; gap: 6px; align-items: center; }
+  .historique-outils button { width: auto; margin: 0; padding: 8px 16px; font-size: 0.82rem; }
+  .historique-outils select { background: var(--panel); color: var(--ink); border: 1px solid var(--hair); border-radius: 6px; padding: 6px; }
+  .defilant { overflow-x: auto; }
+  #partiesTable td { font-size: 0.82rem; vertical-align: top; white-space: nowrap; }
+  #partiesTable td.texte { white-space: normal; min-width: 180px; }
+  #partiesTable details summary { cursor: pointer; color: var(--gold); }
+  #partiesTable details div { white-space: normal; min-width: 260px; color: var(--fog); margin-top: 6px; }
+  .fin-Bon { color: var(--green); } .fin-Moyen { color: var(--gold-bright); } .fin-Mauvais { color: var(--red); }
 
   /* ============================================================
      SIGNALEMENTS DU TERRAIN
@@ -128,6 +138,8 @@
   .diagnostics summary { cursor: pointer; padding: 8px 0; }
   .diagnostics #toutTraiter { width: auto; margin: 8px 0; padding: 8px 16px; font-size: 0.82rem; }
   .signalement.clos .cat { background: var(--panel2); color: var(--fog); }
+  .barre-compte { font-size: 0.8rem; }
+  .barre-compte .btn-lien { display: inline; width: auto; margin: 0; padding: 0; font-size: 0.8rem; }
 </style>
 </head>
 <body>
@@ -135,15 +147,17 @@
 <div id="gate">
   <h1>Accès réservé</h1>
   <p class="muted">Suivi en direct, équipe Pomelo uniquement.</p>
-  <input type="text" id="pwd" placeholder="Mot de passe">
-  <button id="enterBtn">Entrer</button>
-  <div class="error-box" id="gateError">Mot de passe incorrect.</div>
+  <input type="email" id="gateEmail" placeholder="E-mail" autocomplete="username">
+  <input type="password" id="gateMdp" placeholder="Mot de passe" autocomplete="current-password">
+  <button id="enterBtn">Se connecter</button>
+  <div class="error-box" id="gateError"></div>
 </div>
 
 <div class="wrap" id="dashboard" style="display:none;">
   <div class="eyebrow">Backoffice, Pomelo Événementiel</div>
   <h1>Suivi en direct</h1>
   <p class="muted"><a href="statistiques.html" style="color:var(--gold);">Voir les statistiques →</a></p>
+  <p class="muted barre-compte"><span id="quiEstConnecte"></span> · <button type="button" class="btn-lien" id="seDeconnecter">Se déconnecter</button></p>
   <p class="muted">Groupes ayant activé leur code et actuellement en jeu. Ne montre pas les réservations SeeTickets, seulement les codes activés sur le terrain. Actualisation automatique toutes les 15 secondes.</p>
 
   <div id="zoneAlerte"></div>
@@ -198,29 +212,32 @@
     </thead>
     <tbody id="reconBody"><tr><td colspan="3" class="loading">Chargement...</td></tr></tbody>
   </table>
+
+  <!-- TOUTES LES PARTIES : la memoire du jeu, pour en tirer des lecons.
+       Rien n'est jamais efface en base ; ce tableau relit tout. -->
+  <h2 style="font-family:var(--texte); font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--gold-bright); font-size:0.95rem; margin-top:40px;">Toutes les parties</h2>
+  <p class="muted">Une ligne par groupe parti depuis l'ouverture, avec tout ce que le jeu sait de lui. Rien n'est effacé.</p>
+  <div class="historique-outils">
+    <label><input type="checkbox" id="histoSansTest" checked> Masquer les codes de test</label>
+    <label>Jour <select id="histoJour"><option value="">Tous</option></select></label>
+    <button type="button" class="btn-secondary" id="histoActualiser">Actualiser</button>
+    <button type="button" id="histoExporter">Exporter (CSV)</button>
+  </div>
+  <p class="muted" id="histoResume"></p>
+  <div class="defilant">
+    <table id="partiesTable">
+      <thead><tr><th>Départ</th><th>Code</th><th>Groupe</th><th>Joueurs</th><th>Sens</th><th>Bornes</th><th>Dernière borne</th><th>Durée</th><th>Fin</th><th>Signal.</th><th>Parcours</th></tr></thead>
+      <tbody id="partiesBody"><tr><td colspan="11" class="loading">Chargement...</td></tr></tbody>
+    </table>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="../assets/js/supabase-client.js"></script>
+<script src="connexion.js"></script>
 <script>
-  // Protection légère : décourage la consultation occasionnelle par
-  // quelqu'un qui tomberait sur l'URL. Ce n'est PAS une vraie sécurité :
-  // les données elles-mêmes restent lisibles via la clé publique du site,
-  // comme toutes les tables en lecture publique de ce projet. Une vraie
-  // authentification (Supabase Auth) sera à mettre en place avant le
-  // lancement si ce dashboard doit rester confidentiel.
-  const DASHBOARD_PASSWORD = "brumes2026"; // à changer avant le lancement
-
-  document.getElementById("enterBtn").addEventListener("click", () => {
-    if (document.getElementById("pwd").value === DASHBOARD_PASSWORD) {
-      document.getElementById("gate").style.display = "none";
-      document.getElementById("dashboard").style.display = "block";
-      loadData();
-      setInterval(loadData, 15000);
-    } else {
-      document.getElementById("gateError").classList.add("visible");
-    }
-  });
+  // L'acces : un compte de l'equipe, verifie par Supabase (connexion.js).
+  porteEquipe("dashboard", () => { loadData(); setInterval(loadData, 15000); });
 
   // ============================================================
   // LE CRÉNEAU EN COURS
@@ -257,8 +274,16 @@
     return { personnes, groupes: lignes.length, estimes, sens };
   }
 
-  // Les 4 derniers caracteres d'un code, lisibles et jamais pris pour du HTML.
+  // Tout ce qui vient de la base (noms d'equipe, bornes, messages) est
+  // ecrit par le public quelque part : jamais lu comme du HTML.
+  function esc(t) {
+    return String(t == null ? "" : t).replace(/[&<>"']/g,
+      c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  }
+  // Le code entier depuis le correctif 12 (vues reservees a l'equipe),
+  // sinon ses 4 derniers caracteres.
   function finDeCode(x) {
+    if (x && x.code_complet) return String(x.code_complet).replace(/[^A-Za-z0-9]/g, "");
     return x && x.code ? "···" + String(x.code).replace(/[^A-Za-z0-9]/g, "") : "···?";
   }
   function listeCodes(lignes, detail) {
@@ -502,7 +527,129 @@
     });
   }
 
+  // ============================================================
+  // TOUTES LES PARTIES
+  //
+  // La vue historique_parties (correctif 12) donne une ligne par groupe
+  // parti, du plus recent au plus ancien. On la relit a l'ouverture, toutes
+  // les deux minutes, et au bouton « Actualiser » : pas a chaque tour de
+  // 15 secondes, elle grossit tout le mois.
+  // ============================================================
+  let parties = [];
+  const LIBELLE_FIN = { Bon: "Trouvé", Moyen: "Presque", Mauvais: "Raté" };
+
+  const jourDe = d => new Date(d).toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" });
+  const heureDe = d => new Date(d).toLocaleTimeString("fr-FR",
+    { timeZone: "Europe/Paris", hour: "2-digit", minute: "2-digit" });
+  function duree(debut, fin) {
+    if (!debut || !fin) return "";
+    const min = Math.round((new Date(fin) - new Date(debut)) / 60000);
+    return min < 60 ? min + " min" : Math.floor(min / 60) + " h " + String(min % 60).padStart(2, "0");
+  }
+  function issue(p) {
+    if (p.denouement) return (LIBELLE_FIN[p.denouement] || p.denouement)
+                           + (p.conclusion ? " : " + p.conclusion : "");
+    if (p.a_atteint_la_serre) return "Serre atteinte, sans réponse";
+    if (new Date(p.expires_at) < new Date()) return "Abandon (temps écoulé)";
+    return "En cours";
+  }
+  function partiesAffichees() {
+    const sansTest = document.getElementById("histoSansTest").checked;
+    const jour = document.getElementById("histoJour").value;
+    return parties.filter(p => (!sansTest || !/^TEST/i.test(p.code || ""))
+                            && (!jour || jourDe(p.activated_at) === jour));
+  }
+
+  function afficherParties() {
+    const corps = document.getElementById("partiesBody");
+    const liste = partiesAffichees();
+    const finis = liste.filter(p => p.denouement);
+    const trouves = finis.filter(p => p.denouement === "Bon").length;
+    const joueurs = liste.reduce((n, p) => n + (p.participants_reels || p.max_participants || 0), 0);
+    document.getElementById("histoResume").textContent = liste.length
+      ? liste.length + " partie(s), " + joueurs + " joueur(s). "
+        + finis.length + (finis.length > 1 ? " ont" : " a") + " rendu ses conclusions, dont "
+        + trouves + (trouves > 1 ? " ont" : " a") + " trouvé."
+      : "";
+    if (!liste.length) {
+      corps.innerHTML = '<tr><td colspan="11" class="muted">Aucune partie pour ce filtre.</td></tr>';
+      return;
+    }
+    corps.innerHTML = liste.map(p => '<tr>'
+      + '<td>' + esc(jourDe(p.activated_at)) + '<br>' + esc(heureDe(p.activated_at)) + '</td>'
+      + '<td>' + esc(p.code) + '</td>'
+      + '<td class="texte">' + esc(p.nom_groupe || "—") + '</td>'
+      + '<td class="nombre">' + (p.participants_reels || ((p.max_participants || "?") + " prévus")) + '</td>'
+      + '<td><span class="badge ' + esc(p.direction) + '">' + esc(p.direction) + '</span></td>'
+      + '<td class="nombre">' + (p.nb_bornes || 0) + '</td>'
+      + '<td>' + esc(p.derniere_borne || "—") + '</td>'
+      + '<td class="nombre">' + esc(duree(p.activated_at, p.dernier_scan)) + '</td>'
+      + '<td class="texte fin-' + esc(p.denouement || "") + '">' + esc(issue(p)) + '</td>'
+      + '<td class="nombre">' + (p.nb_signalements || 0) + '</td>'
+      + '<td>' + (p.parcours ? '<details><summary>voir</summary><div>' + esc(p.parcours) + '</div></details>' : "—") + '</td>'
+      + '</tr>').join("");
+  }
+
+  async function chargerParties() {
+    const { data, error } = await supabaseClient
+      .from("historique_parties").select("*")
+      .order("activated_at", { ascending: false }).limit(10000);
+    const corps = document.getElementById("partiesBody");
+    if (error) {
+      corps.innerHTML = '<tr><td colspan="11" class="muted">Lecture impossible : ' + esc(error.message)
+        + '. Le correctif 12 a-t-il été lancé dans Supabase ?</td></tr>';
+      return;
+    }
+    parties = data || [];
+    // Les jours proposes au filtre : ceux ou l'on a joue.
+    const choix = document.getElementById("histoJour");
+    const garde = choix.value;
+    const jours = [...new Set(parties.map(p => jourDe(p.activated_at)))];
+    choix.innerHTML = '<option value="">Tous</option>'
+      + jours.map(j => '<option' + (j === garde ? ' selected' : '') + '>' + esc(j) + '</option>').join("");
+    afficherParties();
+  }
+
+  // Le CSV s'ouvre dans Excel ou Numbers : point-virgule, et BOM pour les accents.
+  function exporterParties() {
+    const cols = [
+      ["Départ", p => jourDe(p.activated_at) + " " + heureDe(p.activated_at)],
+      ["Code", p => p.code], ["Groupe", p => p.nom_groupe],
+      ["Joueurs déclarés", p => p.participants_reels], ["Joueurs prévus", p => p.max_participants],
+      ["Sens", p => p.direction], ["Bornes", p => p.nb_bornes], ["Scans", p => p.nb_scans],
+      ["Dernière borne", p => p.derniere_borne],
+      ["Premier scan", p => p.premier_scan && heureDe(p.premier_scan)],
+      ["Dernier scan", p => p.dernier_scan && heureDe(p.dernier_scan)],
+      ["Durée", p => duree(p.activated_at, p.dernier_scan)],
+      ["Serre atteinte", p => p.a_atteint_la_serre ? "oui" : "non"],
+      ["Dénouement", p => p.denouement], ["Réponse choisie", p => p.conclusion],
+      ["Signalements", p => p.nb_signalements], ["Parcours", p => p.parcours],
+    ];
+    const cellule = v => {
+      const t = String(v == null ? "" : v);
+      return /[";\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+    };
+    const lignes = [cols.map(c => c[0]).join(";")]
+      .concat(partiesAffichees().map(p => cols.map(c => cellule(c[1](p))).join(";")));
+    const blob = new Blob(["\ufeff" + lignes.join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "sanctuaire-parties-" + new Date().toISOString().slice(0, 10) + ".csv";
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+
+  document.getElementById("histoSansTest").addEventListener("change", afficherParties);
+  document.getElementById("histoJour").addEventListener("change", afficherParties);
+  document.getElementById("histoActualiser").addEventListener("click", chargerParties);
+  document.getElementById("histoExporter").addEventListener("click", exporterParties);
+  let partiesDemarrees = false;
+
   async function loadData() {
+    if (!partiesDemarrees) {
+      partiesDemarrees = true;
+      chargerParties();
+      setInterval(chargerParties, 120000);
+    }
     chargerCreneau();
     chargerSignalements();
 
@@ -522,10 +669,10 @@
         const staleMin = g.last_scan_at ? (new Date() - new Date(g.last_scan_at)) / 60000 : 999;
         const staleClass = staleMin > 20 ? "stale" : "";
         return `<tr class="${staleClass}">
-          <td>···${g.code}</td>
-          <td>${g.max_participants}</td>
+          <td>${finDeCode(g)}${g.nom_groupe ? '<br><span class="muted">' + esc(g.nom_groupe) + '</span>' : ""}</td>
+          <td>${g.participants_reels || g.max_participants}</td>
           <td><span class="badge ${g.direction}">${g.direction}</span></td>
-          <td>${g.last_point || "—"}</td>
+          <td>${esc(g.last_point || "—")}</td>
           <td>${g.last_scan_at ? timeAgo(g.last_scan_at) : "—"}</td>
         </tr>`;
       }).join("");

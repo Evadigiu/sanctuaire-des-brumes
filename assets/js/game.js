@@ -50,6 +50,15 @@ async function activateCode(code, participantName, nbJoueurs) {
     nbJoueurs: nbJoueurs || null,
   };
   saveSession(session);
+  // Le nom d'équipe, gardé en base pour l'historique du backoffice. Appel
+  // à part et sans attente : s'il échoue (correctif 12 pas encore lancé,
+  // réseau), la partie démarre exactement pareil.
+  if (participantName && String(participantName).trim()) {
+    try {
+      supabaseClient.rpc("nommer_groupe", { p_code_id: data.code_id, p_nom: String(participantName).trim() })
+        .then(() => {}, () => {});
+    } catch (e) { }
+  }
   return { ok: true, session };
 }
 

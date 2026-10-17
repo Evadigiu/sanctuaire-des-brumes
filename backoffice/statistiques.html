@@ -21,6 +21,8 @@
   h2 { font-family: var(--texte); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--gold-bright); font-size: 0.95rem; margin-top: 32px; }
   #gate { max-width: 360px; margin: 100px auto; text-align: center; }
   .note { color: var(--fog); font-size: 0.85rem; font-style: italic; margin-top: 6px; }
+  .barre-compte { font-size: 0.8rem; }
+  .barre-compte .btn-lien { display: inline; width: auto; margin: 0; padding: 0; font-size: 0.8rem; }
 </style>
 </head>
 <body>
@@ -28,15 +30,17 @@
 <div id="gate">
   <h1>Accès réservé</h1>
   <p class="muted">Statistiques, équipe Pomelo uniquement.</p>
-  <input type="text" id="pwd" placeholder="Mot de passe">
-  <button id="enterBtn">Entrer</button>
-  <div class="error-box" id="gateError">Mot de passe incorrect.</div>
+  <input type="email" id="gateEmail" placeholder="E-mail" autocomplete="username">
+  <input type="password" id="gateMdp" placeholder="Mot de passe" autocomplete="current-password">
+  <button id="enterBtn">Se connecter</button>
+  <div class="error-box" id="gateError"></div>
 </div>
 
 <div class="wrap" id="statsPage" style="display:none;">
   <div class="eyebrow">Backoffice, Pomelo Événementiel</div>
   <h1>Statistiques du jeu</h1>
   <p class="muted"><a href="dashboard.html" style="color:var(--gold);">← Voir le suivi en direct</a></p>
+  <p class="muted barre-compte"><span id="quiEstConnecte"></span> · <button type="button" class="btn-lien" id="seDeconnecter">Se déconnecter</button></p>
 
   <div class="stat-row" id="summaryRow"></div>
 
@@ -57,18 +61,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="../assets/js/supabase-client.js"></script>
+<script src="connexion.js"></script>
 <script>
-  const DASHBOARD_PASSWORD = "brumes2026"; // même mot de passe que le dashboard, à changer avant le lancement
-
-  document.getElementById("enterBtn").addEventListener("click", () => {
-    if (document.getElementById("pwd").value === DASHBOARD_PASSWORD) {
-      document.getElementById("gate").style.display = "none";
-      document.getElementById("statsPage").style.display = "block";
-      loadStats();
-    } else {
-      document.getElementById("gateError").classList.add("visible");
-    }
-  });
+  // L'acces : un compte de l'equipe, verifie par Supabase (connexion.js).
+  // Appelee plus bas, une fois loadStats definie.
 
   function formatDuration(intervalStr) {
     if (!intervalStr) return "—";
@@ -138,6 +134,7 @@
       </tr>`).join("");
     }
   }
+  porteEquipe("statsPage", loadStats);
 </script>
 
 </body>
