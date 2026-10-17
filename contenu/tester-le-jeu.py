@@ -43,6 +43,9 @@ def init(sens):
       // Depuis le correctif 6, le passage d'une borne s'enregistre par un
       // guichet (rpc) et non plus par une ecriture directe dans la table.
       rpc: async (nom, args) => {
+        // Le journal des guichets appeles survit au rechargement de la page.
+        try { const l = JSON.parse(sessionStorage.getItem("__rpcs") || "[]");
+              l.push([nom, args]); sessionStorage.setItem("__rpcs", JSON.stringify(l)); } catch (e) { }
         if (nom === "enregistrer_passage") { window.__scans.push(args);
           return { data: { ok: true }, error: null }; }
         if (nom === "enregistrer_conclusions") { window.__scans.push(args);
@@ -291,6 +294,27 @@ with sync_playwright() as pw:
             "session": pg.evaluate("localStorage.getItem('sdb_session') !== null"),
         })
         return pg, etat
+
+    # Le nom d'equipe part en base, par son propre guichet, apres l'activation.
+    pg, e = demarrer_au_commissaire("horaire")
+    appels = pg.evaluate("JSON.parse(sessionStorage.getItem('__rpcs') || '[]')")
+    noms = [a for a in appels if a[0] == "nommer_groupe"]
+    verifier("le nom d'equipe est garde en base, apres l'activation",
+             len(noms) == 1 and noms[0][1] == {"p_code_id": "c1", "p_nom": "Eva"}
+             and [a[0] for a in appels].index("activer_code") < [a[0] for a in appels].index("nommer_groupe"),
+             str(appels))
+    pg.close()
+    # Guichet absent (correctif 12 pas lance) : la partie demarre quand meme.
+    _init = init
+    def init(sens, _i=_init):
+        return _i(sens).replace('rpc: async (nom, args) => {',
+            'rpc: async (nom, args) => { if (nom === "nommer_groupe") '
+            'return { data: null, error: { message: "Could not find the function" } };', 1)
+    pg, e = demarrer_au_commissaire("horaire")
+    verifier("sans le guichet du nom, la partie demarre quand meme",
+             e["session"] and e["formulaire"] == 0 and e["ecrans"] == 1, str(e))
+    pg.close()
+    init = _init
 
     for sens in ("horaire", "antihoraire"):
         pg, e = demarrer_au_commissaire(sens)

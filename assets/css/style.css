@@ -145,7 +145,8 @@ label {
 input[type="text"],
 input[type="number"],
 input[type="tel"],
-input[type="email"] {
+input[type="email"],
+input[type="password"] {
   width: 100%;
   padding: 12px 14px;
   background: var(--panel2);
@@ -158,7 +159,8 @@ input[type="email"] {
 input[type="text"]:focus,
 input[type="number"]:focus,
 input[type="tel"]:focus,
-input[type="email"]:focus { outline: none; border-color: var(--gold); }
+input[type="email"]:focus,
+input[type="password"]:focus { outline: none; border-color: var(--gold); }
 
 /* Les fleches haut/bas d'un champ numerique volent de la place et se ratent
    au pouce. Le clavier du telephone suffit. */

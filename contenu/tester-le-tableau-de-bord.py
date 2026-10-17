@@ -21,26 +21,41 @@ srv = socketserver.TCPServer(("127.0.0.1", 0), functools.partial(Muet, directory
 PORT = srv.server_address[1]
 threading.Thread(target=srv.serve_forever, daemon=True).start()
 
-def stub(codes, signalements=None, live=None):
+def stub(codes, signalements=None, live=None, parties=None, connecte=False):
     return """
     window.__codes = %s;
     window.__sign = %s;
     window.__live = %s;
+    window.__parties = %s;
+    window.__lectures = [];
+    // Supabase Auth : un seul compte, mot de passe « bon ».
+    window.__session = %s;
+    const auth = {
+      getSession: async () => ({ data: { session: window.__session }, error: null }),
+      signInWithPassword: async ({ email, password }) => {
+        if (password !== "bon") return { data: { session: null },
+          error: { message: "Invalid login credentials" } };
+        window.__session = { user: { email } };
+        return { data: { session: window.__session }, error: null }; },
+      signOut: async () => { window.__session = null; return { error: null }; },
+    };
     window.__rpc = [];
     window.supabase = { createClient: () => ({
+      auth,
       rpc: async (nom, args) => { window.__rpc.push([nom, args]);
         const s = window.__sign.find(x => x.id === args.p_id);
         if (s) s.traite_le = new Date().toISOString();
         return { data: s ? s.traite_le : null, error: null }; },
-      from: (t) => {
+      from: (t) => { window.__lectures.push(t);
       // "departs_recents" a remplace la lecture directe de "codes" au
       // correctif 6 : la table est fermee, le backoffice lit une vue.
       const donnees = t === "departs_recents" ? window.__codes
                     : t === "signalements_recents" ? window.__sign
-                    : t === "live_dashboard" ? window.__live : [];
+                    : t === "live_dashboard" ? window.__live
+                    : t === "historique_parties" ? window.__parties : [];
       const rep = { data: donnees, error: null };
       const q = {
-        select: () => q, order: () => Promise.resolve(rep), eq: () => q,
+        select: () => q, order: () => q, eq: () => q,
         not: () => q, limit: () => Promise.resolve(rep),
         gte: () => Promise.resolve(rep),
         maybeSingle: () => Promise.resolve({ data: null }),
@@ -48,7 +63,13 @@ def stub(codes, signalements=None, live=None):
       };
       return q; } }) };
     """ % (json.dumps(codes), json.dumps(signalements or [], ensure_ascii=False),
-           json.dumps(live or [], ensure_ascii=False))
+           json.dumps(live or [], ensure_ascii=False), json.dumps(parties or [], ensure_ascii=False),
+           '{ user: { email: "eva@exemple.fr" } }' if connecte else "null")
+
+def entrer(page):
+    """Se connecter avec le compte de l'equipe."""
+    page.fill("#gateEmail", "eva@exemple.fr"); page.fill("#gateMdp", "bon")
+    page.click("#enterBtn"); page.wait_for_timeout(400)
 
 def codes(nb_groupes, par_groupe, minutes=5, declare=True):
     from datetime import datetime, timedelta, timezone
@@ -91,7 +112,7 @@ with sync_playwright() as pw:
         page = nav.new_page()
         page.add_init_script(stub(jeu))
         page.goto("http://127.0.0.1:%d/backoffice/dashboard.html" % PORT)
-        page.fill("#pwd", "brumes2026"); page.click("#enterBtn")
+        entrer(page)
         page.wait_for_timeout(400)
         print("\n%s" % libelle)
         v("personnes", page.text_content("#creneauPersonnes").strip() == attendu["pers"],
@@ -115,7 +136,7 @@ with sync_playwright() as pw:
         page = nav.new_page()
         page.add_init_script(stub(codes(2, 3), jeu))
         page.goto("http://127.0.0.1:%d/backoffice/dashboard.html" % PORT)
-        page.fill("#pwd", "brumes2026"); page.click("#enterBtn"); page.wait_for_timeout(400)
+        entrer(page)
         a_alerte = page.eval_on_selector_all(".alerte", "e=>e.length") > 0
         titre = page.title().startswith("(")
         print("   %s" % libelle)
@@ -140,7 +161,7 @@ with sync_playwright() as pw:
         page = nav.new_page()
         page.add_init_script(stub(codes(2, 3), jeu))
         page.goto("http://127.0.0.1:%d/backoffice/dashboard.html" % PORT)
-        page.fill("#pwd", "brumes2026"); page.click("#enterBtn"); page.wait_for_timeout(400)
+        entrer(page)
         print("   %s" % libelle)
         v("   alerte %s" % ("pour le vrai probleme seulement" if alerte else "absente"),
           (page.eval_on_selector_all(".alerte", "e=>e.length") > 0) == alerte
@@ -170,7 +191,7 @@ with sync_playwright() as pw:
     page = nav.new_page()
     page.add_init_script(stub(departs, [], live))
     page.goto("http://127.0.0.1:%d/backoffice/dashboard.html" % PORT)
-    page.fill("#pwd", "brumes2026"); page.click("#enterBtn"); page.wait_for_timeout(400)
+    entrer(page)
     t = lambda sel: page.text_content(sel)
     v("personnes parties : codes et nombre de chacun",
       "···AB00 (4)" in t("#creneauCodesPersonnes") and "···AB02 (4 prévues)" in t("#creneauCodesPersonnes"),
@@ -191,16 +212,121 @@ with sync_playwright() as pw:
     page = nav.new_page()
     page.add_init_script(stub(codes(2, 3), []))
     page.goto("http://127.0.0.1:%d/backoffice/dashboard.html" % PORT)
-    page.fill("#pwd", "brumes2026"); page.click("#enterBtn"); page.wait_for_timeout(400)
+    entrer(page)
     v("sans le correctif 11 : le compte reste juste, codes en « ···? »",
       t("#creneauGroupes").strip() == "2" and "···?" in t("#creneauCodesGroupes"), t("#creneauCodesGroupes"))
+    page.close()
+
+    # ------------------------------------------------------------
+    # LA PORTE : plus de mot de passe ecrit dans la page, un compte Supabase.
+    # ------------------------------------------------------------
+    print("\nLa connexion de l'equipe")
+    for fichier, bloc in [("dashboard.html", "#dashboard"), ("statistiques.html", "#statsPage")]:
+        source = open(os.path.join(RACINE, "backoffice", fichier)).read()
+        v(fichier + " : plus aucun mot de passe dans la page", "brumes2026" not in source)
+        page = nav.new_page()
+        page.add_init_script(stub(codes(2, 3), []))
+        page.goto("http://127.0.0.1:%d/backoffice/%s" % (PORT, fichier)); page.wait_for_timeout(300)
+        v(fichier + " : fermee, et rien n'est lu avant connexion",
+          not page.is_visible(bloc) and page.evaluate("window.__lectures.length") == 0,
+          str(page.evaluate("window.__lectures")))
+        page.fill("#gateEmail", "eva@exemple.fr"); page.fill("#gateMdp", "faux")
+        page.click("#enterBtn"); page.wait_for_timeout(300)
+        v(fichier + " : mauvais mot de passe refuse",
+          not page.is_visible(bloc) and "incorrect" in page.text_content("#gateError"),
+          page.text_content("#gateError"))
+        page.fill("#gateMdp", "bon"); page.press("#gateMdp", "Enter"); page.wait_for_timeout(400)
+        v(fichier + " : bon mot de passe, la page s'ouvre", page.is_visible(bloc))
+        v(fichier + " : le compte connecte est affiche",
+          "eva@exemple.fr" in page.text_content("#quiEstConnecte"))
+        page.click("#seDeconnecter"); page.wait_for_timeout(400)
+        v(fichier + " : « Se deconnecter » referme la page", not page.is_visible(bloc))
+        page.close()
+    page = nav.new_page()
+    page.add_init_script(stub(codes(2, 3), [], connecte=True))
+    page.goto("http://127.0.0.1:%d/backoffice/dashboard.html" % PORT); page.wait_for_timeout(400)
+    v("deja connecte sur cet appareil : on entre directement", page.is_visible("#dashboard"))
+    page.close()
+
+    # ------------------------------------------------------------
+    # TOUTES LES PARTIES
+    # ------------------------------------------------------------
+    print("\nToutes les parties")
+    hier = (now - timedelta(days=1))
+    parties = [
+      {"activated_at": (now - timedelta(minutes=50)).isoformat(), "code": "K7NPX4RT",
+       "nom_groupe": '<img src=x onerror="window.__xss=1">Les Limiers', "participants_reels": 4,
+       "max_participants": 4, "direction": "horaire", "expires_at": (now + timedelta(hours=2)).isoformat(),
+       "nb_bornes": 6, "nb_scans": 7, "dernier_scan": (now - timedelta(minutes=5)).isoformat(),
+       "derniere_borne": "Bill", "a_atteint_la_serre": False, "parcours": "Le commissaire Jean 09:10 → Bill 09:55",
+       "conclusion": None, "denouement": None, "nb_signalements": 1},
+      {"activated_at": hier.isoformat(), "code": "QX2MAB12", "nom_groupe": "Les Hiboux",
+       "participants_reels": None, "max_participants": 3, "direction": "antihoraire",
+       "expires_at": (hier + timedelta(hours=3)).isoformat(), "nb_bornes": 15, "nb_scans": 15,
+       "dernier_scan": (hier + timedelta(minutes=112)).isoformat(), "derniere_borne": "La serre",
+       "a_atteint_la_serre": True, "parcours": "…", "conclusion": "Elle s'est endormie.",
+       "denouement": "Bon", "nb_signalements": 0},
+      {"activated_at": hier.isoformat(), "code": "TEST0001", "nom_groupe": "Equipe", "participants_reels": 2,
+       "max_participants": 2, "direction": "horaire", "expires_at": hier.isoformat(), "nb_bornes": 1,
+       "nb_scans": 1, "dernier_scan": hier.isoformat(), "derniere_borne": "Le commissaire Jean",
+       "a_atteint_la_serre": False, "parcours": "", "conclusion": None, "denouement": None, "nb_signalements": 0},
+    ]
+    live_complet = [dict(live[0], code_complet="K7NPX4RT", nom_groupe="Les Limiers", participants_reels=4)]
+    page = nav.new_page(accept_downloads=True)
+    page.add_init_script(stub([dict(c, code="X4RT", code_complet="K7NPX4RT") for c in codes(1, 4)],
+                              [], live_complet, parties))
+    page.goto("http://127.0.0.1:%d/backoffice/dashboard.html" % PORT)
+    entrer(page); page.wait_for_timeout(300)
+    lignes = page.eval_on_selector_all("#partiesBody tr", "e=>e.map(x=>x.innerText)")
+    v("une ligne par partie, codes de test masques", len(lignes) == 2, str(lignes))
+    v("la plus recente en haut, code entier et nom du groupe",
+      "K7NPX4RT" in lignes[0] and "Les Limiers" in lignes[0], lignes[0])
+    v("un nom d'equipe n'est jamais lu comme du HTML", not page.evaluate("window.__xss"))
+    v("partie finie : duree et denouement",
+      "1 h 52" in lignes[1] and "Trouvé : Elle s'est endormie." in lignes[1], lignes[1])
+    v("partie en cours dite en cours", "En cours" in lignes[0], lignes[0])
+    v("joueurs non declares : la capacite prevue", "3 prévus" in lignes[1], lignes[1])
+    v("le resume compte parties et trouvailles",
+      "2 partie(s)" in page.text_content("#histoResume") and "dont 1 a trouvé" in page.text_content("#histoResume"),
+      page.text_content("#histoResume"))
+    page.uncheck("#histoSansTest"); page.wait_for_timeout(100)
+    v("decocher : les codes de test reviennent",
+      page.eval_on_selector_all("#partiesBody tr", "e=>e.length") == 3)
+    page.check("#histoSansTest")
+    jours = page.eval_on_selector_all("#histoJour option", "e=>e.map(x=>x.value)")
+    page.select_option("#histoJour", jours[-1]); page.wait_for_timeout(100)
+    v("filtre par jour", page.eval_on_selector_all("#partiesBody tr", "e=>e.length") == 1, str(jours))
+    page.select_option("#histoJour", "")
+    with page.expect_download() as dl:
+        page.click("#histoExporter")
+    contenu = open(dl.value.path(), encoding="utf-8-sig").read()
+    v("l'export CSV contient chaque partie et son parcours",
+      contenu.count("\n") == 2 and "K7NPX4RT" in contenu and "Le commissaire Jean 09:10" in contenu
+      and contenu.startswith("Départ;Code;Groupe"), contenu[:200])
+    v("groupes actifs : code entier et nom",
+      "K7NPX4RT" in page.text_content("#liveBody") and "Les Limiers" in page.text_content("#liveBody"),
+      page.text_content("#liveBody"))
+    v("creneau : code entier", "K7NPX4RT" in page.text_content("#creneauCodesGroupes"),
+      page.text_content("#creneauCodesGroupes"))
+    page.close()
+    # Avant le correctif 12, la vue n'existe pas : on le dit, sans casser le reste.
+    page = nav.new_page()
+    page.add_init_script(stub(codes(2, 3), []).replace(
+        ': t === "historique_parties" ? window.__parties : [];',
+        ': [];').replace('const rep = { data: donnees, error: null };',
+        'const rep = t === "historique_parties" ? { data: null, error: { message: "relation absente" } } : { data: donnees, error: null };'))
+    page.goto("http://127.0.0.1:%d/backoffice/dashboard.html" % PORT)
+    entrer(page); page.wait_for_timeout(300)
+    v("sans le correctif 12 : message clair, le reste s'affiche",
+      "correctif 12" in page.text_content("#partiesBody") and page.text_content("#creneauGroupes").strip() == "2",
+      page.text_content("#partiesBody"))
     page.close()
 
     print("\nClore un signalement")
     page = nav.new_page()
     page.add_init_script(stub(codes(2, 3), signalements(2)))
     page.goto("http://127.0.0.1:%d/backoffice/dashboard.html" % PORT)
-    page.fill("#pwd", "brumes2026"); page.click("#enterBtn"); page.wait_for_timeout(400)
+    entrer(page)
     v("deux boutons Traite", page.eval_on_selector_all("[data-traiter]", "e=>e.length") == 2)
     page.query_selector("[data-traiter]").click(); page.wait_for_timeout(400)
     appels = page.evaluate("window.__rpc")
@@ -214,7 +340,7 @@ with sync_playwright() as pw:
     page = nav.new_page()
     page.add_init_script(stub(codes(5, 4, declare=False)))
     page.goto("http://127.0.0.1:%d/backoffice/dashboard.html" % PORT)
-    page.fill("#pwd", "brumes2026"); page.click("#enterBtn"); page.wait_for_timeout(400)
+    entrer(page)
     print("\n5 groupes sans nombre declare")
     note = page.text_content("#creneauReserve")
     v("l'approximation est signalee", "approximatif" in note and "5 groupe" in note, note[:120])
@@ -224,7 +350,7 @@ with sync_playwright() as pw:
     # Aucun depart
     page = nav.new_page(); page.add_init_script(stub([]))
     page.goto("http://127.0.0.1:%d/backoffice/dashboard.html" % PORT)
-    page.fill("#pwd", "brumes2026"); page.click("#enterBtn"); page.wait_for_timeout(400)
+    entrer(page)
     print("\nAucun depart")
     v("pas de division par zero", page.text_content("#creneauTaille").strip() == "—",
       page.text_content("#creneauTaille"))

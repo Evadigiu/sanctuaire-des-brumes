@@ -42,6 +42,8 @@ create table codes (
   activated_at      timestamptz,                 -- pose a la 1ere activation
   expires_at        timestamptz,                 -- = activated_at + 3h
   created_at        timestamptz not null default now()
+  -- Ajoutees ensuite : participants_reels (correctifs.sql) et nom_groupe
+  -- (correctif 12, le nom d'equipe saisi au depart, via nommer_groupe()).
 );
 
 -- Historique de chaque passage a une borne QR.
