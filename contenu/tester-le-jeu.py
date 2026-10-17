@@ -95,6 +95,9 @@ def nouvelle_page(nav):
     page = nav.new_page()
     page.route("**/*.mp4", lambda r: r.abort())
     page.route("**/*.mp3", lambda r: r.abort())
+    # Jamais de vrai mail depuis les tests : l'alerte Formspree est coupee
+    # (les tests qui la verifient la remplacent par une reponse d'avance).
+    page.route("**/formspree.io/**", lambda r: r.abort())
     return page
 
 
@@ -960,6 +963,66 @@ with sync_playwright() as pw:
     verifier("la base muette n'empeche pas la fin",
              f["video"]["video"] and f["verdict"]["denouement"] == "Bon" and f["fin"]["fin"],
              str(f["verdict"]))
+
+    # ------------------------------------------------------------
+    # « J'AI UN PROBLEME » : la base ET un mail (Formspree). L'un des deux
+    # suffit pour dire au joueur que l'equipe est prevenue.
+    # ------------------------------------------------------------
+    print("\nLe signalement d'un joueur, par mail aussi")
+
+    def signaler(mail_ok=True, base_ok=True):
+        pg = nouvelle_page(nav)
+        i = init("horaire")
+        if not base_ok:
+            i = i.replace('insert: async (row) => {',
+                          'insert: async (row) => { if (t === "signalements") '
+                          'return { error: { message: "base injoignable" } };')
+        pg.add_init_script(i)
+        mails = []
+        pg.unroute("**/formspree.io/**")
+        def formspree(r):
+            mails.append(_json.loads(r.request.post_data))
+            if mail_ok: r.fulfill(status=200, content_type="application/json", body='{"ok":true}')
+            else: r.abort()
+        pg.route("**/formspree.io/**", formspree)
+        pg.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E10"]))
+        pg.wait_for_timeout(300)
+        pg.click("#boutonProbleme")
+        pg.select_option("#categorieProbleme", "qr")
+        pg.fill("#messageProbleme", "Le QR est décollé")
+        pg.click("#envoyerProbleme"); pg.wait_for_timeout(600)
+        r = {"mails": mails, "base": len(pg.evaluate("window.__signalements")),
+             "retour": pg.text_content("#retourProbleme")}
+        pg.close()
+        return r
+
+    r = signaler()
+    m = r["mails"][0] if r["mails"] else {}
+    verifier("un mail part, avec la borne, le type et le message",
+             len(r["mails"]) == 1 and m.get("_subject", "").startswith("⚠ Problème signalé : QR code, ")
+             and m.get("message") == "Le QR est décollé" and m.get("borne")
+             and "TEST" in m.get("groupe", ""), str(r["mails"]))
+    verifier("et le signalement arrive en base, comme avant", r["base"] == 1, str(r))
+    verifier("le joueur est rassure", "L'équipe est prévenue" in r["retour"], r["retour"])
+    r = signaler(base_ok=False)
+    verifier("base muette, mail parti : le joueur est rassure quand meme",
+             "L'équipe est prévenue" in r["retour"], r["retour"])
+    r = signaler(mail_ok=False)
+    verifier("mail en panne, base a jour : le joueur est rassure", "L'équipe est prévenue" in r["retour"], r["retour"])
+    r = signaler(mail_ok=False, base_ok=False)
+    verifier("les deux en panne : on lui dit de prevenir l'equipe", "pas parti" in r["retour"], r["retour"])
+
+    # Les diagnostics automatiques ne font jamais partir de mail.
+    pg = nouvelle_page(nav)
+    pg.add_init_script(init("horaire").split('localStorage.setItem("sdb_session"')[0])
+    mails = []
+    pg.unroute("**/formspree.io/**")
+    pg.route("**/formspree.io/**", lambda r: (mails.append(1), r.abort()))
+    pg.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E10"])); pg.wait_for_timeout(500)
+    verifier("un diagnostic automatique n'envoie pas de mail",
+             len(pg.evaluate("window.__signalements")) == 1 and not mails,
+             str(pg.evaluate("window.__signalements")))
+    pg.close()
 
     # ------------------------------------------------------------
     # LES QUESTIONS BONUS
