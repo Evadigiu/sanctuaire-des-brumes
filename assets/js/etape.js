@@ -1496,8 +1496,52 @@ function ouvrirSecours() {
 }
 
 /**
+ * L'alerte par mail (Formspree), pour que l'équipe l'apprenne sur son
+ * téléphone sans avoir le tableau de bord sous les yeux. L'adresse du
+ * formulaire n'est pas un secret : Formspree est fait pour être appelé
+ * depuis une page publique. Seuls les signalements d'un joueur partent par
+ * mail, jamais les diagnostics automatiques des bornes.
+ */
+const FORMSPREE_SIGNALEMENTS = "https://formspree.io/f/xjyglvan";
+const LIBELLES_PROBLEME = { qr: "QR code", decor: "Décor", bug: "Site", autre: "Autre" };
+
+/** Rend true si le mail est parti. Ne lève jamais d'erreur. */
+async function alerterParMail(signalement, session) {
+  const arret = new AbortController();
+  const minuteur = setTimeout(() => arret.abort(), 8000);
+  try {
+    const nomBorne = document.body.getAttribute("data-borne") || "Accueil";
+    const r = await fetch(FORMSPREE_SIGNALEMENTS, {
+      method: "POST",
+      signal: arret.signal,
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        _subject: "⚠ Problème signalé : "
+                + (LIBELLES_PROBLEME[signalement.categorie] || signalement.categorie)
+                + ", " + nomBorne,
+        type: LIBELLES_PROBLEME[signalement.categorie] || signalement.categorie,
+        borne: nomBorne,
+        message: signalement.message || "(pas de message)",
+        groupe: session ? ((session.code || "?") + (session.participantName
+                 ? " (" + session.participantName + ")" : "")) : "partie inconnue",
+        heure: new Date().toLocaleString("fr-FR", { timeZone: "Europe/Paris" }),
+        page: window.location.href,
+      }),
+    });
+    return r.ok;
+  } catch (e) {
+    console.warn("Alerte par mail non envoyée :", e && e.message);
+    return false;
+  } finally {
+    clearTimeout(minuteur);
+  }
+}
+
+/**
  * Un QR décollé, un décor abîmé, un écran qui se bloque : l'équipe doit
- * l'apprendre pendant l'événement, pas dans le bilan.
+ * l'apprendre pendant l'événement, pas dans le bilan. Le signalement part
+ * par deux chemins à la fois, la base (tableau de bord) et le mail : l'un
+ * suffit pour que l'équipe soit prévenue.
  */
 function ouvrirProbleme() {
   const zone = document.getElementById("zoneProbleme");
@@ -1509,14 +1553,19 @@ function ouvrirProbleme() {
     bouton.disabled = true;
     bouton.textContent = "Envoi...";
 
-    const { error } = await supabaseClient.from("signalements").insert({
+    const signalement = {
       code_id: session ? session.codeId : null,
       borne: document.body.getAttribute("data-borne"),
       categorie: document.getElementById("categorieProbleme").value,
       message: (document.getElementById("messageProbleme").value || "").slice(0, 500),
-    });
+    };
+    const [base, mail] = await Promise.all([
+      Promise.resolve(supabaseClient.from("signalements").insert(signalement))
+        .then(r => !(r && r.error), () => false),
+      alerterParMail(signalement, session),
+    ]);
 
-    if (error) {
+    if (!base && !mail) {
       retour.textContent = "Le signalement n'est pas parti. Prévenez un membre de l'équipe sur place.";
       bouton.disabled = false;
       bouton.textContent = "Envoyer";
