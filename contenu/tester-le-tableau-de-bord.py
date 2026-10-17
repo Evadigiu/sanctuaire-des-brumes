@@ -122,6 +122,38 @@ with sync_playwright() as pw:
           titre == attendu["titre"], page.title())
         page.close()
 
+    # Les diagnostics automatiques des bornes ne sont pas des problemes de
+    # joueurs : ni alerte, ni compte dans l'onglet, mais une liste repliee.
+    from datetime import datetime, timezone
+    autos = [{"id": "a%d" % i, "signale_le": datetime.now(timezone.utc).isoformat(),
+              "categorie": "bug", "borne": "VÉTÉRINAIRE", "traite_le": None, "code": None,
+              "message": "Diagnostic automatique : partie introuvable a l'ouverture de la borne."}
+             for i in range(30)]
+    piege = dict(signalements(1)[0], message='<img src=x onerror="window.__xss=1">')
+    for libelle, jeu, alerte, compte in [
+        ("30 diagnostics automatiques seuls", autos, False, ""),
+        ("30 diagnostics et 1 vrai probleme", autos + [piege], True, "(1)"),
+    ]:
+        page = nav.new_page()
+        page.add_init_script(stub(codes(2, 3), jeu))
+        page.goto("http://127.0.0.1:%d/backoffice/dashboard.html" % PORT)
+        page.fill("#pwd", "brumes2026"); page.click("#enterBtn"); page.wait_for_timeout(400)
+        print("   %s" % libelle)
+        v("   alerte %s" % ("pour le vrai probleme seulement" if alerte else "absente"),
+          (page.eval_on_selector_all(".alerte", "e=>e.length") > 0) == alerte
+          and (not alerte or page.text_content(".alerte .compte").strip() == "1"))
+        v("   onglet " + (compte or "sans compte"),
+          page.title().startswith(compte) if compte else not page.title().startswith("("), page.title())
+        v("   diagnostics ranges a part, replies",
+          page.eval_on_selector_all("details.diagnostics:not([open]) [data-traiter]", "e=>e.length") == 30)
+        v("   un message n'est jamais lu comme du HTML", not page.evaluate("window.__xss"))
+        if not alerte:
+            page.click("details.diagnostics summary"); page.click("#toutTraiter"); page.wait_for_timeout(600)
+            appels = page.evaluate("window.__rpc")
+            v("   « Tout marquer traite » passe par le guichet, 30 fois",
+              len(appels) == 30 and all(x[0] == "marquer_signalement_traite" for x in appels), str(len(appels)))
+        page.close()
+
     print("\nClore un signalement")
     page = nav.new_page()
     page.add_init_script(stub(codes(2, 3), signalements(2)))

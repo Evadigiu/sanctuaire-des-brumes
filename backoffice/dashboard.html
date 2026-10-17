@@ -119,6 +119,9 @@
   .signalement .mot { color: var(--fog); font-size: 0.9rem; margin-top: 4px; }
   .signalement button { width: auto; margin: 0; padding: 8px 16px; font-size: 0.82rem; flex: none; }
   .signalement.clos { opacity: 0.45; }
+  .diagnostics { margin-top: 14px; color: var(--fog); font-size: 0.85rem; }
+  .diagnostics summary { cursor: pointer; padding: 8px 0; }
+  .diagnostics #toutTraiter { width: auto; margin: 8px 0; padding: 8px 16px; font-size: 0.82rem; }
   .signalement.clos .cat { background: var(--panel2); color: var(--fog); }
 </style>
 </head>
@@ -392,7 +395,14 @@
     }
 
     const tous = data || [];
-    const ouverts = tous.filter(x => !x.traite_le);
+    // Les diagnostics que les bornes envoient d'elles-mêmes (une page de
+    // borne ouverte sans partie : un curieux qui scanne une affichette, un
+    // joueur qui scanne avec l'appareil photo) ne sont pas des problèmes
+    // signalés par un joueur. Ils n'allument ni l'alerte ni le compte de
+    // l'onglet : ils sont rangés à part, repliés.
+    const estAuto = x => /^Diagnostic automatique/.test(x.message || "");
+    const ouverts = tous.filter(x => !x.traite_le && !estAuto(x));
+    const autos = tous.filter(x => !x.traite_le && estAuto(x));
     const clos = tous.filter(x => x.traite_le).slice(0, 5);
 
     // Le titre de l'onglet porte le compte : visible sans regarder la page.
@@ -412,31 +422,53 @@
       alerte.innerHTML = "";
     }
 
-    if (!tous.length) {
+    if (!ouverts.length && !autos.length && !clos.length) {
       zone.innerHTML = '<p class="muted">Aucun signalement. C\'est bon signe.</p>';
       return;
     }
+    // Les messages viennent du public : jamais lus comme du HTML.
+    const txt = t => String(t == null ? "" : t).replace(/[&<>"']/g,
+      c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
     const rendre = (x, estClos) =>
       '<div class="signalement' + (estClos ? ' clos' : '') + '">'
       + '<div class="corps"><div class="tete">'
-      + '<span class="cat ' + x.categorie + '">' + (LIBELLE_CATEGORIE[x.categorie] || x.categorie) + '</span>'
-      + '<span class="borne">' + (x.borne || "Accueil") + '</span>'
+      + '<span class="cat ' + txt(x.categorie) + '">' + txt(LIBELLE_CATEGORIE[x.categorie] || x.categorie) + '</span>'
+      + '<span class="borne">' + txt(x.borne || "Accueil") + '</span>'
       + '<span class="quand">' + heure(x.signale_le)
-      + (x.code ? " · groupe ···" + x.code : "") + '</span>'
+      + (x.code ? " · groupe ···" + txt(x.code) : "") + '</span>'
       + '</div>'
-      + (x.message ? '<div class="mot">' + x.message + '</div>' : '')
+      + (x.message ? '<div class="mot">' + txt(x.message) + '</div>' : '')
       + '</div>'
       + (estClos ? '<span class="quand">traité à ' + heure(x.traite_le) + '</span>'
-                 : '<button data-traiter="' + x.id + '">Traité</button>')
+                 : '<button data-traiter="' + txt(x.id) + '">Traité</button>')
       + '</div>';
 
-    zone.innerHTML = ouverts.map(x => rendre(x, false)).join("")
+    zone.innerHTML = (ouverts.length ? ouverts.map(x => rendre(x, false)).join("")
+                       : '<p class="muted">Aucun problème signalé par les joueurs.</p>')
+      + (autos.length
+          ? '<details class="diagnostics"><summary>' + autos.length + ' diagnostic'
+            + (autos.length > 1 ? 's' : '') + ' automatique' + (autos.length > 1 ? 's' : '')
+            + ' : une borne ouverte sans partie en cours (souvent un curieux qui scanne une '
+            + 'affichette, ou un joueur qui scanne avec l\'appareil photo). Rien à faire, '
+            + 'sauf s\'ils se répètent sur une même borne.</summary>'
+            + '<button type="button" id="toutTraiter" class="btn-secondary">Tout marquer traité</button>'
+            + autos.map(x => rendre(x, false)).join("") + '</details>'
+          : "")
       + (clos.length ? '<p class="muted" style="margin:14px 0 4px; font-size:0.8rem;">Derniers problèmes réglés</p>'
                      + clos.map(x => rendre(x, true)).join("") : "");
 
     zone.querySelectorAll("[data-traiter]").forEach(b => {
       b.addEventListener("click", () => traiter(b.getAttribute("data-traiter"), b));
+    });
+    const toutTraiter = document.getElementById("toutTraiter");
+    if (toutTraiter) toutTraiter.addEventListener("click", async () => {
+      toutTraiter.disabled = true;
+      toutTraiter.textContent = "...";
+      for (const x of autos) {
+        try { await supabaseClient.rpc("marquer_signalement_traite", { p_id: x.id }); } catch (e) { }
+      }
+      chargerSignalements();
     });
   }
 
