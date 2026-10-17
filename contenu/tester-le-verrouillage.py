@@ -102,6 +102,7 @@ with sync_playwright() as pw:
     page = nav.new_page(); page.add_init_script(init("horaire", ["E01"]))
     page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E02"]))
     page.wait_for_timeout(300)
+    page.route("**/formspree.io/**", lambda r: r.abort())   # jamais de vrai mail
     page.click("#boutonProbleme")
     page.select_option("#categorieProbleme", "decor")
     page.fill("#messageProbleme", "Le sac est renversé")
