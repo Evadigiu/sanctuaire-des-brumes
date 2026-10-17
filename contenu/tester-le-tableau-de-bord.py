@@ -283,7 +283,7 @@ with sync_playwright() as pw:
       "K7NPX4RT" in lignes[0] and "Les Limiers" in lignes[0], lignes[0])
     v("un nom d'equipe n'est jamais lu comme du HTML", not page.evaluate("window.__xss"))
     v("partie finie : duree et denouement",
-      "1 h 52" in lignes[1] and "Trouvé : Elle s'est endormie." in lignes[1], lignes[1])
+      "1 h 52 après le départ" in lignes[1] and "Trouvé : Elle s'est endormie." in lignes[1], lignes[1])
     v("partie en cours dite en cours", "En cours" in lignes[0], lignes[0])
     v("joueurs non declares : la capacite prevue", "3 prévus" in lignes[1], lignes[1])
     v("le resume compte parties et trouvailles",

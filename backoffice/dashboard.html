@@ -226,7 +226,7 @@
   <p class="muted" id="histoResume"></p>
   <div class="defilant">
     <table id="partiesTable">
-      <thead><tr><th>Départ</th><th>Code</th><th>Groupe</th><th>Joueurs</th><th>Sens</th><th>Bornes</th><th>Dernière borne</th><th>Durée</th><th>Fin</th><th>Signal.</th><th>Parcours</th></tr></thead>
+      <thead><tr><th>Départ</th><th>Code</th><th>Groupe</th><th>Joueurs</th><th>Sens</th><th>Bornes</th><th>Dernière borne</th><th>Dernier scan</th><th>Fin</th><th>Signal.</th><th>Parcours</th></tr></thead>
       <tbody id="partiesBody"><tr><td colspan="11" class="loading">Chargement...</td></tr></tbody>
     </table>
   </div>
@@ -550,7 +550,9 @@
     if (p.denouement) return (LIBELLE_FIN[p.denouement] || p.denouement)
                            + (p.conclusion ? " : " + p.conclusion : "");
     if (p.a_atteint_la_serre) return "Serre atteinte, sans réponse";
-    if (new Date(p.expires_at) < new Date()) return "Abandon (temps écoulé)";
+    // Les 3 h sont passees sans conclusions : le groupe s'est arrete a sa
+    // derniere borne, ou n'a plus scanne ensuite.
+    if (new Date(p.expires_at) < new Date()) return "Arrêté là (partie close)";
     return "En cours";
   }
   function partiesAffichees() {
@@ -583,7 +585,9 @@
       + '<td><span class="badge ' + esc(p.direction) + '">' + esc(p.direction) + '</span></td>'
       + '<td class="nombre">' + (p.nb_bornes || 0) + '</td>'
       + '<td>' + esc(p.derniere_borne || "—") + '</td>'
-      + '<td class="nombre">' + esc(duree(p.activated_at, p.dernier_scan)) + '</td>'
+      + '<td class="nombre">' + (p.dernier_scan
+          ? esc(duree(p.activated_at, p.dernier_scan)) + ' après le départ<br>'
+            + '<span class="muted">à ' + esc(heureDe(p.dernier_scan)) + '</span>' : "—") + '</td>'
       + '<td class="texte fin-' + esc(p.denouement || "") + '">' + esc(issue(p)) + '</td>'
       + '<td class="nombre">' + (p.nb_signalements || 0) + '</td>'
       + '<td>' + (p.parcours ? '<details><summary>voir</summary><div>' + esc(p.parcours) + '</div></details>' : "—") + '</td>'
@@ -620,7 +624,7 @@
       ["Dernière borne", p => p.derniere_borne],
       ["Premier scan", p => p.premier_scan && heureDe(p.premier_scan)],
       ["Dernier scan", p => p.dernier_scan && heureDe(p.dernier_scan)],
-      ["Durée", p => duree(p.activated_at, p.dernier_scan)],
+      ["Dernier scan, après le départ", p => duree(p.activated_at, p.dernier_scan)],
       ["Serre atteinte", p => p.a_atteint_la_serre ? "oui" : "non"],
       ["Dénouement", p => p.denouement], ["Réponse choisie", p => p.conclusion],
       ["Signalements", p => p.nb_signalements], ["Parcours", p => p.parcours],
