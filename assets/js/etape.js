@@ -795,6 +795,80 @@ function conclusionsAChoix() {
 }
 
 /**
+ * « ALORS, CETTE ENQUÊTE VOUS A PLU ? »
+ *
+ * Cinq étoiles et un mot libre, juste avant les remerciements. L'avis part
+ * par le guichet donner_avis (correctif 14) : un seul par partie, que le
+ * groupe peut corriger en le renvoyant. Rien n'est obligatoire, et un échec
+ * d'envoi ne bloque jamais la fin : « Suivant » reste là.
+ */
+const AVIS_KEY = "sdb_avis_donne";
+
+function brancherAvis() {
+  const zone = document.querySelector("[data-avis]");
+  if (!zone) return;
+  const etoiles = Array.from(zone.querySelectorAll(".etoile"));
+  const texte = zone.querySelector("#avisTexte");
+  const bouton = zone.querySelector("#envoyerAvis");
+  const rate = zone.querySelector("#avisRate");
+  const merci = zone.querySelector("#avisMerci");
+  const form = zone.querySelector("[data-avis-form]");
+  const passer = zone.querySelector("[data-avis-suivant]");
+  function remercier() {
+    form.hidden = true;
+    merci.hidden = false;
+    if (passer) { passer.textContent = "Suivant"; passer.classList.remove("btn-secondary"); }
+  }
+  const session = getSession();
+  const cle = AVIS_KEY + "_" + ((session && session.codeId) || "");
+  let note = 0;
+
+  function montrer(n) {
+    etoiles.forEach((e, i) => {
+      e.classList.toggle("allumee", i < n);
+      e.setAttribute("aria-checked", i === n - 1 ? "true" : "false");
+    });
+  }
+  etoiles.forEach((e, i) => {
+    e.addEventListener("click", () => {
+      note = i + 1;
+      montrer(note);
+      bouton.disabled = false;
+      if (navigator.vibrate) { try { navigator.vibrate(15); } catch (er) { } }
+    });
+  });
+
+  // Déjà donné sur ce téléphone : on remercie, sans redemander.
+  try {
+    if (localStorage.getItem(cle)) remercier();
+  } catch (e) { }
+
+  bouton.addEventListener("click", async () => {
+    if (!note) return;
+    bouton.disabled = true;
+    bouton.textContent = "Envoi...";
+    rate.hidden = true;
+    let ok = false;
+    try {
+      const r = await supabaseClient.rpc("donner_avis", {
+        p_code_id: session ? session.codeId : null,
+        p_note: note,
+        p_texte: (texte.value || "").trim().slice(0, 1000),
+      });
+      ok = !!(r && !r.error && r.data && r.data.ok);
+    } catch (e) { ok = false; }
+    if (ok) {
+      try { localStorage.setItem(cle, String(note)); } catch (e) { }
+      remercier();
+    } else {
+      rate.hidden = false;
+      bouton.disabled = false;
+      bouton.textContent = "Envoyer mon avis";
+    }
+  });
+}
+
+/**
  * LE BON DÉNOUEMENT : la récompense.
  *
  * Le groupe avait vu juste. Des étincelles d'or jaillissent du bas de

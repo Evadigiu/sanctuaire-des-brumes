@@ -96,6 +96,15 @@
   #partiesTable td.texte { white-space: normal; min-width: 180px; }
   #partiesTable details summary { cursor: pointer; color: var(--gold); }
   #partiesTable details div { white-space: normal; min-width: 260px; color: var(--fog); margin-top: 6px; }
+  .etoiles-tdb { color: var(--gold-bright); letter-spacing: 1px; }
+  .avis-resume { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; }
+  .avis-moyenne { font-size: 2.4rem; font-weight: 700; color: var(--gold-bright); }
+  .avis-barres { flex: 1; min-width: 220px; font-size: 0.8rem; color: var(--fog); }
+  .avis-barre { display: flex; gap: 8px; align-items: center; margin: 2px 0; }
+  .avis-barre .piste { flex: 1; height: 8px; background: var(--panel2, rgba(255,255,255,0.06)); border-radius: 4px; overflow: hidden; }
+  .avis-barre .piste span { display: block; height: 100%; background: var(--gold); }
+  .avis-un { border-top: 1px solid var(--hair); padding: 10px 0; font-size: 0.88rem; }
+  .avis-un .qui { color: var(--fog); font-size: 0.78rem; }
   .fin-Bon { color: var(--green); } .fin-Moyen { color: var(--gold-bright); } .fin-Mauvais { color: var(--red); }
 
   /* ============================================================
@@ -213,6 +222,10 @@
     <tbody id="reconBody"><tr><td colspan="3" class="loading">Chargement...</td></tr></tbody>
   </table>
 
+  <!-- LES AVIS DES JOUEURS : « Alors, cette enquete vous a plu ? » -->
+  <h2 style="font-family:var(--texte); font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--gold-bright); font-size:0.95rem; margin-top:40px;">Avis des joueurs</h2>
+  <div class="card" id="avisZone"><p class="loading">Chargement...</p></div>
+
   <!-- TOUTES LES PARTIES : la memoire du jeu, pour en tirer des lecons.
        Rien n'est jamais efface en base ; ce tableau relit tout. -->
   <h2 style="font-family:var(--texte); font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--gold-bright); font-size:0.95rem; margin-top:40px;">Toutes les parties</h2>
@@ -226,8 +239,8 @@
   <p class="muted" id="histoResume"></p>
   <div class="defilant">
     <table id="partiesTable">
-      <thead><tr><th>Départ</th><th>Code</th><th>Groupe</th><th>Joueurs</th><th>Sens</th><th>Bornes</th><th>Dernière borne</th><th>Dernier scan</th><th>Fin</th><th>Signal.</th><th>Parcours</th></tr></thead>
-      <tbody id="partiesBody"><tr><td colspan="11" class="loading">Chargement...</td></tr></tbody>
+      <thead><tr><th>Départ</th><th>Code</th><th>Groupe</th><th>Joueurs</th><th>Sens</th><th>Bornes</th><th>Dernière borne</th><th>Dernier scan</th><th>Fin</th><th>Note</th><th>Signal.</th><th>Parcours</th></tr></thead>
+      <tbody id="partiesBody"><tr><td colspan="12" class="loading">Chargement...</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -574,7 +587,7 @@
         + trouves + (trouves > 1 ? " ont" : " a") + " trouvé."
       : "";
     if (!liste.length) {
-      corps.innerHTML = '<tr><td colspan="11" class="muted">Aucune partie pour ce filtre.</td></tr>';
+      corps.innerHTML = '<tr><td colspan="12" class="muted">Aucune partie pour ce filtre.</td></tr>';
       return;
     }
     corps.innerHTML = liste.map(p => '<tr>'
@@ -589,18 +602,49 @@
           ? esc(duree(p.activated_at, p.dernier_scan)) + ' après le départ<br>'
             + '<span class="muted">à ' + esc(heureDe(p.dernier_scan)) + '</span>' : "—") + '</td>'
       + '<td class="texte fin-' + esc(p.denouement || "") + '">' + esc(issue(p)) + '</td>'
+      + '<td class="texte">' + (p.note ? '<span class="etoiles-tdb">' + "★".repeat(p.note) + '</span>'
+          + (p.avis ? '<br><span class="muted">' + esc(p.avis) + '</span>' : "") : "—") + '</td>'
       + '<td class="nombre">' + (p.nb_signalements || 0) + '</td>'
       + '<td>' + (p.parcours ? '<details><summary>voir</summary><div>' + esc(p.parcours) + '</div></details>' : "—") + '</td>'
       + '</tr>').join("");
   }
 
+  // Les avis : la moyenne, la repartition des notes, et les mots laisses.
+  async function chargerAvis() {
+    const zone = document.getElementById("avisZone");
+    const { data, error } = await supabaseClient.from("avis_joueurs").select("*").limit(5000);
+    if (error) {
+      zone.innerHTML = '<p class="muted">Lecture impossible : ' + esc(error.message)
+        + '. Le correctif 14 a-t-il été lancé dans Supabase ?</p>';
+      return;
+    }
+    const avis = (data || []).filter(a => !/^TEST/i.test(a.code || ""));
+    if (!avis.length) { zone.innerHTML = '<p class="muted">Aucun avis pour l\'instant.</p>'; return; }
+    const moyenne = avis.reduce((n, a) => n + a.note, 0) / avis.length;
+    const parNote = [5, 4, 3, 2, 1].map(n => ({ n, c: avis.filter(a => a.note === n).length }));
+    const avecTexte = avis.filter(a => a.texte);
+    zone.innerHTML =
+        '<div class="avis-resume"><div><div class="avis-moyenne">' + moyenne.toFixed(1).replace(".", ",")
+      + ' <span class="etoiles-tdb">★</span></div><div class="muted">' + avis.length + ' avis</div></div>'
+      + '<div class="avis-barres">' + parNote.map(x => '<div class="avis-barre"><span>' + x.n + ' ★</span>'
+      + '<div class="piste"><span style="width:' + Math.round(x.c / avis.length * 100) + '%"></span></div>'
+      + '<span>' + x.c + '</span></div>').join("") + '</div></div>'
+      + (avecTexte.length ? avecTexte.slice(0, 50).map(a => '<div class="avis-un">'
+          + '<span class="etoiles-tdb">' + "★".repeat(a.note) + '</span> ' + esc(a.texte)
+          + '<div class="qui">' + esc(a.nom_groupe || "Groupe sans nom") + ' · ' + esc(a.code)
+          + ' · ' + esc(jourDe(a.cree_le)) + ' ' + esc(heureDe(a.cree_le))
+          + (a.denouement ? ' · ' + esc(LIBELLE_FIN[a.denouement] || a.denouement) : "") + '</div></div>').join("")
+        : '<p class="muted">Pas encore de commentaire écrit.</p>');
+  }
+
   async function chargerParties() {
+    chargerAvis();
     const { data, error } = await supabaseClient
       .from("historique_parties").select("*")
       .order("activated_at", { ascending: false }).limit(10000);
     const corps = document.getElementById("partiesBody");
     if (error) {
-      corps.innerHTML = '<tr><td colspan="11" class="muted">Lecture impossible : ' + esc(error.message)
+      corps.innerHTML = '<tr><td colspan="12" class="muted">Lecture impossible : ' + esc(error.message)
         + '. Le correctif 12 a-t-il été lancé dans Supabase ?</td></tr>';
       return;
     }
@@ -627,6 +671,7 @@
       ["Dernier scan, après le départ", p => duree(p.activated_at, p.dernier_scan)],
       ["Serre atteinte", p => p.a_atteint_la_serre ? "oui" : "non"],
       ["Dénouement", p => p.denouement], ["Réponse choisie", p => p.conclusion],
+      ["Note (sur 5)", p => p.note], ["Avis", p => p.avis],
       ["Signalements", p => p.nb_signalements], ["Parcours", p => p.parcours],
     ];
     const cellule = v => {
