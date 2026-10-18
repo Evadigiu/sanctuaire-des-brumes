@@ -990,7 +990,7 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
 
     if c in CODE_CACHE and lg["n"] == 3:
         h.append('  <input type="text" id="codeTrouve" inputmode="numeric" '
-                 'maxlength="4" placeholder="4 chiffres">')
+                 'maxlength="6" placeholder="4 chiffres">')
         h.append('  <button id="validerCode">Valider</button>')
         h.append('  <p class="quiz-verdict quiz-faux" id="codeACote" hidden></p>')
         h.append('  <div id="codeJuste" class="card indice" hidden>')
@@ -1001,7 +1001,7 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
 
     if c in CODE_DEMANDE and lg["n"] == 3:
         h.append('  <input type="text" id="codeSerre" inputmode="numeric" '
-                 'maxlength="4" placeholder="4 chiffres">')
+                 'maxlength="6" placeholder="4 chiffres">')
         h.append('  <button id="validerSerre">Ouvrir</button>')
         h.append('  <p class="quiz-verdict quiz-faux" id="serreACote" hidden></p>')
         # Personne ne doit rester dehors parce qu'un papier s'est envole.
@@ -1152,7 +1152,7 @@ GABARIT = """<!DOCTYPE html>
 
   <div class="card" id="zoneSecours" hidden>
     <p>Sur l'affichette, à côté du QR code, se trouve un nombre à quatre chiffres. Saisissez-le.</p>
-    <input type="text" id="champSecours" inputmode="numeric" maxlength="4" placeholder="Ex. 4172">
+    <input type="text" id="champSecours" inputmode="numeric" maxlength="6" placeholder="Ex. 4172">
     <div class="error-box visible" id="erreurSecours" hidden></div>
     <button id="validerSecours">Ouvrir cette borne</button>
   </div>

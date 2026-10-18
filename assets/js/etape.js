@@ -856,8 +856,10 @@ function brancherAvis() {
     if (localStorage.getItem(cle)) remercier();
   } catch (e) { }
 
+  let enCours = false;
   bouton.addEventListener("click", async () => {
-    if (!note) return;
+    if (!note || enCours || !merci.hidden) return;
+    enCours = true;
     bouton.disabled = true;
     bouton.textContent = "Envoi...";
     rate.hidden = true;
@@ -878,6 +880,7 @@ function brancherAvis() {
       bouton.disabled = false;
       bouton.textContent = "Envoyer mon avis";
     }
+    enCours = false;
   });
 }
 
@@ -1413,9 +1416,11 @@ function epreuveReponse(idChamp, idBouton, bonneReponse, idResultat, idACote) {
     bouton.disabled = true;
   }
 
+  entreeValide(champ, bouton);
   bouton.addEventListener("click", () => {
-    const saisi = champ.value.trim().toLowerCase();
-    if (saisi === String(bonneReponse).toLowerCase()) {
+    const saisi = saisieNette(champ);
+    if (!saisi) return;
+    if (saisi === String(bonneReponse).replace(/\s+/g, "").toLowerCase()) {
       if (aCote) aCote.hidden = true;
       reveler(true);
       return;
@@ -1477,6 +1482,21 @@ function galeriePhotos() {
  * savoir, et c'est ce silence qui fait l'effet trois bornes plus loin.
  * Au deuxième essai manqué, on le donne — il est indispensable à la suite.
  */
+/**
+ * Les petites saisies de l'enquête (numéro du panneau, code du sac, porte de
+ * la serre, numéro de secours) : espaces ignorés (« 58 24 »), saisie vide
+ * ignorée au lieu de compter pour un essai manqué, et la touche Entrée du
+ * clavier (« OK » sur iPhone) valide comme le bouton.
+ */
+function saisieNette(champ) {
+  return String((champ && champ.value) || "").replace(/\s+/g, "").toLowerCase();
+}
+function entreeValide(champ, bouton) {
+  if (champ && bouton) champ.addEventListener("keydown", e => {
+    if (e.key === "Enter") { e.preventDefault(); bouton.click(); }
+  });
+}
+
 function codeATrouver(idChamp, idBouton, bonCode, idJuste, idACote) {
   const champ = document.getElementById(idChamp);
   const bouton = document.getElementById(idBouton);
@@ -1485,8 +1505,10 @@ function codeATrouver(idChamp, idBouton, bonCode, idJuste, idACote) {
   if (!champ || !bouton || !juste) return;
 
   let manques = 0;
+  entreeValide(champ, bouton);
   bouton.addEventListener("click", () => {
-    if (champ.value.trim() === String(bonCode)) {
+    if (!saisieNette(champ)) return;
+    if (saisieNette(champ) === String(bonCode)) {
       if (aCote) aCote.hidden = true;
       juste.hidden = false; champ.disabled = true; bouton.disabled = true;
       return;
@@ -1527,8 +1549,10 @@ function porteACode(idChamp, idBouton, bonCode, idOuverte, idACote, idPerdu) {
     champ.disabled = true; bouton.disabled = true;
     if (perdu) perdu.hidden = true;
   }
+  entreeValide(champ, bouton);
   bouton.addEventListener("click", () => {
-    if (champ.value.trim() === String(bonCode)) {
+    if (!saisieNette(champ)) return;
+    if (saisieNette(champ) === String(bonCode)) {
       if (aCote) aCote.hidden = true;
       ouvrir();
     } else if (aCote) {
@@ -1609,8 +1633,11 @@ function ouvrirSecours() {
   champ.value = "";
   champ.focus();
 
+  champ.onkeydown = e => {
+    if (e.key === "Enter") { e.preventDefault(); document.getElementById("validerSecours").click(); }
+  };
   document.getElementById("validerSecours").onclick = () => {
-    const saisi = (champ.value || "").trim();
+    const saisi = (champ.value || "").replace(/\s+/g, "");
     const cible = PARCOURS.secours[saisi];
     if (!cible) {
       err.textContent = "Ce numéro ne correspond à aucune borne. Vérifiez les quatre chiffres.";
