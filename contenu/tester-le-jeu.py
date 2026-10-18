@@ -48,6 +48,8 @@ def init(sens):
               l.push([nom, args]); sessionStorage.setItem("__rpcs", JSON.stringify(l)); } catch (e) { }
         if (nom === "enregistrer_passage") { window.__scans.push(args);
           return { data: { ok: true }, error: null }; }
+        if (nom === "donner_avis") { (window.__avis = window.__avis || []).push(args);
+          return { data: { ok: !window.__avisEnPanne }, error: null }; }
         if (nom === "enregistrer_conclusions") { window.__scans.push(args);
           return { data: { ok: true }, error: null }; }
         if (nom === "reprendre_partie") {
@@ -712,6 +714,27 @@ with sync_playwright() as pw:
              page.url.endswith(PARC["pages"]["E02"]), page.url)
     page.close()
 
+    # Le groupe remonte DEUX bornes pour revoir des temoignages : le bouton
+    # doit le ramener a la borne la plus avancee qu'il avait atteinte, pas a
+    # l'avant-derniere (cas signale le 18/10, coince a la passante).
+    page = nouvelle_page(nav); page.add_init_script(init("horaire"))
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E04"])); page.wait_for_timeout(500)
+    page.goto("http://127.0.0.1:%d/%s?revoir=E04" % (PORT, PARC["pages"]["E03"])); page.wait_for_timeout(400)
+    page.goto("http://127.0.0.1:%d/%s?revoir=E03" % (PORT, PARC["pages"]["E02"])); page.wait_for_timeout(400)
+    retour = page.query_selector(".retour-borne")
+    verifier("deux bornes en arriere : retour propose vers la plus avancee",
+             retour is not None and PARC["noms"]["E04"] in (retour.text_content() or ""),
+             repr(retour and retour.text_content()))
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E02"])); page.wait_for_timeout(400)
+    retour = page.query_selector(".retour-borne")
+    verifier("meme sans ?revoir, une borne deja depassee propose le retour",
+             retour is not None and PARC["noms"]["E04"] in (retour.text_content() or ""),
+             repr(retour and retour.text_content()))
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E04"])); page.wait_for_timeout(400)
+    verifier("sur sa borne la plus avancee : pas de bouton de retour",
+             page.query_selector(".retour-borne") is None)
+    page.close()
+
     # Sur la borne de depart il n'y a rien avant : le bouton disparait plutot
     # que de rester la sans rien faire.
     page = nouvelle_page(nav); page.add_init_script(init("horaire"))
@@ -960,9 +983,10 @@ with sync_playwright() as pw:
             pg.click("#celebrationFermer"); pg.wait_for_timeout(600)
             etapes["verdict"]["fete_fermee"] = not pg.query_selector(".celebration")
         suivant(pg); etapes["photocall"] = pg.evaluate(ETAT_FIN)
+        suivant(pg); etapes["avis"] = pg.is_visible("[data-avis]")
         suivant(pg); etapes["fin"] = pg.evaluate(ETAT_FIN)
         # Retour jusqu'au choix : il est verrouille.
-        for _ in range(5):
+        for _ in range(8):
             if pg.is_visible("[data-conclusions]"): break
             pg.locator(".ecran:not([hidden]) [data-retour]").first.click(); pg.wait_for_timeout(100)
         etapes["retour"] = pg.evaluate(ETAT_FIN)
@@ -992,13 +1016,48 @@ with sync_playwright() as pw:
                  str(f["verdict"]))
         verifier(nom + " : etincelles " + ("oui" if juste else "non"),
                  f["verdict"]["fete"] == juste and f["verdict"].get("fete_fermee", True), str(f["verdict"]))
-        verifier(nom + " : le photocall a son ecran, puis les remerciements",
-                 f["photocall"]["photocall"] and f["fin"]["fin"], str(f["photocall"]) + str(f["fin"]))
+        verifier(nom + " : le photocall, l'avis, puis les remerciements",
+                 f["photocall"]["photocall"] and f["avis"] and f["fin"]["fin"],
+                 str(f["photocall"]) + str(f["avis"]) + str(f["fin"]))
         verifier(nom + " : la reponse est rangee une fois",
                  f["verdict"]["rangements"] == [attendue],
                  str(f["verdict"]["rangements"]))
         verifier(nom + " : de retour au choix, il est verrouille",
                  f["retour"]["choix"] and f["retour"]["verrou"], str(f["retour"]))
+
+    # « Alors, cette enquete vous a plu ? »
+    def ouvrir_avis(en_panne=False):
+        pg = nouvelle_page(nav)
+        pg.add_init_script(init("horaire") + ("window.__avisEnPanne = true;" if en_panne else ""))
+        n = open(os.path.join(RACINE, PARC["pages"]["E15"], "index.html")).read()
+        rang = n.count('<section class="ecran', 0, n.index('<section class="ecran card avis"'))
+        pg.add_init_script("sessionStorage.setItem('sdb_ecran_/%s', '%d')" % (PARC["pages"]["E15"], rang))
+        pg.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E15"])); pg.wait_for_timeout(300)
+        return pg
+    pg = ouvrir_avis()
+    verifier("l'avis : envoyer est grise sans note",
+             pg.is_visible("[data-avis]") and pg.is_disabled("#envoyerAvis"))
+    pg.locator(".etoile").nth(3).click()
+    allumees = pg.eval_on_selector_all(".etoile.allumee", "e=>e.length")
+    pg.fill("#avisTexte", "  Super enquête !  ")
+    pg.click("#envoyerAvis"); pg.wait_for_timeout(300)
+    envoi = pg.evaluate("window.__avis || []")
+    verifier("quatre etoiles touchees, quatre allumees", allumees == 4, str(allumees))
+    verifier("l'avis part avec la note et le mot",
+             len(envoi) == 1 and envoi[0]["p_note"] == 4 and envoi[0]["p_texte"] == "Super enquête !"
+             and envoi[0]["p_code_id"] == "c1", str(envoi))
+    verifier("merci affiche, formulaire replie, « Passer » devient « Suivant »",
+             pg.is_visible("#avisMerci") and not pg.is_visible("#envoyerAvis")
+             and pg.text_content("[data-avis-suivant]").strip() == "Suivant")
+    pg.reload(); pg.wait_for_timeout(300)
+    verifier("deja donne : on ne redemande pas", pg.is_visible("#avisMerci") and not pg.is_visible(".etoile"))
+    pg.close()
+    pg = ouvrir_avis(en_panne=True)
+    pg.locator(".etoile").nth(4).click(); pg.click("#envoyerAvis"); pg.wait_for_timeout(300)
+    verifier("envoi rate : message poli, on peut reessayer ou passer",
+             pg.is_visible("#avisRate") and pg.is_enabled("#envoyerAvis")
+             and pg.is_visible("[data-avis] [data-suivant]"))
+    pg.close()
 
     # Et surtout : la fin s'affiche meme si la base ne repond pas.
     f = conclure(BONNE, base_muette=True)

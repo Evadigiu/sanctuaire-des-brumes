@@ -849,3 +849,31 @@ body.sous-fenetre { overflow: hidden; }
   color: var(--gold-bright);
   line-height: 1.1;
 }
+
+/* L'avis de fin : cinq grandes etoiles, faciles a toucher du pouce. */
+.avis { text-align: center; }
+.avis .ecran-titre {
+  font-family: var(--titre);
+  font-size: 1.8rem;
+  letter-spacing: 1px;
+  color: var(--gold-bright);
+  line-height: 1.1;
+}
+.etoiles { display: flex; justify-content: center; gap: 6px; margin: 8px 0 18px; }
+.etoile {
+  width: auto;
+  margin: 0;
+  padding: 4px 6px;
+  background: none;
+  border: none;
+  font-size: 2.6rem;
+  line-height: 1;
+  color: rgba(228, 200, 122, 0.25);
+  cursor: pointer;
+  transition: transform 0.12s, color 0.12s;
+}
+.etoile:hover:not(:disabled) { background: none; }
+.etoile.allumee { color: var(--gold-bright); text-shadow: 0 0 12px rgba(228, 200, 122, 0.6); }
+.etoile:active { transform: scale(1.2); }
+.avis label { text-align: left; }
+@media (prefers-reduced-motion: reduce) { .etoile { transition: none; } }

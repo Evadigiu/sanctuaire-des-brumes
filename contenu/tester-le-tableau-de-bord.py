@@ -21,8 +21,9 @@ srv = socketserver.TCPServer(("127.0.0.1", 0), functools.partial(Muet, directory
 PORT = srv.server_address[1]
 threading.Thread(target=srv.serve_forever, daemon=True).start()
 
-def stub(codes, signalements=None, live=None, parties=None, connecte=False):
+def stub(codes, signalements=None, live=None, parties=None, connecte=False, avis=None):
     return """
+    window.__avis = %s;
     window.__codes = %s;
     window.__sign = %s;
     window.__live = %s;
@@ -52,7 +53,8 @@ def stub(codes, signalements=None, live=None, parties=None, connecte=False):
       const donnees = t === "departs_recents" ? window.__codes
                     : t === "signalements_recents" ? window.__sign
                     : t === "live_dashboard" ? window.__live
-                    : t === "historique_parties" ? window.__parties : [];
+                    : t === "historique_parties" ? window.__parties
+                    : t === "avis_joueurs" ? window.__avis : [];
       const rep = { data: donnees, error: null };
       const q = {
         select: () => q, order: () => q, eq: () => q,
@@ -62,7 +64,8 @@ def stub(codes, signalements=None, live=None, parties=None, connecte=False):
         then: (f) => Promise.resolve(rep).then(f),
       };
       return q; } }) };
-    """ % (json.dumps(codes), json.dumps(signalements or [], ensure_ascii=False),
+    """ % (json.dumps(avis or [], ensure_ascii=False),
+           json.dumps(codes), json.dumps(signalements or [], ensure_ascii=False),
            json.dumps(live or [], ensure_ascii=False), json.dumps(parties or [], ensure_ascii=False),
            '{ user: { email: "eva@exemple.fr" } }' if connecte else "null")
 
@@ -320,6 +323,43 @@ with sync_playwright() as pw:
     v("sans le correctif 12 : message clair, le reste s'affiche",
       "correctif 12" in page.text_content("#partiesBody") and page.text_content("#creneauGroupes").strip() == "2",
       page.text_content("#partiesBody"))
+    page.close()
+
+    # ------------------------------------------------------------
+    # LES AVIS DES JOUEURS
+    # ------------------------------------------------------------
+    print("\nLes avis des joueurs")
+    t0 = now.isoformat()
+    avis = [
+      {"cree_le": t0, "note": 5, "texte": "Génial, les enfants ont adoré", "code": "K7NPX4RT",
+       "nom_groupe": "Les Limiers", "participants_reels": 4, "direction": "horaire", "denouement": "Bon"},
+      {"cree_le": t0, "note": 3, "texte": '<img src=x onerror="window.__xss=1">trop long', "code": "QX2MAB12",
+       "nom_groupe": "Les Hiboux", "participants_reels": 3, "direction": "antihoraire", "denouement": "Mauvais"},
+      {"cree_le": t0, "note": 4, "texte": None, "code": "T9RBW4LD", "nom_groupe": None,
+       "participants_reels": 2, "direction": "horaire", "denouement": None},
+      {"cree_le": t0, "note": 1, "texte": "essai", "code": "TEST0001", "nom_groupe": "Equipe",
+       "participants_reels": 1, "direction": "horaire", "denouement": None},
+    ]
+    parties_notees = [dict(parties[0], note=5, avis="Génial, les enfants ont adoré")]
+    page = nav.new_page()
+    page.add_init_script(stub(codes(1, 4), [], [], parties_notees, avis=avis))
+    page.goto("http://127.0.0.1:%d/backoffice/dashboard.html" % PORT)
+    entrer(page); page.wait_for_timeout(300)
+    z = page.text_content("#avisZone")
+    v("moyenne sans les codes de test", "4,0" in z and "3 avis" in z, z[:120])
+    v("les mots laisses s'affichent, avec le groupe",
+      "Génial, les enfants ont adoré" in z and "Les Limiers" in z and "essai" not in z, z[:300])
+    v("un avis n'est jamais lu comme du HTML", not page.evaluate("window.__xss"))
+    v("la note figure dans l'historique", "★★★★★" in page.text_content("#partiesBody"),
+      page.text_content("#partiesBody")[:200])
+    page.close()
+    page = nav.new_page()
+    page.add_init_script(stub(codes(1, 4), []).replace(
+        'const rep = { data: donnees, error: null };',
+        'const rep = t === "avis_joueurs" ? { data: null, error: { message: "relation absente" } } : { data: donnees, error: null };'))
+    page.goto("http://127.0.0.1:%d/backoffice/dashboard.html" % PORT)
+    entrer(page); page.wait_for_timeout(300)
+    v("sans le correctif 14 : message clair", "correctif 14" in page.text_content("#avisZone"))
     page.close()
 
     print("\nClore un signalement")

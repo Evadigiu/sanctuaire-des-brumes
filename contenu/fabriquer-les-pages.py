@@ -833,6 +833,34 @@ def bloc_photocall():
     return "\n".join(h)
 
 
+def bloc_avis():
+    """« Alors, cette enquete vous a plu ? » : cinq etoiles et un mot libre,
+    juste avant les remerciements. Facultatif : « Suivant » reste la."""
+    h = ['<section class="ecran card avis" data-avis hidden>',
+         '  <div class="ecran-titre">Alors, cette enquête vous a plu ?</div>',
+         '  <div data-avis-form>',
+         '    <p class="muted">Touchez les étoiles pour noter.</p>',
+         '    <div class="etoiles" role="radiogroup" aria-label="Votre note sur 5">']
+    for n in range(1, 6):
+        h.append('      <button type="button" class="etoile" role="radio" aria-checked="false" '
+                 'data-note="%d" aria-label="%d étoile%s sur 5">★</button>'
+                 % (n, n, "s" if n > 1 else ""))
+    h += ['    </div>',
+          '    <label for="avisTexte">Un mot pour l\'équipe (facultatif)</label>',
+          '    <textarea id="avisTexte" rows="3" maxlength="1000" '
+          'placeholder="Ce que vous avez aimé, ce qui vous a manqué..."></textarea>',
+          '    <button type="button" id="envoyerAvis" disabled>Envoyer mon avis</button>',
+          '    <p class="quiz-verdict quiz-faux" id="avisRate" hidden>'
+          'Votre avis n\'a pas pu partir. Ce n\'est pas grave, merci quand même !</p>',
+          '  </div>',
+          '  <div class="card indice" id="avisMerci" hidden><p>Merci, votre avis compte beaucoup pour nous !</p></div>',
+          # « Passer », discret, tant que l'avis n'est pas parti ; « Suivant » apres.
+          '  <button class="btn-secondary" data-suivant data-avis-suivant>Passer</button>',
+          '  <button class="btn-secondary" data-retour>Revenir en arrière</button>',
+          '</section>']
+    return "\n".join(h)
+
+
 def bloc_ecran(etape, lg, dernier, sens_attr):
     """Un ecran = une carte. sens_attr vaut None, 'A' ou 'B'."""
     c, lib, txt = etape["code"], lg["ecran"], lg["texte"]
@@ -1203,6 +1231,7 @@ for c in PAGES:
         if c == CONCLUSIONS and dernier:
             blocs.append(bloc_verdict())
             blocs.append(bloc_photocall())
+            blocs.append(bloc_avis())
         blocs.append(bloc_ecran(et, x, dernier, None))
     if c in quiz and et["lettre"] and et["lettre"] not in ("-", "/"):
         blocs.append(bloc_lettre_du_quiz(et["lettre"]))
@@ -1256,6 +1285,7 @@ for c in PAGES:
         extra += '  codeATrouver("codeTrouve", "validerCode", "%s", "codeJuste", "codeACote");\n' % CODE_CACHE[c]
     if c == CONCLUSIONS:
         extra += '  conclusionsAChoix();\n'
+        extra += '  brancherAvis();\n'
     if c in CODE_DEMANDE:
         extra += '  porteACode("codeSerre", "validerSerre", "%s", "serreOuverte", "serreACote", "codePerdu");\n' % CODE_DEMANDE[c] 
 

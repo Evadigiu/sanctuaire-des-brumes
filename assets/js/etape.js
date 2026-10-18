@@ -95,7 +95,7 @@ async function demarrerEtape() {
   // suffirait à sauter la moitié de l'enquête.
   const codeEtape = document.body.getAttribute("data-etape");
   progressionAutorise(codeEtape).then(verdict => {
-    if (verdict.ok) { noterVisiteLocale(codeEtape); return; }
+    if (verdict.ok) { noterVisiteLocale(codeEtape); memoriserMaBorne(codeEtape, sens, session); return; }
     afficherBlocage(verdict);
   });
 
@@ -197,7 +197,7 @@ async function demarrerEtape() {
   garderLesMediasSousControle();
   afficher(courant);
   brancherSecours();
-  brancherRetourAMaBorne();
+  brancherRetourAMaBorne(sens, session);
   conseillerLeScanner();
 }
 
@@ -792,6 +792,80 @@ function conclusionsAChoix() {
   new MutationObserver(() => { if (!verdict.hidden) montrerVerdict(); })
     .observe(verdict, { attributes: true, attributeFilter: ["hidden"] });
   if (!verdict.hidden) montrerVerdict();
+}
+
+/**
+ * « ALORS, CETTE ENQUÊTE VOUS A PLU ? »
+ *
+ * Cinq étoiles et un mot libre, juste avant les remerciements. L'avis part
+ * par le guichet donner_avis (correctif 14) : un seul par partie, que le
+ * groupe peut corriger en le renvoyant. Rien n'est obligatoire, et un échec
+ * d'envoi ne bloque jamais la fin : « Suivant » reste là.
+ */
+const AVIS_KEY = "sdb_avis_donne";
+
+function brancherAvis() {
+  const zone = document.querySelector("[data-avis]");
+  if (!zone) return;
+  const etoiles = Array.from(zone.querySelectorAll(".etoile"));
+  const texte = zone.querySelector("#avisTexte");
+  const bouton = zone.querySelector("#envoyerAvis");
+  const rate = zone.querySelector("#avisRate");
+  const merci = zone.querySelector("#avisMerci");
+  const form = zone.querySelector("[data-avis-form]");
+  const passer = zone.querySelector("[data-avis-suivant]");
+  function remercier() {
+    form.hidden = true;
+    merci.hidden = false;
+    if (passer) { passer.textContent = "Suivant"; passer.classList.remove("btn-secondary"); }
+  }
+  const session = getSession();
+  const cle = AVIS_KEY + "_" + ((session && session.codeId) || "");
+  let note = 0;
+
+  function montrer(n) {
+    etoiles.forEach((e, i) => {
+      e.classList.toggle("allumee", i < n);
+      e.setAttribute("aria-checked", i === n - 1 ? "true" : "false");
+    });
+  }
+  etoiles.forEach((e, i) => {
+    e.addEventListener("click", () => {
+      note = i + 1;
+      montrer(note);
+      bouton.disabled = false;
+      if (navigator.vibrate) { try { navigator.vibrate(15); } catch (er) { } }
+    });
+  });
+
+  // Déjà donné sur ce téléphone : on remercie, sans redemander.
+  try {
+    if (localStorage.getItem(cle)) remercier();
+  } catch (e) { }
+
+  bouton.addEventListener("click", async () => {
+    if (!note) return;
+    bouton.disabled = true;
+    bouton.textContent = "Envoi...";
+    rate.hidden = true;
+    let ok = false;
+    try {
+      const r = await supabaseClient.rpc("donner_avis", {
+        p_code_id: session ? session.codeId : null,
+        p_note: note,
+        p_texte: (texte.value || "").trim().slice(0, 1000),
+      });
+      ok = !!(r && !r.error && r.data && r.data.ok);
+    } catch (e) { ok = false; }
+    if (ok) {
+      try { localStorage.setItem(cle, String(note)); } catch (e) { }
+      remercier();
+    } else {
+      rate.hidden = false;
+      bouton.disabled = false;
+      bouton.textContent = "Envoyer mon avis";
+    }
+  });
 }
 
 /**
@@ -1628,15 +1702,45 @@ function ouvrirProbleme() {
  * parcours, et cette borne passe le même contrôle de progression que
  * n'importe quelle autre.
  */
-function brancherRetourAMaBorne() {
+// La borne la plus avancée que le groupe a atteinte. Le bouton « Revenir à
+// ma borne » n'emportait que la borne d'où l'on venait (?revoir=) : un
+// groupe qui remontait DEUX bornes pour revoir des témoignages ne pouvait
+// plus revenir qu'à l'avant-dernière, et restait coincé. Signalé le 18/10.
+const MA_BORNE_KEY = "sdb_ma_borne";
+
+function rangDans(sens, code) {
+  return (PARCOURS.ordre[sens] && PARCOURS.ordre[sens][code]) || 0;
+}
+
+function lireMaBorne(session) {
+  try {
+    const m = JSON.parse(localStorage.getItem(MA_BORNE_KEY) || "null");
+    return m && session && m.codeId === session.codeId ? m.etape : null;
+  } catch (e) { return null; }
+}
+
+/** Appelée quand la borne est acceptée. Une visite « pour revoir » ne compte pas. */
+function memoriserMaBorne(code, sens, session) {
+  if (new URLSearchParams(window.location.search).has("revoir")) return;
+  const avant = lireMaBorne(session);
+  if (avant && rangDans(sens, avant) > rangDans(sens, code)) return;
+  try { localStorage.setItem(MA_BORNE_KEY, JSON.stringify({ codeId: session.codeId, etape: code })); }
+  catch (e) { }
+}
+
+function brancherRetourAMaBorne(sens, session) {
+  const ici = document.body.getAttribute("data-etape");
   const demande = new URLSearchParams(window.location.search).get("revoir");
-  const page = demande && PARCOURS.pages[demande];
-  if (!page) return;
+  // La plus avancée des deux : celle d'où l'on vient, et celle qu'on avait atteinte.
+  const candidates = [demande, lireMaBorne(session)]
+    .filter(c => c && PARCOURS.pages[c] && rangDans(sens, c) > rangDans(sens, ici));
+  if (!candidates.length) return;
+  const cible = candidates.sort((x, y) => rangDans(sens, y) - rangDans(sens, x))[0];
 
   const lien = document.createElement("a");
   lien.className = "btn btn-secondary retour-borne";
-  lien.href = BASE_PATH + page;
-  lien.textContent = "Revenir à ma borne : " + (PARCOURS.noms[demande] || "");
+  lien.href = BASE_PATH + PARCOURS.pages[cible];
+  lien.textContent = "Revenir à ma borne : " + (PARCOURS.noms[cible] || "");
 
   const titre = document.querySelector("h1");
   if (titre && titre.parentNode) titre.parentNode.insertBefore(lien, titre.nextSibling);
