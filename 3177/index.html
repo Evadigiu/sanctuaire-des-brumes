@@ -39,7 +39,7 @@
 <section class="ecran card" hidden>
   <!-- cahier : 3. Texte ou epreuve -->
   <p>Pour pénétrer dans la serre, entrez le code que vous avez trouvé un peu plus tôt.</p>
-  <input type="text" id="codeSerre" inputmode="numeric" maxlength="4" placeholder="4 chiffres">
+  <input type="text" id="codeSerre" inputmode="numeric" maxlength="6" placeholder="4 chiffres">
   <button id="validerSerre">Ouvrir</button>
   <p class="quiz-verdict quiz-faux" id="serreACote" hidden></p>
   <button class="btn-lien" id="codePerdu">J'ai perdu le code</button>
@@ -81,7 +81,7 @@
 
   <div class="card" id="zoneSecours" hidden>
     <p>Sur l'affichette, à côté du QR code, se trouve un nombre à quatre chiffres. Saisissez-le.</p>
-    <input type="text" id="champSecours" inputmode="numeric" maxlength="4" placeholder="Ex. 4172">
+    <input type="text" id="champSecours" inputmode="numeric" maxlength="6" placeholder="Ex. 4172">
     <div class="error-box visible" id="erreurSecours" hidden></div>
     <button id="validerSecours">Ouvrir cette borne</button>
   </div>
