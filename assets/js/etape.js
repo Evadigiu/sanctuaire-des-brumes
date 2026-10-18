@@ -11,7 +11,8 @@
 
 /**
  * Redemande à la base l'heure de fin de la partie, et la range dans le
- * téléphone. Rend "ouverte", "close", ou null si la base n'a pas répondu
+ * téléphone. Rend "ouverte", "close", "inconnue" (code que la base ne
+ * reconnaît pas), ou null si la base n'a pas répondu
  * (réseau, guichet absent) : dans le doute, on ne change rien, et surtout
  * on ne coupe personne.
  */
@@ -20,7 +21,7 @@ async function rafraichirFinDePartie(session) {
   try {
     const r = await Promise.race([
       supabaseClient.rpc("reprendre_partie", { p_code: session.code }),
-      new Promise(ok => setTimeout(() => ok(null), 5000)),
+      new Promise(ok => setTimeout(() => ok(null), 8000)),
     ]);
     const d = r && !r.error ? r.data : null;
     if (d && d.ok && d.expires_at) {
@@ -31,6 +32,9 @@ async function rafraichirFinDePartie(session) {
       saveSession(Object.assign({}, getSession() || session, { expiresAt: new Date().toISOString() }));
       return "close";
     }
+    // La base a répondu, mais ne reconnaît pas ce code (un code de test
+    // effacé, par exemple) : ce n'est pas un silence.
+    if (d && d.ok === false) return "inconnue";
   } catch (e) { }
   return null;
 }
@@ -63,7 +67,16 @@ async function demarrerEtape() {
   // attend sa réponse avant de conclure ; sinon on la reçoit en fond.
   let trouvee = getSession();
   if (trouvee && partieTerminee(trouvee)) {
-    await rafraichirFinDePartie(trouvee);
+    const reponse = await rafraichirFinDePartie(trouvee);
+    // La base n'a pas répondu (réseau du parc, lenteur) : dans le doute, on
+    // ne ferme JAMAIS l'enquête d'un groupe sur la seule foi du téléphone,
+    // dont l'heure de fin peut dater de l'ancien chrono de 3 h. On le laisse
+    // jouer un quart d'heure, et la borne suivante redemandera. C'est la
+    // base qui dit « close », pas le silence. (Signalé le 18/10 à 13 h 19.)
+    if (reponse === null) {
+      saveSession(Object.assign({}, trouvee,
+        { expiresAt: new Date(Date.now() + 15 * 60000).toISOString() }));
+    }
     trouvee = getSession();
   } else if (trouvee) {
     rafraichirFinDePartie(trouvee).then(fin => { if (fin === "close") afficherPartieTerminee(); });
@@ -1633,9 +1646,12 @@ async function alerterParMail(signalement, session) {
       body: JSON.stringify({
         _subject: "⚠ Problème signalé : "
                 + (LIBELLES_PROBLEME[signalement.categorie] || signalement.categorie)
-                + ", " + nomBorne,
+                + ", " + nomBorne
+                + ((document.getElementById("telProbleme") || {}).value
+                   ? " · " + document.getElementById("telProbleme").value.trim() : ""),
         type: LIBELLES_PROBLEME[signalement.categorie] || signalement.categorie,
         borne: nomBorne,
+        telephone: (document.getElementById("telProbleme") || {}).value || "(non renseigné)",
         message: signalement.message || "(pas de message)",
         groupe: session ? ((session.code || "?") + (session.participantName
                  ? " (" + session.participantName + ")" : "")) : "partie inconnue",
@@ -1665,6 +1681,16 @@ function ouvrirProbleme() {
     const bouton = document.getElementById("envoyerProbleme");
     const retour = document.getElementById("retourProbleme");
     const session = getSession();
+    // Le numéro est indispensable : c'est par lui qu'on débloque le groupe.
+    const champTel = document.getElementById("telProbleme");
+    const telManquant = document.getElementById("telManquant");
+    const tel = champTel ? champTel.value.trim() : "";
+    if (champTel && tel.replace(/\D/g, "").length < 9) {
+      if (telManquant) telManquant.hidden = false;
+      champTel.focus();
+      return;
+    }
+    if (telManquant) telManquant.hidden = true;
     bouton.disabled = true;
     bouton.textContent = "Envoi...";
 
@@ -1672,7 +1698,8 @@ function ouvrirProbleme() {
       code_id: session ? session.codeId : null,
       borne: document.body.getAttribute("data-borne"),
       categorie: document.getElementById("categorieProbleme").value,
-      message: (document.getElementById("messageProbleme").value || "").slice(0, 500),
+      message: ((tel ? "Tél : " + tel + "\n" : "")
+                + (document.getElementById("messageProbleme").value || "")).slice(0, 500),
     };
     const [base, mail] = await Promise.all([
       Promise.resolve(supabaseClient.from("signalements").insert(signalement))
@@ -1685,7 +1712,9 @@ function ouvrirProbleme() {
       bouton.disabled = false;
       bouton.textContent = "Envoyer";
     } else {
-      retour.textContent = "C'est noté, merci. L'équipe est prévenue. Vous pouvez continuer votre enquête.";
+      retour.textContent = "Merci pour votre signalement, nos équipes vont vous débloquer sur-le-champ ! "
+                         + "Ne vous éloignez pas trop de votre dernière borne : nous allons vous appeler.";
+      retour.classList.add("retour-signalement");
       document.getElementById("formProbleme").hidden = true;
     }
     retour.hidden = false;

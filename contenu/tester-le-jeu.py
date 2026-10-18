@@ -878,6 +878,22 @@ with sync_playwright() as pw:
     page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E02"])); page.wait_for_timeout(500)
     verifier("close par la base : enquete terminee", page.is_visible("#partieTerminee"))
     page.close()
+    # Fin depassee d'apres le telephone (ancien chrono de 3 h) et base muette :
+    # on ne ferme pas l'enquete sur la seule foi du telephone.
+    page = nouvelle_page(nav)
+    page.add_init_script(init("horaire").replace('rpc: async (nom, args) => {',
+        'rpc: async (nom, args) => { if (nom === "reprendre_partie") throw new Error("reseau");', 1))
+    page.add_init_script("""
+      localStorage.setItem("sdb_session", JSON.stringify({ codeId:"c1", code:"K7NPX4RT",
+        direction:"horaire", expiresAt:"2020-01-01T00:00:00Z" }));
+    """)
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E02"])); page.wait_for_timeout(600)
+    verifier("fin depassee sur le telephone, base muette : la partie continue",
+             not page.query_selector("#partieTerminee")
+             and page.eval_on_selector_all(".ecran", "e=>e.filter(x=>!x.hidden).length") == 1
+             and "/index.html" not in page.url, page.url)
+    page.close()
+
     # La base ne repond pas : on ne coupe personne.
     page = nouvelle_page(nav)
     page.add_init_script(init("horaire").replace('rpc: async (nom, args) => {',
@@ -1091,6 +1107,7 @@ with sync_playwright() as pw:
         pg.click("#boutonProbleme")
         pg.select_option("#categorieProbleme", "qr")
         pg.fill("#messageProbleme", "Le QR est décollé")
+        pg.fill("#telProbleme", "06 12 34 56 78")
         pg.click("#envoyerProbleme"); pg.wait_for_timeout(600)
         r = {"mails": mails, "base": len(pg.evaluate("window.__signalements")),
              "retour": pg.text_content("#retourProbleme")}
@@ -1101,15 +1118,26 @@ with sync_playwright() as pw:
     m = r["mails"][0] if r["mails"] else {}
     verifier("un mail part, avec la borne, le type et le message",
              len(r["mails"]) == 1 and m.get("_subject", "").startswith("⚠ Problème signalé : QR code, ")
-             and m.get("message") == "Le QR est décollé" and m.get("borne")
+             and "Le QR est décollé" in m.get("message", "") and m.get("borne")
+             and m.get("telephone") == "06 12 34 56 78" and "06 12 34 56 78" in m.get("_subject", "")
              and "TEST" in m.get("groupe", ""), str(r["mails"]))
     verifier("et le signalement arrive en base, comme avant", r["base"] == 1, str(r))
-    verifier("le joueur est rassure", "L'équipe est prévenue" in r["retour"], r["retour"])
+    verifier("le joueur est rassure", "nous allons vous appeler" in r["retour"], r["retour"])
     r = signaler(base_ok=False)
     verifier("base muette, mail parti : le joueur est rassure quand meme",
-             "L'équipe est prévenue" in r["retour"], r["retour"])
+             "nous allons vous appeler" in r["retour"], r["retour"])
     r = signaler(mail_ok=False)
-    verifier("mail en panne, base a jour : le joueur est rassure", "L'équipe est prévenue" in r["retour"], r["retour"])
+    verifier("mail en panne, base a jour : le joueur est rassure", "nous allons vous appeler" in r["retour"], r["retour"])
+    # Sans numero, rien ne part : c'est par lui qu'on debloque le groupe.
+    pg = nouvelle_page(nav); pg.add_init_script(init("horaire"))
+    envois = []
+    pg.unroute("**/formspree.io/**"); pg.route("**/formspree.io/**", lambda r: (envois.append(1), r.abort()))
+    pg.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E10"])); pg.wait_for_timeout(300)
+    pg.click("#boutonProbleme"); pg.click("#envoyerProbleme"); pg.wait_for_timeout(300)
+    verifier("sans numero : on le demande, rien ne part",
+             pg.is_visible("#telManquant") and not envois
+             and len(pg.evaluate("window.__signalements")) == 0)
+    pg.close()
     r = signaler(mail_ok=False, base_ok=False)
     verifier("les deux en panne : on lui dit de prevenir l'equipe", "pas parti" in r["retour"], r["retour"])
 

@@ -877,3 +877,6 @@ body.sous-fenetre { overflow: hidden; }
 .etoile:active { transform: scale(1.2); }
 .avis label { text-align: left; }
 @media (prefers-reduced-motion: reduce) { .etoile { transition: none; } }
+
+/* La reponse a un signalement : bien visible, c'est une consigne. */
+.retour-signalement { color: var(--gold-bright); font-weight: 700; font-size: 1rem; }

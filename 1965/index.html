@@ -89,14 +89,14 @@
       </select>
       <label for="messageProbleme">Quelques mots (facultatif)</label>
       <textarea id="messageProbleme" rows="3" maxlength="500" placeholder="Ce que vous avez constaté"></textarea>
-      <!-- Ce champ libre finit dans le tableau de bord, qui n'a pas de
-           vraie serrure : sa page verifie un mot de passe dans le
-           navigateur du visiteur, ce qui ne protege rien. On ne peut pas
-           y mettre une vraie authentification a quelques jours de
-           l'ouverture ; on peut, en revanche, eviter qu'on y depose un
-           nom et un numero de telephone. -->
-      <p class="muted petite-note">Inutile d'indiquer votre nom ou votre
-        numéro : un membre de l'équipe vient vers vous.</p>
+      <!-- Le numero sert a rappeler le groupe pour le debloquer a distance.
+           Il part dans le mail d'alerte et dans le tableau de bord, qui
+           n'est lisible que par le compte de l'equipe (correctif 12). -->
+      <label for="telProbleme">Votre numéro de téléphone, pour qu'on vous rappelle</label>
+      <input type="tel" id="telProbleme" autocomplete="tel" inputmode="tel" maxlength="20"
+             placeholder="06 12 34 56 78">
+      <p class="quiz-verdict quiz-faux" id="telManquant" hidden>Indiquez un numéro
+        de téléphone : c'est par là que nous allons vous débloquer.</p>
       <button id="envoyerProbleme">Envoyer</button>
     </div>
     <p class="muted" id="retourProbleme" hidden></p>
