@@ -1633,9 +1633,12 @@ async function alerterParMail(signalement, session) {
       body: JSON.stringify({
         _subject: "⚠ Problème signalé : "
                 + (LIBELLES_PROBLEME[signalement.categorie] || signalement.categorie)
-                + ", " + nomBorne,
+                + ", " + nomBorne
+                + ((document.getElementById("telProbleme") || {}).value
+                   ? " · " + document.getElementById("telProbleme").value.trim() : ""),
         type: LIBELLES_PROBLEME[signalement.categorie] || signalement.categorie,
         borne: nomBorne,
+        telephone: (document.getElementById("telProbleme") || {}).value || "(non renseigné)",
         message: signalement.message || "(pas de message)",
         groupe: session ? ((session.code || "?") + (session.participantName
                  ? " (" + session.participantName + ")" : "")) : "partie inconnue",
@@ -1665,6 +1668,16 @@ function ouvrirProbleme() {
     const bouton = document.getElementById("envoyerProbleme");
     const retour = document.getElementById("retourProbleme");
     const session = getSession();
+    // Le numéro est indispensable : c'est par lui qu'on débloque le groupe.
+    const champTel = document.getElementById("telProbleme");
+    const telManquant = document.getElementById("telManquant");
+    const tel = champTel ? champTel.value.trim() : "";
+    if (champTel && tel.replace(/\D/g, "").length < 9) {
+      if (telManquant) telManquant.hidden = false;
+      champTel.focus();
+      return;
+    }
+    if (telManquant) telManquant.hidden = true;
     bouton.disabled = true;
     bouton.textContent = "Envoi...";
 
@@ -1672,7 +1685,8 @@ function ouvrirProbleme() {
       code_id: session ? session.codeId : null,
       borne: document.body.getAttribute("data-borne"),
       categorie: document.getElementById("categorieProbleme").value,
-      message: (document.getElementById("messageProbleme").value || "").slice(0, 500),
+      message: ((tel ? "Tél : " + tel + "\n" : "")
+                + (document.getElementById("messageProbleme").value || "")).slice(0, 500),
     };
     const [base, mail] = await Promise.all([
       Promise.resolve(supabaseClient.from("signalements").insert(signalement))
@@ -1685,7 +1699,9 @@ function ouvrirProbleme() {
       bouton.disabled = false;
       bouton.textContent = "Envoyer";
     } else {
-      retour.textContent = "C'est noté, merci. L'équipe est prévenue. Vous pouvez continuer votre enquête.";
+      retour.textContent = "Merci pour votre signalement, nos équipes vont vous débloquer sur-le-champ ! "
+                         + "Ne vous éloignez pas trop de votre dernière borne : nous allons vous appeler.";
+      retour.classList.add("retour-signalement");
       document.getElementById("formProbleme").hidden = true;
     }
     retour.hidden = false;

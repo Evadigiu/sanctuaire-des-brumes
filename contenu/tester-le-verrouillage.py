@@ -106,6 +106,7 @@ with sync_playwright() as pw:
     page.click("#boutonProbleme")
     page.select_option("#categorieProbleme", "decor")
     page.fill("#messageProbleme", "Le sac est renversé")
+    page.fill("#telProbleme", "06 00 00 00 00")
     page.click("#envoyerProbleme"); page.wait_for_timeout(300)
     envois = [i for i in page.evaluate("window.__inserts") if i[0] == "signalements"]
     v("le signalement part", len(envois) == 1, str(envois))
@@ -113,7 +114,7 @@ with sync_playwright() as pw:
         r = envois[0][1]
         v("il porte la borne et la categorie",
           r.get("categorie") == "decor" and r.get("borne") == PARC["noms"]["E02"], str(r))
-    v("le joueur est remercie", "noté" in page.text_content("#retourProbleme"),
+    v("le joueur est remercie", "nous allons vous appeler" in page.text_content("#retourProbleme"),
       page.text_content("#retourProbleme"))
     page.close()
     nav.close()
