@@ -1103,7 +1103,6 @@ GABARIT = """<!DOCTYPE html>
       data-prec-A="{precA}" data-prec-B="{precB}">
 
 <div class="wrap">
-  <div class="timer" id="timer">Chargement du chrono...</div>
   <!-- La progression du groupe. Les attributs portent le NUMERO de l'etape
        dans chaque sens ; etape.js remplit la barre selon le sens du groupe,
        et retire le bloc sur une borne qui n'appartient pas a ce parcours. -->

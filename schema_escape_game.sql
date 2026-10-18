@@ -40,7 +40,7 @@ create table codes (
   slot_time         timestamptz not null,        -- creneau de depart prevu
   status            text not null default 'unused' check (status in ('unused', 'active', 'expired')),
   activated_at      timestamptz,                 -- pose a la 1ere activation
-  expires_at        timestamptz,                 -- = activated_at + 3h
+  expires_at        timestamptz,                 -- minuit (Paris) le jour de l'activation, ou 30 min apres la reponse finale (correctif 13)
   created_at        timestamptz not null default now()
   -- Ajoutees ensuite : participants_reels (correctifs.sql) et nom_groupe
   -- (correctif 12, le nom d'equipe saisi au depart, via nommer_groupe()).

@@ -9,7 +9,33 @@
 // porte un seul QR code : c'est la page qui s'adapte, pas le joueur.
 // ============================================================
 
-function demarrerEtape() {
+/**
+ * Redemande à la base l'heure de fin de la partie, et la range dans le
+ * téléphone. Rend "ouverte", "close", ou null si la base n'a pas répondu
+ * (réseau, guichet absent) : dans le doute, on ne change rien, et surtout
+ * on ne coupe personne.
+ */
+async function rafraichirFinDePartie(session) {
+  if (!session || !session.code || typeof supabaseClient === "undefined") return null;
+  try {
+    const r = await Promise.race([
+      supabaseClient.rpc("reprendre_partie", { p_code: session.code }),
+      new Promise(ok => setTimeout(() => ok(null), 5000)),
+    ]);
+    const d = r && !r.error ? r.data : null;
+    if (d && d.ok && d.expires_at) {
+      saveSession(Object.assign({}, getSession() || session, { expiresAt: d.expires_at }));
+      return "ouverte";
+    }
+    if (d && d.ok === false && /termin/i.test(d.message || "")) {
+      saveSession(Object.assign({}, getSession() || session, { expiresAt: new Date().toISOString() }));
+      return "close";
+    }
+  } catch (e) { }
+  return null;
+}
+
+async function demarrerEtape() {
   // Avant le premier jour de jeu, la page est couverte par la fenêtre de la
   // billetterie : on n'enregistre rien, pas même un signalement, pour que
   // les curieux ne remplissent pas le tableau de bord. Voir avant-ouverture.js.
@@ -25,11 +51,23 @@ function demarrerEtape() {
   // terminée », et le groupe ne pouvait plus démarrer depuis un QR.
   //
   // Seulement pour un code de test : l'équipe remet ces codes à zéro entre
-  // deux essais. Un vrai joueur dont le temps est écoulé apprend que son
+  // deux essais. Un vrai joueur dont la partie est close apprend que son
   // enquête est finie, au lieu d'être invité à la redémarrer. Ce n'est pas
   // le téléphone qui l'empêche de rejouer, c'est la base : elle refuse tout
-  // code dont les 3 h sont passées.
-  const trouvee = getSession();
+  // code dont la partie est close (minuit le jour même, ou 30 minutes après
+  // la réponse finale, correctif 13).
+  //
+  // L'heure de fin gardée par le téléphone date du démarrage. La base peut
+  // l'avoir changée depuis (prolongation, fin du chrono de 3 h, réponse
+  // finale) : on la lui redemande. Partie close d'après le téléphone, on
+  // attend sa réponse avant de conclure ; sinon on la reçoit en fond.
+  let trouvee = getSession();
+  if (trouvee && partieTerminee(trouvee)) {
+    await rafraichirFinDePartie(trouvee);
+    trouvee = getSession();
+  } else if (trouvee) {
+    rafraichirFinDePartie(trouvee).then(fin => { if (fin === "close") afficherPartieTerminee(); });
+  }
   if (trouvee && partieTerminee(trouvee) && !/^TEST/i.test(trouvee.code || "")) {
     afficherPartieTerminee();
     return;
@@ -43,7 +81,10 @@ function demarrerEtape() {
   const session = requireActiveSession();
   if (!session) return;
 
-  startCountdown("timer");
+  // Plus de compte à rebours à l'écran : les groupes visitent le zoo en
+  // même temps qu'ils jouent, et ne doivent plus courir contre la montre.
+  const minuterie = document.getElementById("timer");
+  if (minuterie) minuterie.remove();
   pleinEcranALaLecture();
 
   const sens = (session.direction === "antihoraire") ? "B" : "A";
@@ -268,7 +309,7 @@ function conseillerLeScanner() {
   note.className = "card";
   note.id = "conseilScanner";
   note.innerHTML =
-      (auDepart ? '<p><strong>Votre enquête commence, le chrono est lancé.</strong></p>'
+      (auDepart ? '<p><strong>Votre enquête commence.</strong></p>'
                 : '<p><strong>Votre enquête est retrouvée.</strong></p>')
     + '<p class="muted">Pour ne pas avoir à ressaisir votre code, scannez les prochaines '
     + 'bornes avec le bouton « Scanner le QR code » proposé à la fin de chaque borne, '
@@ -419,7 +460,7 @@ function accueillirAuDepart() {
       '<div class="ecran-titre">Bienvenue, enquêteur·rice</div>'
     + '<p>Bienvenue au Parc Zoologique et Botanique de Mulhouse. Vous êtes sur le point de prendre part à une expérience unique en son genre : une enquête de police grandeur nature.</p>'
     + '<p>Armez-vous de bon sens et observez bien ce qu\'il se passe autour de vous. Suivez les consignes qui vous sont données et respectez le sens des énigmes qui vous est proposé.</p>'
-    + '<p>Vous aurez 3 heures, à partir du moment où vous démarrez, pour terminer l\'enquête.</p>'
+    + '<p>Prenez votre temps : votre enquête reste ouverte jusqu\'à la fin de la journée.</p>'
     + '<p class="muted">Merci de ne pas toucher aux décors : d\'autres enquêteurs passeront après vous.</p>'
     + blocPartenaires("Ce jeu vous est proposé par")
     + '<button id="versSaisieDepart">Suivant</button>';
@@ -527,7 +568,7 @@ function afficherPartieTerminee() {
   bloc.id = "partieTerminee";
   bloc.innerHTML =
     '<div class="ecran-titre">Votre enquête est terminée</div>'
-    + '<p>Les 3 heures de votre partie sont écoulées. Merci d\'avoir mené l\'enquête !</p>'
+    + '<p>Cette enquête est close. Merci d\'avoir mené l\'enquête !</p>'
     + '<p class="muted">Vous avez un nouveau billet ? '
     + '<a href="' + BASE_PATH + 'index.html" id="nouveauBillet">Démarrez une nouvelle enquête</a>.</p>';
   document.querySelector(".wrap").appendChild(bloc);
