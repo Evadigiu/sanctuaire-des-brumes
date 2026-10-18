@@ -856,6 +856,18 @@ function brancherAvis() {
     if (localStorage.getItem(cle)) remercier();
   } catch (e) { }
 
+  // Le bouton Google : on copie le commentaire écrit dans le jeu, pour que
+  // le joueur n'ait plus qu'à le coller. Google ne permet à aucun site de
+  // publier un avis à la place de quelqu'un.
+  const google = zone.querySelector("#avisGoogle");
+  const copie = zone.querySelector("#avisCopie");
+  if (google) google.addEventListener("click", () => {
+    const mot = (texte.value || "").trim();
+    if (mot && navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(mot).then(() => { if (copie) copie.hidden = false; }, () => {});
+    }
+  });
+
   let enCours = false;
   bouton.addEventListener("click", async () => {
     if (!note || enCours || !merci.hidden) return;

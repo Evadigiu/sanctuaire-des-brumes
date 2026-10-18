@@ -833,6 +833,10 @@ def bloc_photocall():
     return "\n".join(h)
 
 
+# La fiche Google de Pomelo, pour l'avis public (lien de partage Google).
+AVIS_GOOGLE = "https://share.google/T6KXaHGa0xeDZKxVR"
+
+
 def bloc_avis():
     """« Alors, cette enquete vous a plu ? » : cinq etoiles et un mot libre,
     juste avant les remerciements. Facultatif : « Suivant » reste la."""
@@ -853,7 +857,17 @@ def bloc_avis():
           '    <p class="quiz-verdict quiz-faux" id="avisRate" hidden>'
           'Votre avis n\'a pas pu partir. Ce n\'est pas grave, merci quand même !</p>',
           '  </div>',
-          '  <div class="card indice" id="avisMerci" hidden><p>Merci, votre avis compte beaucoup pour nous !</p></div>',
+          '  <div class="card indice" id="avisMerci" hidden>',
+          '    <p>Merci, votre avis compte beaucoup pour nous !</p>',
+          # Propose a TOUS ceux qui ont donne leur avis, quelle que soit la
+          # note : Google interdit de ne solliciter que les clients contents.
+          '    <p class="avis-google-texte">Vous pouvez aussi le dire sur Google : '
+          'c\'est ce qui aide le plus les prochains enquêteurs à nous trouver.</p>',
+          '    <a class="btn" id="avisGoogle" href="%s" target="_blank" rel="noopener">Laisser un avis Google</a>'
+          % e(AVIS_GOOGLE),
+          '    <p class="muted petite-note" id="avisCopie" hidden>Votre commentaire est copié : '
+          'collez-le dans Google.</p>',
+          '  </div>',
           # « Passer », discret, tant que l'avis n'est pas parti ; « Suivant » apres.
           '  <button class="btn-secondary" data-suivant data-avis-suivant>Passer</button>',
           '  <button class="btn-secondary" data-retour>Revenir en arrière</button>',

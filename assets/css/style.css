@@ -880,3 +880,6 @@ body.sous-fenetre { overflow: hidden; }
 
 /* La reponse a un signalement : bien visible, c'est une consigne. */
 .retour-signalement { color: var(--gold-bright); font-weight: 700; font-size: 1rem; }
+
+.avis-google-texte { margin-top: 12px; }
+#avisGoogle { margin-top: 4px; }
