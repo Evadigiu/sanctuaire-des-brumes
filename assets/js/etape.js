@@ -11,7 +11,8 @@
 
 /**
  * Redemande à la base l'heure de fin de la partie, et la range dans le
- * téléphone. Rend "ouverte", "close", ou null si la base n'a pas répondu
+ * téléphone. Rend "ouverte", "close", "inconnue" (code que la base ne
+ * reconnaît pas), ou null si la base n'a pas répondu
  * (réseau, guichet absent) : dans le doute, on ne change rien, et surtout
  * on ne coupe personne.
  */
@@ -20,7 +21,7 @@ async function rafraichirFinDePartie(session) {
   try {
     const r = await Promise.race([
       supabaseClient.rpc("reprendre_partie", { p_code: session.code }),
-      new Promise(ok => setTimeout(() => ok(null), 5000)),
+      new Promise(ok => setTimeout(() => ok(null), 8000)),
     ]);
     const d = r && !r.error ? r.data : null;
     if (d && d.ok && d.expires_at) {
@@ -31,6 +32,9 @@ async function rafraichirFinDePartie(session) {
       saveSession(Object.assign({}, getSession() || session, { expiresAt: new Date().toISOString() }));
       return "close";
     }
+    // La base a répondu, mais ne reconnaît pas ce code (un code de test
+    // effacé, par exemple) : ce n'est pas un silence.
+    if (d && d.ok === false) return "inconnue";
   } catch (e) { }
   return null;
 }
@@ -63,7 +67,16 @@ async function demarrerEtape() {
   // attend sa réponse avant de conclure ; sinon on la reçoit en fond.
   let trouvee = getSession();
   if (trouvee && partieTerminee(trouvee)) {
-    await rafraichirFinDePartie(trouvee);
+    const reponse = await rafraichirFinDePartie(trouvee);
+    // La base n'a pas répondu (réseau du parc, lenteur) : dans le doute, on
+    // ne ferme JAMAIS l'enquête d'un groupe sur la seule foi du téléphone,
+    // dont l'heure de fin peut dater de l'ancien chrono de 3 h. On le laisse
+    // jouer un quart d'heure, et la borne suivante redemandera. C'est la
+    // base qui dit « close », pas le silence. (Signalé le 18/10 à 13 h 19.)
+    if (reponse === null) {
+      saveSession(Object.assign({}, trouvee,
+        { expiresAt: new Date(Date.now() + 15 * 60000).toISOString() }));
+    }
     trouvee = getSession();
   } else if (trouvee) {
     rafraichirFinDePartie(trouvee).then(fin => { if (fin === "close") afficherPartieTerminee(); });

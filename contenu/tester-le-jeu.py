@@ -878,6 +878,22 @@ with sync_playwright() as pw:
     page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E02"])); page.wait_for_timeout(500)
     verifier("close par la base : enquete terminee", page.is_visible("#partieTerminee"))
     page.close()
+    # Fin depassee d'apres le telephone (ancien chrono de 3 h) et base muette :
+    # on ne ferme pas l'enquete sur la seule foi du telephone.
+    page = nouvelle_page(nav)
+    page.add_init_script(init("horaire").replace('rpc: async (nom, args) => {',
+        'rpc: async (nom, args) => { if (nom === "reprendre_partie") throw new Error("reseau");', 1))
+    page.add_init_script("""
+      localStorage.setItem("sdb_session", JSON.stringify({ codeId:"c1", code:"K7NPX4RT",
+        direction:"horaire", expiresAt:"2020-01-01T00:00:00Z" }));
+    """)
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E02"])); page.wait_for_timeout(600)
+    verifier("fin depassee sur le telephone, base muette : la partie continue",
+             not page.query_selector("#partieTerminee")
+             and page.eval_on_selector_all(".ecran", "e=>e.filter(x=>!x.hidden).length") == 1
+             and "/index.html" not in page.url, page.url)
+    page.close()
+
     # La base ne repond pas : on ne coupe personne.
     page = nouvelle_page(nav)
     page.add_init_script(init("horaire").replace('rpc: async (nom, args) => {',
