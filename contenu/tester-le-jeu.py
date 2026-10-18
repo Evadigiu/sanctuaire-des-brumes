@@ -52,6 +52,8 @@ def init(sens):
           return { data: { ok: true }, error: null }; }
         if (nom === "reprendre_partie") {
           const c = (args.p_code || "").trim().toUpperCase();
+          if (c === "FINI0000") return { data: { ok: false,
+            message: "Ce code a déjà servi et sa partie est terminée. Adressez-vous à l'accueil du zoo." }, error: null };
           if (c === "NEUF0000") return { data: { ok: false, pas_commencee: true,
             message: "Cette enquête n'a pas encore commencé." }, error: null };
           if (c !== "K7NPX4RT") return { data: { ok: false,
@@ -391,10 +393,11 @@ with sync_playwright() as pw:
              len(page.evaluate("window.__signalements")) == 0)
     page.close()
 
-    # Un vrai billet au temps ecoule : on ne l'invite pas a redemarrer.
+    # Un vrai billet dont la partie est close (la base le confirme) : on ne
+    # l'invite pas a redemarrer.
     page = nouvelle_page(nav); page.add_init_script(sans_partie)
     page.add_init_script("""
-      localStorage.setItem("sdb_session", JSON.stringify({ codeId:"c9", code:"K7NPX4RT",
+      localStorage.setItem("sdb_session", JSON.stringify({ codeId:"c9", code:"FINI0000",
         direction:"horaire", expiresAt:"2020-01-01T00:00:00Z" }));
     """)
     page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E01"]))
@@ -821,6 +824,45 @@ with sync_playwright() as pw:
     page.click("#validerSecours"); page.wait_for_timeout(400)
     attendue = "http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E01"])
     verifier("ouvre bien la borne du commissaire", page.url == attendue, page.url)
+    page.close()
+
+    # ------------------------------------------------------------
+    # L'HEURE DE FIN VIENT DE LA BASE (correctif 13 : plus de chrono de 3 h)
+    # ------------------------------------------------------------
+    print("\nL'heure de fin redemandee a la base")
+    # Fin depassee d'apres le telephone, mais la base a prolonge : on joue.
+    page = nouvelle_page(nav); page.add_init_script(init("horaire"))
+    page.add_init_script("""
+      localStorage.setItem("sdb_session", JSON.stringify({ codeId:"c1", code:"K7NPX4RT",
+        direction:"horaire", expiresAt:"2020-01-01T00:00:00Z", participantName:"Eva" }));
+    """)
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E02"])); page.wait_for_timeout(500)
+    s_ = page.evaluate("JSON.parse(localStorage.getItem('sdb_session'))")
+    verifier("prolongee par la base : la partie continue",
+             not page.query_selector("#partieTerminee")
+             and page.eval_on_selector_all(".ecran", "e=>e.filter(x=>!x.hidden).length") == 1, str(s_))
+    verifier("le telephone garde la nouvelle heure de fin, et son nom d'equipe",
+             s_["expiresAt"].startswith("2099") and s_.get("participantName") == "Eva", str(s_))
+    verifier("plus de compte a rebours a l'ecran", not page.query_selector("#timer"))
+    page.close()
+    # Fin lointaine d'apres le telephone, mais la base a clos (reponse finale
+    # rendue il y a plus de 30 minutes) : la borne le dit.
+    page = nouvelle_page(nav); page.add_init_script(init("horaire"))
+    page.add_init_script("""
+      localStorage.setItem("sdb_session", JSON.stringify({ codeId:"c1", code:"FINI0000",
+        direction:"horaire", expiresAt:"2099-01-01T00:00:00Z" }));
+    """)
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E02"])); page.wait_for_timeout(500)
+    verifier("close par la base : enquete terminee", page.is_visible("#partieTerminee"))
+    page.close()
+    # La base ne repond pas : on ne coupe personne.
+    page = nouvelle_page(nav)
+    page.add_init_script(init("horaire").replace('rpc: async (nom, args) => {',
+        'rpc: async (nom, args) => { if (nom === "reprendre_partie") throw new Error("reseau");', 1))
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E02"])); page.wait_for_timeout(500)
+    verifier("base muette : la partie continue",
+             not page.query_selector("#partieTerminee")
+             and page.eval_on_selector_all(".ecran", "e=>e.filter(x=>!x.hidden).length") == 1)
     page.close()
 
     # ------------------------------------------------------------

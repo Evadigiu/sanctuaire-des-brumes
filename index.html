@@ -20,7 +20,7 @@
   <section class="ecran card" id="ecranAccueil">
     <p>Bienvenue au Parc Zoologique et Botanique de Mulhouse. Vous êtes sur le point de prendre part à une expérience unique en son genre : une enquête de police grandeur nature.</p>
     <p>Armez-vous de bon sens et observez bien ce qu'il se passe autour de vous. Suivez les consignes qui vous sont données et respectez le sens des énigmes qui vous est proposé.</p>
-    <p>Vous avez 3 heures à partir de maintenant pour terminer l'enquête.</p>
+    <p>Prenez votre temps : votre enquête reste ouverte jusqu'à la fin de la journée.</p>
     <p class="muted">Merci de ne pas toucher aux décors : d'autres enquêteurs passeront après vous.</p>
     <div class="partenaires">
       <div class="partenaires-titre">Ce jeu vous est proposé par</div>
@@ -207,7 +207,7 @@
   if (params.get("error") === "expired" || params.get("error") === "no_session") {
     accueil.hidden = true; saisie.hidden = false;
     errorBox.textContent = params.get("error") === "expired"
-      ? "Votre session de jeu est terminée (3h écoulées)."
+      ? "Cette enquête est close."
       : "Merci de démarrer l'enquête depuis cette page avec votre code.";
     errorBox.classList.add("visible");
   }
