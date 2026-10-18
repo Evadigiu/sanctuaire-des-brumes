@@ -95,7 +95,7 @@ async function demarrerEtape() {
   // suffirait à sauter la moitié de l'enquête.
   const codeEtape = document.body.getAttribute("data-etape");
   progressionAutorise(codeEtape).then(verdict => {
-    if (verdict.ok) { noterVisiteLocale(codeEtape); return; }
+    if (verdict.ok) { noterVisiteLocale(codeEtape); memoriserMaBorne(codeEtape, sens, session); return; }
     afficherBlocage(verdict);
   });
 
@@ -197,7 +197,7 @@ async function demarrerEtape() {
   garderLesMediasSousControle();
   afficher(courant);
   brancherSecours();
-  brancherRetourAMaBorne();
+  brancherRetourAMaBorne(sens, session);
   conseillerLeScanner();
 }
 
@@ -1702,15 +1702,45 @@ function ouvrirProbleme() {
  * parcours, et cette borne passe le même contrôle de progression que
  * n'importe quelle autre.
  */
-function brancherRetourAMaBorne() {
+// La borne la plus avancée que le groupe a atteinte. Le bouton « Revenir à
+// ma borne » n'emportait que la borne d'où l'on venait (?revoir=) : un
+// groupe qui remontait DEUX bornes pour revoir des témoignages ne pouvait
+// plus revenir qu'à l'avant-dernière, et restait coincé. Signalé le 18/10.
+const MA_BORNE_KEY = "sdb_ma_borne";
+
+function rangDans(sens, code) {
+  return (PARCOURS.ordre[sens] && PARCOURS.ordre[sens][code]) || 0;
+}
+
+function lireMaBorne(session) {
+  try {
+    const m = JSON.parse(localStorage.getItem(MA_BORNE_KEY) || "null");
+    return m && session && m.codeId === session.codeId ? m.etape : null;
+  } catch (e) { return null; }
+}
+
+/** Appelée quand la borne est acceptée. Une visite « pour revoir » ne compte pas. */
+function memoriserMaBorne(code, sens, session) {
+  if (new URLSearchParams(window.location.search).has("revoir")) return;
+  const avant = lireMaBorne(session);
+  if (avant && rangDans(sens, avant) > rangDans(sens, code)) return;
+  try { localStorage.setItem(MA_BORNE_KEY, JSON.stringify({ codeId: session.codeId, etape: code })); }
+  catch (e) { }
+}
+
+function brancherRetourAMaBorne(sens, session) {
+  const ici = document.body.getAttribute("data-etape");
   const demande = new URLSearchParams(window.location.search).get("revoir");
-  const page = demande && PARCOURS.pages[demande];
-  if (!page) return;
+  // La plus avancée des deux : celle d'où l'on vient, et celle qu'on avait atteinte.
+  const candidates = [demande, lireMaBorne(session)]
+    .filter(c => c && PARCOURS.pages[c] && rangDans(sens, c) > rangDans(sens, ici));
+  if (!candidates.length) return;
+  const cible = candidates.sort((x, y) => rangDans(sens, y) - rangDans(sens, x))[0];
 
   const lien = document.createElement("a");
   lien.className = "btn btn-secondary retour-borne";
-  lien.href = BASE_PATH + page;
-  lien.textContent = "Revenir à ma borne : " + (PARCOURS.noms[demande] || "");
+  lien.href = BASE_PATH + PARCOURS.pages[cible];
+  lien.textContent = "Revenir à ma borne : " + (PARCOURS.noms[cible] || "");
 
   const titre = document.querySelector("h1");
   if (titre && titre.parentNode) titre.parentNode.insertBefore(lien, titre.nextSibling);

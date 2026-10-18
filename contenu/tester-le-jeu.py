@@ -714,6 +714,27 @@ with sync_playwright() as pw:
              page.url.endswith(PARC["pages"]["E02"]), page.url)
     page.close()
 
+    # Le groupe remonte DEUX bornes pour revoir des temoignages : le bouton
+    # doit le ramener a la borne la plus avancee qu'il avait atteinte, pas a
+    # l'avant-derniere (cas signale le 18/10, coince a la passante).
+    page = nouvelle_page(nav); page.add_init_script(init("horaire"))
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E04"])); page.wait_for_timeout(500)
+    page.goto("http://127.0.0.1:%d/%s?revoir=E04" % (PORT, PARC["pages"]["E03"])); page.wait_for_timeout(400)
+    page.goto("http://127.0.0.1:%d/%s?revoir=E03" % (PORT, PARC["pages"]["E02"])); page.wait_for_timeout(400)
+    retour = page.query_selector(".retour-borne")
+    verifier("deux bornes en arriere : retour propose vers la plus avancee",
+             retour is not None and PARC["noms"]["E04"] in (retour.text_content() or ""),
+             repr(retour and retour.text_content()))
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E02"])); page.wait_for_timeout(400)
+    retour = page.query_selector(".retour-borne")
+    verifier("meme sans ?revoir, une borne deja depassee propose le retour",
+             retour is not None and PARC["noms"]["E04"] in (retour.text_content() or ""),
+             repr(retour and retour.text_content()))
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E04"])); page.wait_for_timeout(400)
+    verifier("sur sa borne la plus avancee : pas de bouton de retour",
+             page.query_selector(".retour-borne") is None)
+    page.close()
+
     # Sur la borne de depart il n'y a rien avant : le bouton disparait plutot
     # que de rester la sans rien faire.
     page = nouvelle_page(nav); page.add_init_script(init("horaire"))
