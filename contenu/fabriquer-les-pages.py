@@ -833,8 +833,9 @@ def bloc_photocall():
     return "\n".join(h)
 
 
-# La fiche Google de Pomelo, pour l'avis public (lien de partage Google).
-AVIS_GOOGLE = "https://share.google/T6KXaHGa0xeDZKxVR"
+# La fiche Google de Pomelo : lien « Demander des avis », qui ouvre
+# directement la fenetre de notation.
+AVIS_GOOGLE = "https://g.page/r/CZMRy7_KWVneEBM/review"
 
 
 def bloc_avis():
