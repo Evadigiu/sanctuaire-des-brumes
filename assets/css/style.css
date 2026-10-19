@@ -883,3 +883,6 @@ body.sous-fenetre { overflow: hidden; }
 
 .avis-google-texte { margin-top: 12px; }
 #avisGoogle { margin-top: 4px; }
+
+/* La question du commentaire : une vraie phrase, pas une etiquette en capitales. */
+.avis label.avis-question { text-transform: none; letter-spacing: 0; font-size: 1rem; color: var(--ink); }

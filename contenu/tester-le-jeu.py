@@ -1067,7 +1067,7 @@ with sync_playwright() as pw:
              and pg.text_content("[data-avis-suivant]").strip() == "Suivant")
     g = pg.query_selector("#avisGoogle")
     verifier("le bouton « Laisser un avis Google » est propose apres l'envoi",
-             g is not None and g.is_visible() and "share.google" in (g.get_attribute("href") or "")
+             g is not None and g.is_visible() and "g.page/r/" in (g.get_attribute("href") or "")
              and g.get_attribute("target") == "_blank")
     pg.reload(); pg.wait_for_timeout(300)
     verifier("deja donne : on ne redemande pas", pg.is_visible("#avisMerci") and not pg.is_visible(".etoile"))

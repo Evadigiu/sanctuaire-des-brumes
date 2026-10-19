@@ -362,6 +362,30 @@ with sync_playwright() as pw:
     v("sans le correctif 14 : message clair", "correctif 14" in page.text_content("#avisZone"))
     page.close()
 
+    # Chaque matin, l'alerte repart de zero : un signalement d'hier reste
+    # visible, replie, mais n'allume plus rien.
+    print("\nRemise a zero chaque matin")
+    from datetime import datetime, timedelta, timezone
+    hier_sig = dict(signalements(1)[0], id="h1", message="QR decolle hier",
+                    signale_le=(datetime.now(timezone.utc) - timedelta(days=1, hours=1)).isoformat())
+    page = nav.new_page()
+    page.add_init_script(stub(codes(2, 3), [hier_sig]))
+    page.goto("http://127.0.0.1:%d/backoffice/dashboard.html" % PORT)
+    entrer(page); page.wait_for_timeout(300)
+    v("signalement d'hier non traite : pas d'alerte, pas de compte dans l'onglet",
+      page.eval_on_selector_all(".alerte", "e=>e.length") == 0 and not page.title().startswith("("), page.title())
+    v("il reste visible, replie, avec sa date",
+      page.eval_on_selector_all("details.diagnostics [data-traiter]", "e=>e.length") == 1
+      and "jours précédents" in page.text_content("#signalements"), page.text_content("#signalements")[:200])
+    page.close()
+    page = nav.new_page()
+    page.add_init_script(stub(codes(2, 3), [hier_sig] + signalements(1)))
+    page.goto("http://127.0.0.1:%d/backoffice/dashboard.html" % PORT)
+    entrer(page); page.wait_for_timeout(300)
+    v("hier + aujourd'hui : l'alerte ne compte que celui du jour",
+      page.text_content(".alerte .compte").strip() == "1" and page.title().startswith("(1)"), page.title())
+    page.close()
+
     print("\nClore un signalement")
     page = nav.new_page()
     page.add_init_script(stub(codes(2, 3), signalements(2)))
