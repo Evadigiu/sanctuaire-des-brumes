@@ -716,10 +716,19 @@ function afficherProgression(sens) {
 function brancherConfirmationIndice() {
   document.querySelectorAll("[data-confirmation]").forEach(zone => {
     const non    = zone.querySelector("[data-indice-non]");
+    const oui    = zone.querySelector("[data-indice-oui]");
     const choix  = zone.querySelector("[data-indice-choix]");
     const revele = zone.querySelector("[data-indice-revele]");
     if (!non || !choix || !revele) return;
     non.addEventListener("click", () => {
+      choix.hidden = true;
+      revele.hidden = false;
+    });
+    // « Oui » : on montre quand même la lettre, pour vérifier. Trouver
+    // l'objet sans voir la lettre écrite dessus arrive souvent.
+    if (oui) oui.addEventListener("click", () => {
+      const titre = revele.querySelector(".eyebrow");
+      if (titre) titre.textContent = "Bien vu ! Vérifiez votre lettre";
       choix.hidden = true;
       revele.hidden = false;
     });
@@ -1401,6 +1410,14 @@ function brancherMotFinal() {
   }
   bouton.addEventListener("click", valider);
   champ.addEventListener("keydown", e => { if (e.key === "Enter") valider(); });
+  // « J'ai oublié mes lettres » : un groupe qui ne les a pas notées ne
+  // reste pas bloqué devant le dernier mot.
+  const rappel = zone.querySelector("[data-rappel-lettres]");
+  const rappelTexte = zone.querySelector("[data-rappel-texte]");
+  if (rappel && rappelTexte) rappel.addEventListener("click", () => {
+    rappel.hidden = true;
+    rappelTexte.hidden = false;
+  });
 }
 
 /**
