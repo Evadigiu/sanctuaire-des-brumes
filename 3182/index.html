@@ -54,6 +54,8 @@
        alt="Plan du parc : le chemin à suivre jusqu'à la borne suivante" onerror="this.remove()">
   <div data-mot-final data-mot="IRIS">
     <label for="motFinal">Le mot formé par vos 4 lettres</label>
+    <button type="button" class="btn-lien" data-rappel-lettres>J'ai oublié mes lettres</button>
+    <p class="indice-lieu" data-rappel-texte hidden>Vos lettres, dans l'ordre où vous les avez trouvées : R · I · S · I</p>
     <input type="text" id="motFinal" autocomplete="off" autocapitalize="characters" spellcheck="false">
     <button id="validerMot">Valider</button>
     <p class="quiz-verdict quiz-faux" data-mot-faux hidden></p>

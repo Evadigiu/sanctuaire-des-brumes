@@ -624,11 +624,12 @@ with sync_playwright() as pw:
              not vides, ", ".join(vides))
 
     print("\nL'enclos des loups ne donne plus la lettre d'emblee")
-    for reponse, doit_voir in (("[data-indice-non]", True), ("[data-suivant]", False)):
+    # « Oui » comme « Non » montrent la lettre : un groupe qui avait trouve
+    # l'objet sans voir la lettre repartait sans elle (avis du 19/10).
+    for reponse, libelle in (("[data-indice-non]", "Non"), ("[data-indice-oui]", "Oui")):
         page = nouvelle_page(nav); page.add_init_script(init("horaire"))
         page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E04"]))
         page.wait_for_timeout(400)
-        libelle = "Non" if doit_voir else "Oui"
         verifier("%s : pas de lettre au premier ecran" % libelle,
                  page.query_selector(".ecran:not([hidden]) .lettre") is None)
         page.click(".ecran:not([hidden]) [data-suivant]"); page.wait_for_timeout(200)
@@ -637,14 +638,12 @@ with sync_playwright() as pw:
         verifier("%s : la lettre est encore cachee" % libelle,
                  not page.is_visible(".ecran:not([hidden]) .lettre"))
         page.click(".ecran:not([hidden]) " + reponse); page.wait_for_timeout(250)
-        if doit_voir:
-            verifier("Non : la lettre R apparait",
-                     page.is_visible(".ecran:not([hidden]) .lettre")
-                     and (page.text_content(".ecran:not([hidden]) .lettre") or "").strip() == "R")
-        else:
-            verifier("Oui : on passe a la suite sans la lettre",
-                     page.query_selector(".ecran:not([hidden]) .plan-chemin") is not None
-                     or "Où aller" in (page.text_content(".ecran:not([hidden])") or ""))
+        verifier("%s : la lettre R apparait" % libelle,
+                 page.is_visible(".ecran:not([hidden]) .lettre")
+                 and (page.text_content(".ecran:not([hidden]) .lettre") or "").strip() == "R")
+        if libelle == "Oui":
+            verifier("Oui : le titre invite a verifier",
+                     "Vérifiez" in (page.text_content(".ecran:not([hidden]) .eyebrow") or ""))
         page.close()
 
     print("\nDepuis l'ecran de sortie, on peut remonter jusqu'a la video")
@@ -933,6 +932,17 @@ with sync_playwright() as pw:
                    faux: document.querySelector("[data-mot-faux]").textContent }; }""")
         pg.close()
         return r
+
+    # « J'ai oublie mes lettres » : le rappel, dans l'ordre du sens A.
+    pg = nouvelle_page(nav); pg.add_init_script(init("horaire"))
+    pg.add_init_script("sessionStorage.setItem('sdb_ecran_/%s', '2')" % PARC["pages"]["E13"])
+    pg.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E13"])); pg.wait_for_timeout(300)
+    cache = not pg.is_visible("[data-rappel-texte]")
+    pg.click("[data-rappel-lettres]"); pg.wait_for_timeout(100)
+    verifier("« J'ai oublie mes lettres » : cache d'abord, puis R · I · S · I",
+             cache and pg.is_visible("[data-rappel-texte]")
+             and "R · I · S · I" in pg.text_content("[data-rappel-texte]"), pg.text_content("[data-rappel-texte]"))
+    pg.close()
 
     r = jouer_mot(["iris"])
     verifier("le bon mot : felicitations", r["trouve"] and r["bravo"].startswith("Félicitations"), str(r))

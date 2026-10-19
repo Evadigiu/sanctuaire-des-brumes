@@ -617,9 +617,13 @@ def bloc_confirmation(lettre, donnee=False):
                  '    <button data-indice-non>Donnez-moi l\'indice</button>',
                  '  </div>']
     else:
+        # « Oui » ne passait plus a la suite sans montrer la lettre : un
+        # groupe qui avait trouve l'objet, mais pas la lettre ecrite dessus,
+        # repartait sans elle (avis du 19/10 : « il manquait des lettres a
+        # tout le monde »). La lettre s'affiche dans les deux cas.
         choix = ['  <p>Avez-vous bien trouvé l\'indice caché ?</p>',
                  '  <div data-indice-choix>',
-                 '    <button data-suivant>Oui</button>',
+                 '    <button data-indice-oui>Oui</button>',
                  '    <button class="btn-secondary" data-indice-non>Non, montrez-le-moi</button>',
                  '  </div>']
     return "\n".join([
@@ -1060,7 +1064,13 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
     mot_final = est_sortie and (c, sens_attr) in MOT_FINAL["ecrans"]
     if mot_final:
         h.append('  <div data-mot-final data-mot="%s">' % e(MOT_FINAL["mot"]))
+        # Dans l'ordre ou le groupe les a recues, selon son sens.
+        lettres = [etapes[x]["lettre"] for x in sorted(ordre[sens_attr], key=lambda x: ordre[sens_attr][x])
+                   if etapes.get(x, {}).get("lettre") and etapes[x]["lettre"] not in ("-", "/")]
         h.append('    <label for="motFinal">Le mot formé par vos 4 lettres</label>')
+        h.append('    <button type="button" class="btn-lien" data-rappel-lettres>J\'ai oublié mes lettres</button>')
+        h.append('    <p class="indice-lieu" data-rappel-texte hidden>Vos lettres, dans l\'ordre où vous les avez trouvées : %s</p>'
+                 % e(" · ".join(lettres)))
         h.append('    <input type="text" id="motFinal" autocomplete="off" autocapitalize="characters" spellcheck="false">')
         h.append('    <button id="validerMot">Valider</button>')
         h.append('    <p class="quiz-verdict quiz-faux" data-mot-faux hidden></p>')
