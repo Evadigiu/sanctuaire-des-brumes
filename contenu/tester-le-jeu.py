@@ -623,6 +623,32 @@ with sync_playwright() as pw:
     verifier("toutes les bornes ont du contenu partout",
              not vides, ", ".join(vides))
 
+    # La photo de l'enclos sur l'ecran qui y mene, dans les deux sens. Absente
+    # du depot, elle se retire ; deposee, elle s'affiche avec sa legende.
+    print("\nLa photo de l'enclos des loups, sur le chemin qui y mene")
+    import base64
+    PNG = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=")
+    for sens, depart in (("horaire", "E03"), ("antihoraire", "E02")):
+        for deposee in (False, True):
+            page = nouvelle_page(nav); page.add_init_script(init(sens))
+            if deposee:
+                page.route("**/enclos-des-loups.webp", lambda r: r.fulfill(status=200, content_type="image/png", body=PNG))
+            page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"][depart])); page.wait_for_timeout(300)
+            # Droit a l'ecran « Ou aller ensuite » (une question bonus peut
+            # s'intercaler avant, elle a ses propres tests).
+            page.evaluate("""() => { const e = [...document.querySelectorAll('.ecran')];
+              const s = e.find(x => x.querySelector('.plan-chemin, .photo-destination'));
+              e.forEach(x => x.hidden = (x !== s)); }""")
+            page.wait_for_timeout(500)
+            fig = page.query_selector(".ecran:not([hidden]) .photo-destination")
+            if deposee:
+                verifier("%s, %s : la photo de l'enclos s'affiche avec sa legende" % (sens, depart),
+                         fig is not None and fig.is_visible() and "enclos des loups" in fig.inner_text())
+            else:
+                verifier("%s, %s : pas encore deposee, elle se retire sans cadre casse" % (sens, depart),
+                         fig is None)
+            page.close()
+
     print("\nL'enclos des loups ne donne plus la lettre d'emblee")
     # « Oui » comme « Non » montrent la lettre : un groupe qui avait trouve
     # l'objet sans voir la lettre repartait sans elle (avis du 19/10).

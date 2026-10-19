@@ -886,3 +886,8 @@ body.sous-fenetre { overflow: hidden; }
 
 /* La question du commentaire : une vraie phrase, pas une etiquette en capitales. */
 .avis label.avis-question { text-transform: none; letter-spacing: 0; font-size: 1rem; color: var(--ink); }
+
+/* La photo du lieu suivant, sur « Ou aller ensuite ». */
+.photo-destination { margin: 0 0 12px; }
+.photo-destination .photo-borne { margin-bottom: 6px; border: 2px solid var(--gold); }
+.photo-destination figcaption { color: var(--gold-bright); font-weight: 700; font-size: 0.95rem; text-align: center; }
