@@ -320,6 +320,13 @@ GALERIE = {
 #
 # etape -> (le nombre, l'etape ou il s'utilise)
 # ------------------------------------------------------------
+# LA PHOTO DU LIEU SUIVANT. Sur l'ecran « Ou aller ensuite » qui mene a ces
+# bornes, dans les deux sens : une photo pour reconnaitre l'endroit, au-dessus
+# du plan. L'enclos des loups passait inapercu (19/10).
+PHOTO_DESTINATION = {
+    "E04": ("enclos-des-loups.webp", "Votre prochaine étape : l'enclos des loups"),
+}
+
 CODE_CACHE  = {"E11": "5824"}
 CODE_DEMANDE = {"E14": "5824"}
 
@@ -1045,6 +1052,15 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
 
     if est_sortie:
         suite = etape.get("suite" + sens_attr) if sens_attr else None
+        # Une photo du lieu a trouver, sur l'ecran qui y mene, quel que soit
+        # le sens. Tant qu'elle n'est pas deposee, elle se retire.
+        if suite in PHOTO_DESTINATION:
+            fichier, legende = PHOTO_DESTINATION[suite]
+            h.append('  <figure class="photo-destination">')
+            h.append('    <img class="photo-borne" loading="lazy" src="../assets/img/%s" alt="%s"'
+                     ' onerror="this.parentNode.remove()">' % (e(fichier), e(legende)))
+            h.append('    <figcaption>%s</figcaption>' % e(legende))
+            h.append('  </figure>')
         plan = CHEMINS.get((c, sens_attr)) or (nom_du_plan(c, suite) if suite else None)
         if plan:
             # loading="lazy" : le plan ne se telecharge qu'en arrivant a cet
