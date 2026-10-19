@@ -144,6 +144,7 @@
   .signalement button { width: auto; margin: 0; padding: 8px 16px; font-size: 0.82rem; flex: none; }
   .signalement.clos { opacity: 0.45; }
   .diagnostics { margin-top: 14px; color: var(--fog); font-size: 0.85rem; }
+  .ancien-jour { color: var(--gold); font-size: 0.75rem; margin-top: 10px; letter-spacing: 1px; }
   .diagnostics summary { cursor: pointer; padding: 8px 0; }
   .diagnostics #toutTraiter { width: auto; margin: 8px 0; padding: 8px 16px; font-size: 0.82rem; }
   .signalement.clos .cat { background: var(--panel2); color: var(--fog); }
@@ -469,7 +470,14 @@
     // signalés par un joueur. Ils n'allument ni l'alerte ni le compte de
     // l'onglet : ils sont rangés à part, repliés.
     const estAuto = x => /^Diagnostic automatique/.test(x.message || "");
-    const ouverts = tous.filter(x => !x.traite_le && !estAuto(x));
+    // Chaque matin, le compteur repart de zero : seuls les signalements du
+    // jour (heure de Paris) allument l'alerte. Ceux des jours precedents
+    // restes sans « Traite » sont ranges a part, replies.
+    const jourParis = d => new Date(d).toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" });
+    const aujourdhui = jourParis(new Date());
+    const duJour = x => jourParis(x.signale_le) === aujourdhui;
+    const anciens = tous.filter(x => !x.traite_le && !estAuto(x) && !duJour(x));
+    const ouverts = tous.filter(x => !x.traite_le && !estAuto(x) && duJour(x));
     const autos = tous.filter(x => !x.traite_le && estAuto(x));
     const clos = tous.filter(x => x.traite_le).slice(0, 5);
 
@@ -490,7 +498,7 @@
       alerte.innerHTML = "";
     }
 
-    if (!ouverts.length && !autos.length && !clos.length) {
+    if (!ouverts.length && !autos.length && !clos.length && !anciens.length) {
       zone.innerHTML = '<p class="muted">Aucun signalement. C\'est bon signe.</p>';
       return;
     }
@@ -513,7 +521,14 @@
       + '</div>';
 
     zone.innerHTML = (ouverts.length ? ouverts.map(x => rendre(x, false)).join("")
-                       : '<p class="muted">Aucun problème signalé par les joueurs.</p>')
+                       : '<p class="muted">Aucun problème signalé par les joueurs aujourd\'hui.</p>')
+      + (anciens.length
+          ? '<details class="diagnostics"><summary>' + anciens.length + ' signalement'
+            + (anciens.length > 1 ? 's' : '') + ' des jours précédents, jamais marqué'
+            + (anciens.length > 1 ? 's' : '') + ' « Traité »</summary>'
+            + anciens.map(x => '<div class="ancien-jour">' + esc(jourParis(x.signale_le)) + '</div>' + rendre(x, false)).join("")
+            + '</details>'
+          : "")
       + (autos.length
           ? '<details class="diagnostics"><summary>' + autos.length + ' diagnostic'
             + (autos.length > 1 ? 's' : '') + ' automatique' + (autos.length > 1 ? 's' : '')

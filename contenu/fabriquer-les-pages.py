@@ -851,7 +851,7 @@ def bloc_avis():
                  'data-note="%d" aria-label="%d étoile%s sur 5">★</button>'
                  % (n, n, "s" if n > 1 else ""))
     h += ['    </div>',
-          '    <label for="avisTexte">Un mot pour l\'équipe (facultatif)</label>',
+          '    <label for="avisTexte" class="avis-question">Votre avis est précieux, qu\'avez-vous pensé de cette enquête ?</label>',
           '    <textarea id="avisTexte" rows="3" maxlength="1000" '
           'placeholder="Ce que vous avez aimé, ce qui vous a manqué..."></textarea>',
           '    <button type="button" id="envoyerAvis" disabled>Envoyer mon avis</button>',
