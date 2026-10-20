@@ -322,11 +322,12 @@ async function progressionAutorise(codeEtape) {
   const atteinte = visites.reduce(
     (max, c) => Math.max(max, positions[c] || 0), 0);
 
-  if (position <= atteinte + 1) return { ok: true };
+  if (position <= atteinte + 1) return { ok: true, visites: visites };
   return {
     ok: false,
     raison: "saut",
     attendue: atteinte + 1,
     demandee: position,
+    visites: visites,
   };
 }

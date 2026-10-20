@@ -327,6 +327,25 @@ PHOTO_DESTINATION = {
     "E04": ("enclos-des-loups.webp", "Votre prochaine étape : l'enclos des loups"),
 }
 
+# Les noms des bornes tels qu'un joueur peut les lire. Ceux du cahier sont
+# des noms de travail (« Greg, version sens A », « Indice : ... ») : ils
+# s'affichaient tels quels sur l'ecran de blocage et deroutaient (20/10).
+NOMS_LISIBLES = {
+    "E01": "le commissaire Jean", "E02": "la collègue soigneuse", "E16": "Greg",
+    "E03": "Sophie, la cheffe de la sécurité", "E04": "l'enclos des loups",
+    "E05": "la passante", "E06": "le quiz animalier", "E07": "le vétérinaire",
+    "E08": "le panneau d'empreinte", "E09": "Greg", "E10": "Bill",
+    "E11": "le sac du botaniste", "E12": "l'appel du commissaire",
+    "E13": "le bureau de Greg", "E14": "le botaniste", "E15": "la serre",
+}
+
+# Le chemin vers chaque borne, dans chaque sens : le texte de l'ecran « Ou
+# aller ensuite » qui y mene, et la borne d'ou il part (pour le plan).
+# Rempli en fabriquant les pages, ecrit dans parcours.js : une borne peut
+# ainsi indiquer le chemin d'une AUTRE que sa suivante, quand le groupe a
+# deja fait celle-ci, et l'ecran de blocage peut guider vers la manquante.
+VERS = {"A": {}, "B": {}}
+
 CODE_CACHE  = {"E11": "5824"}
 CODE_DEMANDE = {"E14": "5824"}
 
@@ -892,7 +911,15 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
     c, lib, txt = etape["code"], lg["ecran"], lg["texte"]
     est_media  = bool(re.search(r"vid[ée]o|audio", lib, re.I))
     est_sortie = "aller ensuite" in lib.lower()
+    route = etape.get("suite" + sens_attr) if (est_sortie and sens_attr) else None
     attr = ' data-sens="%s"' % sens_attr if sens_attr else ""
+    if route:
+        attr += ' data-sortie="%s"' % route
+        # Apres le mot des lettres, le texte parle du mot, pas du lieu : pour
+        # guider vers la borne d'apres, on donne l'indice du lieu.
+        VERS[sens_attr][route] = {"de": c, "texte": MOT_FINAL["indice"]
+                                  if (c, sens_attr) in MOT_FINAL["ecrans"]
+                                  else (txt if txt != "/" else "")}
     h = ['<section class="ecran card"%s hidden>' % attr]
     titre = titre_joueur(lib)
     if titre:
@@ -994,8 +1021,11 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
         h.append('  </div>')
 
     if txt and txt != "/":
+        # data-route : le chemin vers la borne suivante, qu'etape.js remplace
+        # quand le groupe l'a deja faite.
+        balise = '<p data-route>' if route else '<p>'
         for p in [x.strip() for x in txt.split("\n") if x.strip()]:
-            h.append('  <p>%s</p>' % e(p))
+            h.append('  %s%s</p>' % (balise, e(p)))
 
     if c in EPREUVE_REPONSE and lg["n"] == 3:
         rep, lettre = EPREUVE_REPONSE[c]
@@ -1056,7 +1086,7 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
         # le sens. Tant qu'elle n'est pas deposee, elle se retire.
         if suite in PHOTO_DESTINATION:
             fichier, legende = PHOTO_DESTINATION[suite]
-            h.append('  <figure class="photo-destination">')
+            h.append('  <figure class="photo-destination" data-route>')
             h.append('    <img class="photo-borne" loading="lazy" src="../assets/img/%s" alt="%s"'
                      ' onerror="this.parentNode.remove()">' % (e(fichier), e(legende)))
             h.append('    <figcaption>%s</figcaption>' % e(legende))
@@ -1066,7 +1096,7 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
             # loading="lazy" : le plan ne se telecharge qu'en arrivant a cet
             # ecran, pas au chargement de la borne. onerror : pas encore
             # depose, il se retire au lieu d'afficher une image cassee.
-            h.append('  <img class="plan-chemin" loading="lazy" src="../assets/img/%s"'
+            h.append('  <img class="plan-chemin" data-route loading="lazy" src="../assets/img/%s"'
                      % e(plan))
             h.append('       alt="Plan du parc : le chemin à suivre jusqu\'à la borne suivante"'
                      ' onerror="this.remove()">')
@@ -1424,6 +1454,9 @@ plan = {
     "ordre":   {"A": {c: ordre["A"][c] for c in ordre["A"] if c != "E00"},
                 "B": {c: ordre["B"][c] for c in ordre["B"] if c != "E00"}},
     "secours": {str(n): c for c, n in secours.items()},
+    "lisibles": {c: NOMS_LISIBLES.get(c, etapes[c]["nom"]) for c in PAGES},
+    "vers":    VERS,
+    "photos":  {c: list(v) for c, v in PHOTO_DESTINATION.items()},
 }
 import json as _json
 open(os.path.join(RACINE, "assets", "js", "parcours.js"), "w", encoding="utf-8").write(
