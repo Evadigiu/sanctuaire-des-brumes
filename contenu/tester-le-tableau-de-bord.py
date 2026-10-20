@@ -292,6 +292,19 @@ with sync_playwright() as pw:
     v("le resume compte parties et trouvailles",
       "2 partie(s)" in page.text_content("#histoResume") and "dont 1 a trouvé" in page.text_content("#histoResume"),
       page.text_content("#histoResume"))
+    # Aujourd'hui face a l'ouverture : 1 partie aujourd'hui, 2 en 2 jours.
+    cmp = {r[0]: r[1:] for r in page.eval_on_selector_all("#compareBody tr",
+           "e=>e.map(x=>[...x.cells].map(c=>c.innerText.trim()))")}
+    v("comparaison : parties du jour, moyenne et total (test exclu)",
+      cmp.get("Parties démarrées") == ["1", "1", "2"], cmp)
+    v("comparaison : joueurs (capacite prevue a defaut)", cmp.get("Joueurs") == ["4", "3,5", "7"], cmp)
+    v("comparaison : la serre et le bon denouement en taux",
+      cmp.get("Serre atteinte") == ["0 (0 %)", "50 %", "1"]
+      and cmp.get("Bon dénouement (sur les conclusions)") == ["0 (—)", "100 %", "1"], cmp)
+    v("comparaison : groupe encore en jeu et duree mediane",
+      cmp.get("Encore en jeu", [None])[0] == "1"
+      and cmp.get("Durée jusqu'à la serre (médiane)") == ["—", "1 h 52", ""], cmp)
+    page.screenshot(path=os.path.join(os.environ.get("CAPTURES", "/tmp"), "tdb-comparaison.png"), full_page=True)
     page.uncheck("#histoSansTest"); page.wait_for_timeout(100)
     v("decocher : les codes de test reviennent",
       page.eval_on_selector_all("#partiesBody tr", "e=>e.length") == 3)

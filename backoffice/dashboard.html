@@ -209,6 +209,16 @@
     <tbody id="liveBody"><tr><td colspan="5" class="loading">Chargement...</td></tr></tbody>
   </table>
 
+<!-- AUJOURD'HUI FACE A L'OUVERTURE : les memes chiffres, du jour et depuis le 17/10 -->
+  <h2 style="font-family:var(--texte); font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--gold-bright); font-size:0.95rem; margin-top:32px;">Aujourd'hui, comparé à l'ouverture</h2>
+  <p class="muted" id="compareNote">Codes de test exclus. La moyenne compte les jours où au moins un groupe est parti.</p>
+  <div class="defilant">
+    <table id="compareTable">
+      <thead><tr><th></th><th>Aujourd'hui</th><th>Moyenne par jour<br>depuis le 17/10</th><th>Total<br>depuis le 17/10</th></tr></thead>
+      <tbody id="compareBody"><tr><td colspan="4" class="loading">Chargement...</td></tr></tbody>
+    </table>
+  </div>
+
 <h2 style="font-family:var(--texte); font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--gold-bright); font-size:0.95rem; margin-top:32px;">Trois dernières heures, par demi-heure</h2>
   <table id="histoTable">
     <thead><tr><th>Demi-heure</th><th>Personnes</th><th>Groupes</th><th>Pers./groupe</th></tr></thead>
@@ -624,6 +634,86 @@
       + '</tr>').join("");
   }
 
+  // ============================================================
+  // AUJOURD'HUI, COMPARE A L'OUVERTURE (17/10)
+  //
+  // Les volumes (parties, joueurs) se comparent a la MOYENNE par jour : le
+  // total grossit chaque jour, il ne dit pas si aujourd'hui est un bon jour.
+  // Les taux, eux, se comparent directement. Calcule ici, sur l'historique
+  // deja charge : aucune requete de plus.
+  // ============================================================
+  const OUVERTURE = new Date("2026-10-17T00:00:00+02:00");
+  const fr = (x, d) => x.toLocaleString("fr-FR", { maximumFractionDigits: d == null ? 1 : d });
+  const pct = (n, sur) => sur ? Math.round(n / sur * 100) + " %" : "—";
+  function mediane(v) {
+    if (!v.length) return null;
+    const t = v.slice().sort((a, b) => a - b), m = Math.floor(t.length / 2);
+    return t.length % 2 ? t[m] : (t[m - 1] + t[m]) / 2;
+  }
+  const enMin = m => m == null ? "—" : (m < 60 ? Math.round(m) + " min"
+      : Math.floor(m / 60) + " h " + String(Math.round(m % 60)).padStart(2, "0"));
+
+  function chiffres(liste) {
+    const joueurs = liste.reduce((n, p) => n + (p.participants_reels || p.max_participants || 0), 0);
+    const serre = liste.filter(p => p.a_atteint_la_serre || p.denouement);
+    const rendus = liste.filter(p => p.denouement);
+    const closes = liste.filter(p => !p.denouement && new Date(p.expires_at) < new Date());
+    const notes = liste.filter(p => p.note);
+    const durees = serre.filter(p => p.dernier_scan)
+      .map(p => (new Date(p.dernier_scan) - new Date(p.activated_at)) / 60000);
+    return {
+      parties: liste.length, joueurs,
+      parGroupe: liste.length ? joueurs / liste.length : null,
+      bornes: liste.length ? liste.reduce((n, p) => n + (p.nb_bornes || 0), 0) / liste.length : null,
+      serre: serre.length, rendus: rendus.length,
+      bon: rendus.filter(p => p.denouement === "Bon").length,
+      closes: closes.length,
+      enCours: liste.length - rendus.length - closes.length,
+      duree: mediane(durees),
+      notes: notes.length,
+      note: notes.length ? notes.reduce((n, p) => n + p.note, 0) / notes.length : null,
+      signalements: liste.reduce((n, p) => n + (p.nb_signalements || 0), 0),
+    };
+  }
+
+  function afficherComparaison() {
+    const corps = document.getElementById("compareBody");
+    const vraies = parties.filter(p => !/^TEST/i.test(p.code || "")
+                                     && new Date(p.activated_at) >= OUVERTURE);
+    const aujourdhui = jourDe(new Date());
+    const jours = new Set(vraies.map(p => jourDe(p.activated_at)));
+    const nbJours = jours.size || 1;
+    const J = chiffres(vraies.filter(p => jourDe(p.activated_at) === aujourdhui));
+    const T = chiffres(vraies);
+    const parJour = x => fr(x / nbJours);
+    // [libelle, aujourd'hui, moyenne par jour, total]
+    const lignes = [
+      ["Parties démarrées", J.parties, parJour(T.parties), T.parties],
+      ["Joueurs", J.joueurs, parJour(T.joueurs), T.joueurs],
+      ["Joueurs par groupe", J.parGroupe == null ? "—" : fr(J.parGroupe),
+        T.parGroupe == null ? "—" : fr(T.parGroupe), null],
+      ["Bornes faites, en moyenne", J.bornes == null ? "—" : fr(J.bornes),
+        T.bornes == null ? "—" : fr(T.bornes), null],
+      ["Serre atteinte", J.serre + " (" + pct(J.serre, J.parties) + ")",
+        pct(T.serre, T.parties), T.serre],
+      ["Bon dénouement (sur les conclusions)", J.bon + " (" + pct(J.bon, J.rendus) + ")",
+        pct(T.bon, T.rendus), T.bon],
+      ["Arrêtés en route (partie close)", J.closes + " (" + pct(J.closes, J.parties) + ")",
+        pct(T.closes, T.parties), T.closes],
+      ["Encore en jeu", J.enCours, null, null],
+      ["Durée jusqu'à la serre (médiane)", enMin(J.duree), enMin(T.duree), null],
+      ["Note moyenne", J.note == null ? "—" : fr(J.note) + " ★ (" + J.notes + " avis)",
+        T.note == null ? "—" : fr(T.note) + " ★", T.notes + " avis"],
+      ["Signalements", J.signalements, parJour(T.signalements), T.signalements],
+    ];
+    corps.innerHTML = lignes.map(l => '<tr><td class="texte">' + esc(l[0]) + '</td>'
+      + l.slice(1).map(v => '<td class="nombre">' + (v == null ? "" : esc(String(v))) + '</td>').join("")
+      + '</tr>').join("");
+    document.getElementById("compareNote").textContent = "Codes de test exclus. "
+      + nbJours + " jour(s) de jeu depuis le 17/10 : la moyenne ne compte que les jours où "
+      + "au moins un groupe est parti. Les taux d'aujourd'hui bougent encore tant que des groupes jouent.";
+  }
+
   // Les avis : la moyenne, la repartition des notes, et les mots laisses.
   async function chargerAvis() {
     const zone = document.getElementById("avisZone");
@@ -661,9 +751,12 @@
     if (error) {
       corps.innerHTML = '<tr><td colspan="12" class="muted">Lecture impossible : ' + esc(error.message)
         + '. Le correctif 12 a-t-il été lancé dans Supabase ?</td></tr>';
+      document.getElementById("compareBody").innerHTML =
+        '<tr><td colspan="4" class="muted">Lecture impossible : ' + esc(error.message) + '.</td></tr>';
       return;
     }
     parties = data || [];
+    afficherComparaison();
     // Les jours proposes au filtre : ceux ou l'on a joue.
     const choix = document.getElementById("histoJour");
     const garde = choix.value;
