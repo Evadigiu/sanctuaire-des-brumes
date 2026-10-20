@@ -63,7 +63,7 @@ def main():
             # Tous les ecrans de ce sens, pas seulement le premier : une borne
             # peut en avoir plusieurs (Greg, version B : la video, puis la
             # sortie), et le lien est sur le dernier.
-            blocs = re.findall(r'<section class="ecran card" data-sens="%s" hidden>(.*?)</section>'
+            blocs = re.findall(r'<section class="ecran card" data-sens="%s"[^>]*hidden>(.*?)</section>'
                                % sens, h, re.S)
             if not blocs:
                 # Pas d'ecran propre a ce sens : soit c'est la derniere etape,

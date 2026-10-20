@@ -631,8 +631,11 @@ with sync_playwright() as pw:
     for sens, depart in (("horaire", "E03"), ("antihoraire", "E02")):
         for deposee in (False, True):
             page = nouvelle_page(nav); page.add_init_script(init(sens))
+            # Deposee ou non, on la simule : la photo est desormais dans le depot.
             if deposee:
                 page.route("**/enclos-des-loups.webp", lambda r: r.fulfill(status=200, content_type="image/png", body=PNG))
+            else:
+                page.route("**/enclos-des-loups.webp", lambda r: r.fulfill(status=404, body=""))
             page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"][depart])); page.wait_for_timeout(300)
             # Droit a l'ecran « Ou aller ensuite » (une question bonus peut
             # s'intercaler avant, elle a ses propres tests).

@@ -106,10 +106,23 @@ async function demarrerEtape() {
   // Le jeu consiste à trouver les bornes. Une borne trop en avance sur la
   // progression réelle du groupe est refusée, sinon deviner une adresse
   // suffirait à sauter la moitié de l'enquête.
+  //
+  // Le passage n'est enregistré QU'APRÈS le feu vert. Enregistré d'office,
+  // une borne refusée comptait quand même comme faite : elle ouvrait la
+  // suivante (le verrou fuyait), et le groupe, revenu ensuite sur la borne
+  // sautée, était renvoyé vers des bornes qu'il avait déjà vues. C'est ce
+  // qui a fait abandonner un groupe le 20/10.
   const codeEtape = document.body.getAttribute("data-etape");
   progressionAutorise(codeEtape).then(verdict => {
-    if (verdict.ok) { noterVisiteLocale(codeEtape); memoriserMaBorne(codeEtape, sens, session); return; }
-    afficherBlocage(verdict);
+    if (!verdict.ok) { afficherBlocage(verdict); return; }
+    noterVisiteLocale(codeEtape);
+    memoriserMaBorne(codeEtape, sens, session);
+    // 3. Enregistrement du passage, dès l'arrivée sur la borne.
+    //    Choix assumé : on mesure le moment où le groupe arrive physiquement,
+    //    pas celui où il appuie sur un bouton. C'est ce qui permet de repérer
+    //    les bouchons dans le parc.
+    logScan(document.body.getAttribute("data-borne"));
+    if (verdict.visites) ajusterLaSortie(sens, codeEtape, verdict.visites.concat([codeEtape]));
   });
 
   // 1. On retire les écrans de l'autre sens.
@@ -120,11 +133,7 @@ async function demarrerEtape() {
   // 2. La barre de progression et le lien de sortie dépendent du sens.
   afficherProgression(sens);
 
-  // 3. Enregistrement du passage, dès l'arrivée sur la borne.
-  //    Choix assumé : on mesure le moment où le groupe arrive physiquement,
-  //    pas celui où il appuie sur un bouton. C'est ce qui permet de repérer
-  //    les bouchons dans le parc.
-  logScan(document.body.getAttribute("data-borne"));
+  // 3. L'enregistrement du passage : voir plus haut, après le verrou.
 
   // 4. Le raccourci vers l'étape suivante n'existe que pour les codes de test.
   //    Un vrai joueur doit trouver la borne et scanner son QR code : c'est le
@@ -1614,29 +1623,177 @@ function appelEntrant(idBouton, idAudio, idBloc) {
 }
 
 // ------------------------------------------------------------
-// Écran de refus : le groupe a sauté des bornes.
-// On ne l'accuse de rien, on lui dit où il en est.
+// Le nom d'une borne tel qu'un joueur peut le lire.
+// ------------------------------------------------------------
+function nomLisible(code) {
+  return (PARCOURS.lisibles && PARCOURS.lisibles[code]) || PARCOURS.noms[code] || code;
+}
+
+function echapper(t) {
+  return String(t == null ? "" : t).replace(/[&<>"']/g,
+    ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
+}
+
+/**
+ * Le chemin vers une borne : le texte de l'écran « Où aller ensuite » qui y
+ * mène d'ordinaire, la photo du lieu s'il y en a une, et le plan du trajet.
+ * Rend du HTML marqué data-route.
+ */
+function cheminVers(sens, cible) {
+  const route = (PARCOURS.vers && PARCOURS.vers[sens] && PARCOURS.vers[sens][cible]) || null;
+  let h = "";
+  if (route && route.texte) {
+    route.texte.split("\n").map(x => x.trim()).filter(Boolean).forEach(p => {
+      h += '<p data-route>' + echapper(p) + '</p>';
+    });
+  }
+  const photo = PARCOURS.photos && PARCOURS.photos[cible];
+  if (photo) {
+    h += '<figure class="photo-destination" data-route>'
+       + '<img class="photo-borne" loading="lazy" src="../assets/img/' + echapper(photo[0])
+       + '" alt="' + echapper(photo[1]) + '" onerror="this.parentNode.remove()">'
+       + '<figcaption>' + echapper(photo[1]) + '</figcaption></figure>';
+  }
+  if (route && route.de) {
+    h += '<img class="plan-chemin" data-route loading="lazy" src="../assets/img/chemin-'
+       + route.de.toLowerCase() + '-vers-' + cible.toLowerCase() + '.webp"'
+       + ' alt="Plan du parc : le chemin à suivre jusqu\'à la borne" onerror="this.remove()">';
+  }
+  return h;
+}
+
+/**
+ * « Où aller ensuite » indique la prochaine borne PAS ENCORE FAITE.
+ *
+ * L'écran est écrit pour la borne suivante dans l'ordre. Un groupe qui l'a
+ * déjà faite (il a pris le parcours dans le désordre, puis rattrapé la
+ * borne manquée) y était renvoyé quand même, puis à la suivante, déjà faite
+ * aussi : « ça nous demandait de revenir en arrière » (20/10, abandon). On
+ * le dirige directement vers la première borne qui lui reste.
+ */
+function ajusterLaSortie(sens, codeEtape, visites) {
+  const ordre = PARCOURS.ordre[sens];
+  const ici = ordre && ordre[codeEtape];
+  if (!ici) return;
+  const sortie = document.querySelector('.ecran[data-sortie][data-sens="' + sens + '"]');
+  if (!sortie) return;
+  const suite = sortie.getAttribute("data-sortie");
+  if (visites.indexOf(suite) === -1) return;            // le cas ordinaire
+
+  const parRang = Object.keys(ordre).sort((a, b) => ordre[a] - ordre[b]);
+  const cible = parRang.find(c => ordre[c] > ici && visites.indexOf(c) === -1);
+  if (!cible) return;
+  const dejaFaites = parRang.filter(c => ordre[c] > ici && ordre[c] < ordre[cible]);
+
+  sortie.querySelectorAll("[data-route]").forEach(el => el.remove());
+  const titre = sortie.querySelector(".ecran-titre");
+  const zone = document.createElement("div");
+  zone.setAttribute("data-route", "");
+  zone.innerHTML =
+      '<p class="indice-lieu">Vous avez déjà mené l\'enquête auprès de : '
+    + dejaFaites.map(c => echapper(nomLisible(c))).join(", ")
+    + '. Inutile d\'y retourner.</p>'
+    + '<p class="consigne-scan">Votre prochaine borne : ' + echapper(nomLisible(cible)) + '.</p>'
+    + cheminVers(sens, cible);
+  if (titre) titre.after(zone); else sortie.prepend(zone);
+
+  const test = sortie.querySelector("[data-lien-test]");
+  if (test && PARCOURS.pages[cible]) test.setAttribute("href", "../" + PARCOURS.pages[cible]);
+}
+
+// ------------------------------------------------------------
+// Écran de refus : le groupe a sauté une ou des bornes.
+// On ne l'accuse de rien, on lui dit où il en est et comment y aller.
+//
+// Quand il ne manque qu'UNE borne, le groupe peut déclarer qu'il ne la
+// trouve pas, et continuer sans elle : un QR décollé ou une borne cachée ne
+// doit plus mettre fin à une enquête (20/10). L'équipe est prévenue, pour
+// aller vérifier la borne. Au-delà d'une borne manquante, pas de raccourci :
+// sinon une adresse devinée suffirait à sauter l'enquête.
 // ------------------------------------------------------------
 function afficherBlocage(verdict) {
   document.querySelectorAll(".ecran").forEach(e => e.remove());
   const session = getSession();
   const sens = sensDuGroupe(session);
-  const attendue = Object.keys(PARCOURS.ordre[sens])
-    .find(c => PARCOURS.ordre[sens][c] === verdict.attendue);
+  const ordre = PARCOURS.ordre[sens];
+  const attendue = Object.keys(ordre).find(c => ordre[c] === verdict.attendue);
+  const uneSeule = attendue && verdict.demandee === verdict.attendue + 1;
 
   const bloc = document.createElement("section");
   bloc.className = "ecran card";
+  bloc.setAttribute("data-blocage", "");
   bloc.innerHTML =
     '<div class="ecran-titre">Cette borne n\'est pas la vôtre, pas encore</div>'
-    + '<p>Votre enquête en est à l\'étape ' + verdict.attendue
-    + ', et cette borne est la numéro ' + verdict.demandee + '.</p>'
-    + '<p class="muted">Reprenez le chemin indiqué à votre dernière étape. '
-    + 'Les bornes se suivent, et chacune vous apprend quelque chose dont '
-    + 'la suivante a besoin.</p>'
-    + (attendue ? '<p class="consigne-scan">Votre prochaine borne : '
-        + PARCOURS.noms[attendue] + '.</p>' : '');
+    + (uneSeule
+        ? '<p>Il vous manque une étape avant celle-ci : <strong>'
+          + echapper(nomLisible(attendue)) + '</strong>.</p>'
+        : '<p>Votre enquête en est à l\'étape ' + verdict.attendue
+          + ', et cette borne est la numéro ' + verdict.demandee + '.</p>')
+    + '<p class="muted">Les bornes se suivent, et chacune vous apprend quelque '
+    + 'chose dont la suivante a besoin.</p>'
+    + (attendue
+        ? '<p class="consigne-scan">Votre prochaine borne : '
+          + echapper(nomLisible(attendue)) + '.</p>' + cheminVers(sens, attendue)
+        : '')
+    + (uneSeule
+        ? '<div data-introuvable>'
+          + '<button class="btn-secondary" data-introuvable-ouvrir>Nous ne trouvons pas cette borne</button>'
+          + '<div class="card indice" data-introuvable-confirmer hidden>'
+          + '<p>Vous pouvez poursuivre sans elle. Vous manquerez son témoignage, '
+          + 'mais pas l\'enquête : l\'équipe est prévenue et va vérifier la borne.</p>'
+          + '<button data-introuvable-oui>Continuer sans cette borne</button>'
+          + '<button class="btn-secondary" data-introuvable-non>Je la cherche encore</button>'
+          + '<p class="quiz-verdict quiz-faux" data-introuvable-erreur hidden></p>'
+          + '</div></div>'
+        : '');
   document.querySelector(".wrap").appendChild(bloc);
   bloc.hidden = false;
+  if (uneSeule) brancherBorneIntrouvable(bloc, attendue, session);
+}
+
+function brancherBorneIntrouvable(bloc, attendue, session) {
+  const ouvrir = bloc.querySelector("[data-introuvable-ouvrir]");
+  const conf = bloc.querySelector("[data-introuvable-confirmer]");
+  const oui = bloc.querySelector("[data-introuvable-oui]");
+  const non = bloc.querySelector("[data-introuvable-non]");
+  const err = bloc.querySelector("[data-introuvable-erreur]");
+  ouvrir.addEventListener("click", () => { ouvrir.hidden = true; conf.hidden = false; });
+  non.addEventListener("click", () => { conf.hidden = true; ouvrir.hidden = false; });
+  oui.addEventListener("click", async () => {
+    oui.disabled = true;
+    err.hidden = true;
+    const ici = nomLisible(document.body.getAttribute("data-etape"));
+    // La borne manquante compte comme passée : c'est ce qui ouvre celle-ci.
+    let passe = false;
+    try {
+      const r = await supabaseClient.rpc("enregistrer_passage", {
+        p_code_id: session.codeId,
+        p_borne: PARCOURS.noms[attendue],
+      });
+      passe = !r.error && r.data && r.data.ok;
+    } catch (e) { passe = false; }
+    if (!passe) {
+      err.textContent = "Le réseau ne répond pas. Avancez de quelques pas et réessayez, "
+                      + "ou utilisez « J'ai un problème ».";
+      err.hidden = false;
+      oui.disabled = false;
+      return;
+    }
+    noterVisiteLocale(attendue);
+    const signalement = {
+      code_id: session.codeId,
+      borne: PARCOURS.noms[attendue],
+      categorie: "qr",
+      message: "Borne introuvable : " + nomLisible(attendue)
+             + ". Le groupe a continué sans elle, depuis " + ici + ".",
+    };
+    // Prévenir l'équipe ne doit pas retenir le groupe : on n'attend pas.
+    try {
+      Promise.resolve(supabaseClient.from("signalements").insert(signalement)).catch(() => {});
+    } catch (e) { }
+    alerterParMail(signalement, session);
+    setTimeout(() => window.location.reload(), 300);
+  });
 }
 
 // ============================================================
@@ -1694,7 +1851,7 @@ async function alerterParMail(signalement, session) {
   const arret = new AbortController();
   const minuteur = setTimeout(() => arret.abort(), 8000);
   try {
-    const nomBorne = document.body.getAttribute("data-borne") || "Accueil";
+    const nomBorne = signalement.borne || document.body.getAttribute("data-borne") || "Accueil";
     const r = await fetch(FORMSPREE_SIGNALEMENTS, {
       method: "POST",
       signal: arret.signal,
