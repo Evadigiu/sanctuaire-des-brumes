@@ -1063,8 +1063,11 @@ def bloc_ecran(etape, lg, dernier, sens_attr):
         # Personne ne doit rester dehors parce qu'un papier s'est envole.
         h.append('  <button class="btn-lien" id="codePerdu">J\'ai perdu le code</button>')
         h.append('  <div id="serreOuverte" class="card indice" hidden>')
-        h.append('    <div class="eyebrow">La porte s\'ouvre</div>')
-        h.append('    <p>Entrez dans la serre.</p>')
+        # Le code s'entre ensuite sur le boitier de la porte, qui ne lit pas
+        # toujours la premiere saisie : « C » l'efface (consigne du 22/10).
+        h.append('    <div class="eyebrow">C\'est le bon code</div>')
+        h.append('    <p>Faites le code et entrez dans la serre.</p>')
+        h.append('    <p>Le code ne fonctionne pas ? Appuyez sur la touche « C » et refaites le code.</p>')
         h.append('  </div>')
 
     conclusions_qcm = (c == CONCLUSIONS and lg["n"] == 3)
