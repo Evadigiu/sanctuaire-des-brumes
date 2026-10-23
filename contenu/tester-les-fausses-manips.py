@@ -184,13 +184,10 @@ with sync_playwright() as pw:
         note("signalement avec « %s » : %s" % (tel, "accepte" if attendu else "refuse"), part == attendu)
         pg.close()
 
-    print("\n9. Le numero de secours")
+    print("\n9. Le numero de secours n'existe plus")
     pg = page_jeu(); pg.goto(U("E05")); pg.wait_for_timeout(300)
-    pg.click("#boutonSecours"); pg.fill("#champSecours", "1234"); pg.click("#validerSecours"); pg.wait_for_timeout(300)
-    note("numero de secours faux : message, on reste sur la borne",
-         pg.is_visible("#erreurSecours") and pg.url.endswith(PARC["pages"]["E05"]))
-    pg.fill("#champSecours", "80 48"); pg.press("#champSecours", "Enter"); pg.wait_for_timeout(500)
-    note("numero de secours « 80 48 » valide par Entree : la borne s'ouvre", pg.url.endswith(PARC["pages"]["E06"]), pg.url)
+    note("aucun champ de numero de secours sur la borne", pg.query_selector("#champSecours, #boutonSecours") is None)
+    note("pas d'erreur JavaScript sans lui", not pg.__erreurs, pg.__erreurs)
     pg.close()
 
     print("\n10. Anciennes adresses et adresses inventees")

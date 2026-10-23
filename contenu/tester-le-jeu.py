@@ -856,25 +856,35 @@ with sync_playwright() as pw:
             "#versPremiereBorne", "e => e.length === 1 && !e[0].hidden")
         verifier("%s : raccourci %s" % (libelle, "propose" if attendu else "retire"),
                  visible == attendu)
-        verifier("%s : secours propose" % libelle,
-                 page.is_visible("#boutonSecours"))
+        # Le nombre a 4 chiffres n'a jamais ete imprime : plus aucune trace.
+        verifier("%s : aucun nombre de secours propose" % libelle,
+                 page.query_selector("#boutonSecours, #zoneSecours") is None
+                 and "quatre chiffres" not in page.text_content("body"))
         page.close()
 
-    # Le nombre a quatre chiffres de l'affichette doit ouvrir la borne, et
-    # sans empiler les dossiers : /8055/ et non /index.html/8055/.
-    print("\nindex.html : le secours a quatre chiffres")
+    # Plus de nombre de secours sur aucune borne : un QR illisible se
+    # signale a l'equipe, depuis le scanner, categorie deja choisie.
+    print("\nUn QR illisible : prevenir l'equipe")
+    traces = []
+    for code, page_borne in PARC["pages"].items():
+        page = nouvelle_page(nav); page.add_init_script(init("horaire"))
+        page.goto("http://127.0.0.1:%d/%s" % (PORT, page_borne)); page.wait_for_timeout(200)
+        if page.query_selector("#boutonSecours, #zoneSecours, #champSecours") \
+           or "affichette" in page.text_content("body") or "4 chiffres de l" in page.text_content("body"):
+            traces.append(code)
+        page.close()
+    verifier("aucune borne ne parle du nombre de secours", not traces, traces)
     page = nouvelle_page(nav); page.add_init_script(init("horaire"))
-    page.goto("http://127.0.0.1:%d/index.html" % PORT)
-    page.wait_for_timeout(200)
-    page.click("#versSaisie")
-    page.fill("#participantName", "Eva"); page.fill("#nbJoueurs", "2")
-    page.fill("#codeInput", "K7NPX4RT"); page.check("#acceptRules")
-    page.click("#startBtn"); page.wait_for_timeout(300)
-    page.click("#boutonSecours")
-    page.fill("#champSecours", "8055")
-    page.click("#validerSecours"); page.wait_for_timeout(400)
-    attendue = "http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E01"])
-    verifier("ouvre bien la borne du commissaire", page.url == attendue, page.url)
+    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E05"])); page.wait_for_timeout(300)
+    page.evaluate("ouvrirScanner()"); page.wait_for_timeout(300)
+    bouton = page.query_selector("#scannerSecours")
+    verifier("le scanner propose de prevenir l'equipe",
+             bouton is not None and "Prévenir l'équipe" in bouton.text_content())
+    if bouton:
+        bouton.click(); page.wait_for_timeout(300)
+    verifier("qui ouvre « J'ai un probleme », QR code deja choisi",
+             page.is_visible("#zoneProbleme") and page.eval_on_selector("#categorieProbleme", "e=>e.value") == "qr"
+             and page.query_selector(".scanner") is None)
     page.close()
 
     # ------------------------------------------------------------

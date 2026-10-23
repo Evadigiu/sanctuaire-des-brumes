@@ -1802,41 +1802,6 @@ function brancherBorneIntrouvable(bloc, attendue, session) {
 // ============================================================
 
 /**
- * Le QR refuse de se lire : le joueur saisit le nombre à 4 chiffres
- * imprimé sur l'affichette, à côté du code.
- *
- * Ces nombres ne se suivent pas d'une borne à l'autre : lire une
- * affichette ne permet pas de deviner les suivantes. Et la borne
- * atteinte par ce chemin passe le même contrôle de progression que
- * celle atteinte par le QR, donc ce n'est pas une porte dérobée.
- */
-function ouvrirSecours() {
-  const zone = document.getElementById("zoneSecours");
-  const champ = document.getElementById("champSecours");
-  const err = document.getElementById("erreurSecours");
-  zone.hidden = false;
-  err.hidden = true;
-  champ.value = "";
-  champ.focus();
-
-  champ.onkeydown = e => {
-    if (e.key === "Enter") { e.preventDefault(); document.getElementById("validerSecours").click(); }
-  };
-  document.getElementById("validerSecours").onclick = () => {
-    const saisi = (champ.value || "").replace(/\s+/g, "");
-    const cible = PARCOURS.secours[saisi];
-    if (!cible) {
-      err.textContent = "Ce numéro ne correspond à aucune borne. Vérifiez les quatre chiffres.";
-      err.hidden = false;
-      return;
-    }
-    // Les bornes sont des dossiers voisins, pas des sous-dossiers : il faut
-    // remonter à la racine, sinon on empile /1965/3215/ au lieu d'aller à /3215/.
-    window.location.href = BASE_PATH + PARCOURS.pages[cible];
-  };
-}
-
-/**
  * L'alerte par mail (Formspree), pour que l'équipe l'apprenne sur son
  * téléphone sans avoir le tableau de bord sous les yeux. L'adresse du
  * formulaire n'est pas un secret : Formspree est fait pour être appelé
@@ -1989,8 +1954,6 @@ function brancherRetourAMaBorne(sens, session) {
 }
 
 function brancherSecours() {
-  const b1 = document.getElementById("boutonSecours");
   const b2 = document.getElementById("boutonProbleme");
-  if (b1) b1.addEventListener("click", ouvrirSecours);
   if (b2) b2.addEventListener("click", ouvrirProbleme);
 }

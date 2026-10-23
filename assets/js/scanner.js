@@ -117,7 +117,8 @@ function ouvrirScanner() {
     + '<p class="scanner-consigne" id="scannerConsigne">Visez le QR code de la borne.</p>'
     + '<div class="error-box visible" id="scannerErreur" hidden></div>'
     + '<button class="btn-secondary" id="scannerFermer">Annuler</button>'
-    + '<button class="btn-lien" id="scannerSecours">Le QR code ne se lit pas ? Saisir le nombre à 4 chiffres</button>';
+    + (document.getElementById("zoneProbleme")
+        ? '<button class="btn-lien" id="scannerSecours">Le QR code ne se lit pas ? Prévenir l\'équipe</button>' : '');
   document.body.appendChild(fond);
 
   const video = fond.querySelector("video");
@@ -144,20 +145,24 @@ function ouvrirScanner() {
   }
 
   fond.querySelector("#scannerFermer").addEventListener("click", fermer);
-  fond.querySelector("#scannerSecours").addEventListener("click", () => {
+  // Pas de nombre de secours sur les affichettes (jamais imprime) : un QR
+  // illisible se signale a l'equipe, categorie deja choisie.
+  const secours = fond.querySelector("#scannerSecours");
+  if (secours) secours.addEventListener("click", () => {
     fermer();
-    if (typeof ouvrirSecours === "function" && document.getElementById("zoneSecours")) {
-      const zone = document.getElementById("secoursDepart");
-      if (zone) zone.hidden = false;
-      ouvrirSecours();
-      document.getElementById("zoneSecours").scrollIntoView({ behavior: "smooth", block: "center" });
-    }
+    if (typeof ouvrirProbleme !== "function") return;
+    ouvrirProbleme();
+    const cat = document.getElementById("categorieProbleme");
+    if (cat) cat.value = "qr";
+    document.getElementById("zoneProbleme").scrollIntoView({ behavior: "smooth", block: "center" });
   });
+  const AIDE = document.getElementById("zoneProbleme")
+    ? ", ou appuyez sur « J'ai un problème » en bas de la page." : ".";
 
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     consigne.hidden = true;
     direErreur("Ce navigateur ne donne pas accès à la caméra. Scannez le QR code avec "
-             + "l'appareil photo de votre téléphone, ou saisissez le nombre à 4 chiffres de l'affichette.");
+             + "l'appareil photo de votre téléphone" + AIDE);
     return;
   }
 
@@ -174,8 +179,7 @@ function ouvrirScanner() {
     let lire;
     try { lire = await lecteurPret; } catch (e) {
       consigne.hidden = true;
-      direErreur("Le scanner n'a pas pu se charger. Vérifiez votre connexion, ou saisissez "
-               + "le nombre à 4 chiffres de l'affichette.");
+      direErreur("Le scanner n'a pas pu se charger. Vérifiez votre connexion" + AIDE);
       return;
     }
 
@@ -210,9 +214,8 @@ function ouvrirScanner() {
     const refus = err && (err.name === "NotAllowedError" || err.name === "SecurityError");
     direErreur(refus
       ? "L'accès à la caméra a été refusé. Autorisez-le dans les réglages du navigateur pour ce site, "
-        + "ou saisissez le nombre à 4 chiffres de l'affichette."
-      : "La caméra ne répond pas. Fermez les autres applications qui l'utilisent, ou saisissez "
-        + "le nombre à 4 chiffres de l'affichette.");
+        + "ou scannez avec l'appareil photo" + AIDE
+      : "La caméra ne répond pas. Fermez les autres applications qui l'utilisent" + AIDE);
   });
 }
 
