@@ -76,22 +76,9 @@ with sync_playwright() as pw:
             print("        message : " + re.sub(r"\s+", " ", page.text_content(".ecran"))[:110])
         page.close()
 
-    print("\nLe code de secours a 4 chiffres")
-    page = nav.new_page(); page.add_init_script(init("horaire", ["E01"]))
-    page.goto("http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E02"]))
-    page.wait_for_timeout(300)
-    page.click("#boutonSecours")
-    page.fill("#champSecours", "0000"); page.click("#validerSecours")
-    page.wait_for_timeout(150)
-    v("numero inconnu : message d'erreur", not page.eval_on_selector("#erreurSecours", "e=>e.hidden"))
-    bon = [n for n, c in PARC["secours"].items() if c == "E03"][0]
-    page.fill("#champSecours", bon); page.click("#validerSecours")
-    page.wait_for_timeout(400)
-    attendu = "http://127.0.0.1:%d/%s" % (PORT, PARC["pages"]["E03"])
-    v("bon numero : ouvre la bonne borne", page.url == attendu, "%s au lieu de %s" % (page.url, attendu))
-    page.close()
-
-    print("\nLes codes de secours ne se devinent pas")
+    # Les nombres ne sont plus saisis par les joueurs (jamais imprimes), mais
+    # ils restent les noms des dossiers, donc les adresses des QR.
+    print("\nLes numeros des dossiers ne se devinent pas")
     nums = sorted(int(n) for n in PARC["secours"].keys())
     ecarts = [b - a for a, b in zip(nums, nums[1:])]
     v("tous differents", len(set(nums)) == len(nums))

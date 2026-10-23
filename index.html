@@ -66,8 +66,7 @@
        Cet écran n'ouvre PLUS la première borne d'un simple bouton. Le jeu
        consiste à trouver les QR codes dans le parc, et c'était la seule
        porte qui laissait entrer sans en scanner un : un joueur pouvait
-       commencer l'enquête assis à la caisse. Il reste le nombre à quatre
-       chiffres de l'affichette si le QR refuse de se lire, et le raccourci
+       commencer l'enquête assis à la caisse. Il ne reste que le raccourci
        réservé aux codes de test. -->
   <section class="ecran card" id="ecranDepart" hidden>
     <div class="ecran-titre">Votre enquête commence</div>
@@ -99,19 +98,6 @@
 
     <a href="#" id="versPremiereBorne" class="btn btn-test" data-lien-test hidden>Raccourci de test</a>
   </section>
-
-  <div id="secoursDepart" class="secours-zone" hidden>
-    <div class="secours-boutons">
-      <button class="btn-lien" id="boutonSecours">Le QR code ne fonctionne pas</button>
-    </div>
-
-    <div class="card" id="zoneSecours" hidden>
-      <p>Sur l'affichette, à côté du QR code, se trouve un nombre à quatre chiffres. Saisissez-le.</p>
-      <input type="text" id="champSecours" inputmode="numeric" maxlength="4" placeholder="Ex. 4172">
-      <div class="error-box visible" id="erreurSecours" hidden></div>
-      <button id="validerSecours">Ouvrir cette borne</button>
-    </div>
-  </div>
 </div>
 
 <footer>
@@ -246,10 +232,6 @@
     } else {
       document.getElementById("versPremiereBorne").remove();
     }
-
-    // Le secours par le nombre à quatre chiffres, comme sur chaque borne.
-    document.getElementById("secoursDepart").hidden = false;
-    brancherSecours();
 
     // Le groupe a-t-il scanné le QR de sa première borne avant de démarrer ?
     // C'est le chemin le plus frequent sur place : on prend son billet, on
