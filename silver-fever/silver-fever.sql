@@ -7,8 +7,8 @@
 -- Seule la playlist vit ici. Les réponses au sondage partent par
 -- mail via Formspree et ne passent pas par Supabase.
 --
--- Préfixe « sf_ » : pour ne jamais se mélanger aux tables de
--- l'escape game, qui utilisent la même base.
+-- À lancer dans le projet Supabase dédié à la fête, jamais dans
+-- celui du Sanctuaire des Brumes.
 -- ============================================================
 
 create table if not exists public.sf_sons (

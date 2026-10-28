@@ -14,8 +14,8 @@ provisoirement et doit partir dans son propre dépôt GitHub.
 Deux circuits :
 - **Le sondage** (oui / non) part **par mail** grâce à Formspree.
   Ton amie reçoit chaque réponse, les invités ne voient pas qui vient.
-- **La playlist** est rangée dans **Supabase** (la base de l'escape game,
-  table `sf_sons`) : tout le monde voit la liste des sons proposés.
+- **La playlist** est rangée dans **Supabase** (projet dédié
+  `rpsysgwdxifeneaxpkkx`, sans lien avec l'escape game, table `sf_sons`) : tout le monde voit la liste des sons proposés.
   Si Supabase ne répond pas, le son part par mail à la place, pour ne
   pas être perdu.
 
@@ -25,9 +25,11 @@ Deux circuits :
    est branché (`FORMSPREE_ID` en haut du script d'`index.html`). Les
    mails arrivent à l'adresse du compte Formspree qui a créé ce formulaire.
 2. **(rien à faire)**
-3. **La playlist.** Dans Supabase > SQL Editor, coller tout
-   `silver-fever.sql` et cliquer sur Run. Sans cette étape, la playlist
-   ne s'affiche pas et chaque son part par mail (plan B).
+3. **La playlist.** Dans le projet Supabase dédié : SQL Editor, coller
+   tout `silver-fever.sql` et cliquer sur Run. Puis, dans `index.html`,
+   remplacer `A_REMPLACER` de `SUPABASE_ANON_KEY` par la clé « anon
+   public » du projet (Project Settings > API). Tant que ce n'est pas
+   fait, la playlist ne s'affiche pas et chaque son part par mail (plan B).
 4. **Le dépôt.** Sur GitHub, créer un nouveau dépôt public (par exemple
    `silver-fever`) et y déposer `index.html` (bouton « Add file > Upload files »).
 5. **La publication.** Dans le dépôt : Settings > Pages > Source

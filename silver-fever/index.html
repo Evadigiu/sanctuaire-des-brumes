@@ -515,12 +515,12 @@ footer small { color: var(--argent-doux); font-size: .85rem; }
    ============================================================ */
 const FORMSPREE_ID = "xwllberr";
 
-/* SUPABASE : la base qui garde la playlist partagée (table sf_sons,
-   créée par silver-fever.sql). Ces deux valeurs sont publiques par
-   nature (clé « anon »). Pour un autre projet Supabase, change ces
-   deux lignes et lance silver-fever.sql dans ce projet. */
-const SUPABASE_URL = "https://xvbrumwgarkynwjzljzt.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2YnJ1bXdnYXJreW53anpsanp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4OTg4ODUsImV4cCI6MjEwMzQ3NDg4NX0.yYecURzJDr1qTsDWwFtm0LMs16KKIe398Aiytp-fe6k";
+/* SUPABASE : le projet « silver-fever », séparé de tout autre projet,
+   qui garde la playlist partagée (table sf_sons, créée par
+   silver-fever.sql). Ces deux valeurs sont publiques par nature
+   (clé « anon public »). Ne jamais mettre ici la clé « service_role ». */
+const SUPABASE_URL = "https://rpsysgwdxifeneaxpkkx.supabase.co";
+const SUPABASE_ANON_KEY = "A_REMPLACER";
 
 // Début de la soirée, heure de Paris (UTC+1 en janvier)
 const DEBUT = new Date("2027-01-30T19:30:00+01:00");
