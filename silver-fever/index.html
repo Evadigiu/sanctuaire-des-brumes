@@ -312,8 +312,10 @@ fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-direction: colu
 .message { font-size: .95rem; padding: .7rem .9rem; border-radius: 6px; }
 .message.ok { color: var(--ok); background: rgba(159, 226, 192, .08); border: 1px solid rgba(159, 226, 192, .3); }
 .message.erreur { color: var(--erreur); background: rgba(255, 180, 180, .07); border: 1px solid rgba(255, 180, 180, .3); }
-.compteur { font-size: .95rem; color: var(--argent-doux); }
-.compteur b { font-family: var(--f-chiffres); font-weight: 500; color: var(--chrome-1); }
+.echeance { font-size: .95rem; color: var(--argent-doux); }
+.echeance b { font-weight: 500; color: var(--chrome-1); }
+.piege { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.mes-sons { display: flex; flex-direction: column; gap: .6rem; }
 
 .deja { display: flex; flex-wrap: wrap; align-items: baseline; gap: .4rem 1rem; }
 
@@ -330,8 +332,6 @@ fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-direction: colu
 .playlist .n { font-family: var(--f-chiffres); font-size: .8rem; color: var(--chrome-3); font-variant-numeric: tabular-nums; }
 .playlist .titre { font-weight: 500; color: var(--chrome-1); overflow-wrap: anywhere; }
 .playlist .artiste { color: var(--argent); }
-.playlist .par { grid-column: 2; font-size: .82rem; color: var(--argent-doux); }
-.vide { color: var(--argent-doux); font-style: italic; }
 
 footer {
   text-align: center;
@@ -385,7 +385,7 @@ footer small { color: var(--argent-doux); font-size: .85rem; }
     <h2 id="t-infos">Le rendez-vous</h2>
     <dl class="infos">
       <dt>Quand</dt>
-      <dd>Samedi 30 janvier 2027, à partir de 19h30
+      <dd>Samedi 30 janvier 2027, à partir de 19h30, et jusqu'au bout de la nuit
         <span class="liens-cal">
           <a id="lien-google" href="#" target="_blank" rel="noopener">Ajouter à Google Agenda</a>
           <button type="button" class="lien-bouton" id="lien-ics">Ajouter à mon agenda (iPhone, Outlook)</button>
@@ -395,6 +395,10 @@ footer small { color: var(--argent-doux); font-size: .85rem; }
       <dd>Expérience Park, Wittenheim
         <a class="mini" href="https://www.google.com/maps/search/?api=1&amp;query=Exp%C3%A9rience%20Park%20Wittenheim" target="_blank" rel="noopener">Voir sur la carte</a>
       </dd>
+      <dt>À table</dt>
+      <dd>Apéro dînatoire sur place. Venez le ventre vide.</dd>
+      <dt>Réponse</dt>
+      <dd>Avant le vendredi 15 janvier, <a href="#venue">par le sondage plus bas</a>.</dd>
       <dt>Dress code</dt>
       <dd>Une touche de silver, autant ou aussi subtile que vous le souhaitez. Le reste, c'est vous qui le faites. 🥂✨</dd>
     </dl>
@@ -410,7 +414,7 @@ footer small { color: var(--argent-doux); font-size: .85rem; }
     <p class="etiquette">Sondage</p>
     <h2 id="t-venue">Tu viens briller ?</h2>
     <div class="carte">
-      <p class="compteur" id="compteur" hidden></p>
+      <p class="echeance" id="echeance">Réponds avant le <b>15 janvier</b>, ta réponse m'arrive directement.</p>
 
       <div class="deja" id="deja" hidden>
         <p id="deja-texte"></p>
@@ -452,6 +456,7 @@ footer small { color: var(--argent-doux); font-size: .85rem; }
           <textarea id="v-mot" name="mot" maxlength="500" rows="3"></textarea>
         </div>
 
+        <input type="text" name="_gotcha" class="piege" tabindex="-1" autocomplete="off" aria-hidden="true">
         <p class="message" id="msg-venue" role="status" hidden></p>
         <button type="submit" class="btn btn-plein" id="btn-venue">Envoyer ma réponse</button>
       </form>
@@ -461,7 +466,7 @@ footer small { color: var(--argent-doux); font-size: .85rem; }
   <section id="son" aria-labelledby="t-son">
     <p class="etiquette">La playlist</p>
     <h2 id="t-son">Ton son pour la soirée</h2>
-    <p class="texte">Le morceau qui te fait monter sur la piste, celui qu'on chante tous en chœur à 2h du matin. Propose-le, on le glissera dans la soirée.</p>
+    <p class="texte">Le morceau qui te fait monter sur la piste, celui qu'on chante tous en chœur à 2h du matin. Propose-le, ta suggestion m'arrive directement et je la glisse dans la soirée.</p>
     <div class="carte">
       <form id="form-son" novalidate>
         <div class="deux">
@@ -478,13 +483,16 @@ footer small { color: var(--argent-doux); font-size: .85rem; }
           <label for="s-prenom">Proposé par <span class="facultatif">(facultatif)</span></label>
           <input type="text" id="s-prenom" name="propose_par" maxlength="80" autocomplete="given-name">
         </div>
+        <input type="text" name="_gotcha" class="piege" tabindex="-1" autocomplete="off" aria-hidden="true">
         <p class="message" id="msg-son" role="status" hidden></p>
-        <button type="submit" class="btn btn-plein" id="btn-son">Ajouter à la playlist</button>
+        <button type="submit" class="btn btn-plein" id="btn-son">Proposer ce son</button>
       </form>
     </div>
 
-    <ol class="playlist" id="playlist" aria-live="polite"></ol>
-    <p class="vide" id="playlist-vide">La playlist est encore vide. Le premier son, c'est peut-être le tien.</p>
+    <div class="mes-sons" id="mes-sons" hidden>
+      <p class="etiquette">Tes propositions</p>
+      <ol class="playlist" id="playlist" aria-live="polite"></ol>
+    </div>
   </section>
 
   <footer>
@@ -497,19 +505,19 @@ footer small { color: var(--argent-doux); font-size: .85rem; }
 <script>
 /* ============================================================
    RÉGLAGES
-   La base Supabase où sont rangées les réponses et les chansons.
-   Ces deux valeurs sont publiques par nature (clé « anon »).
-   Pour utiliser un autre projet Supabase, change uniquement ces
-   deux lignes, puis lance silver-fever.sql dans ce projet.
+   FORMSPREE_ID : l'identifiant du formulaire Formspree, les
+   8 caractères après « formspree.io/f/ » (exemple : "xbjnqwer").
+   Les deux formulaires du site (venue et chansons) l'utilisent ;
+   l'objet du mail indique de quoi il s'agit.
    ============================================================ */
-const SUPABASE_URL = "https://xvbrumwgarkynwjzljzt.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2YnJ1bXdnYXJreW53anpsanp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4OTg4ODUsImV4cCI6MjEwMzQ3NDg4NX0.yYecURzJDr1qTsDWwFtm0LMs16KKIe398Aiytp-fe6k";
+const FORMSPREE_ID = "A_REMPLACER";
 
 // Début de la soirée, heure de Paris (UTC+1 en janvier)
 const DEBUT = new Date("2027-01-30T19:30:00+01:00");
-const FIN_AGENDA = new Date("2027-01-31T02:00:00+01:00"); // fin indicative pour l'agenda
+const DATE_LIMITE = new Date("2027-01-16T00:00:00+01:00"); // réponses attendues jusqu'au 15 janvier inclus
 const TITRE_AGENDA = "Silver Fever · 30 ans";
 const LIEU = "Expérience Park, Wittenheim";
+const DETAILS_AGENDA = "Apéro dînatoire sur place. Dress code : une touche de silver. Soirée sans enfants.";
 
 /* ---------- Petits outils ---------- */
 const $ = (id) => document.getElementById(id);
@@ -518,19 +526,21 @@ const reduitMouvement = window.matchMedia("(prefers-reduced-motion: reduce)").ma
 function lire(cle) { try { return JSON.parse(localStorage.getItem(cle)); } catch (e) { return null; } }
 function ecrire(cle, val) { try { localStorage.setItem(cle, JSON.stringify(val)); } catch (e) {} }
 
-async function api(chemin, options = {}) {
-  const rep = await fetch(SUPABASE_URL + "/rest/v1/" + chemin, {
-    ...options,
-    headers: {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: "Bearer " + SUPABASE_ANON_KEY,
-      "Content-Type": "application/json",
-      ...(options.headers || {})
-    }
+class ErreurEnvoi extends Error {}
+
+// Envoie un formulaire à Formspree, qui le transmet par mail
+async function envoyer(champs, form) {
+  if (!/^[a-z0-9]{6,}$/i.test(FORMSPREE_ID) || FORMSPREE_ID === "A_REMPLACER") {
+    throw new ErreurEnvoi("Le formulaire n'est pas encore branché. Préviens directement par message en attendant.");
+  }
+  const piege = form.querySelector('input[name="_gotcha"]');
+  if (piege && piege.value) return; // robot : on fait semblant que tout va bien
+  const rep = await fetch("https://formspree.io/f/" + FORMSPREE_ID, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(champs)
   });
   if (!rep.ok) throw new Error("HTTP " + rep.status);
-  const txt = await rep.text();
-  return txt ? JSON.parse(txt) : null;
 }
 
 function afficherMessage(el, texte, type) {
@@ -539,7 +549,8 @@ function afficherMessage(el, texte, type) {
   el.hidden = false;
 }
 
-const ERREUR_RESEAU = "Impossible d'enregistrer pour l'instant. Vérifie ta connexion et réessaie dans quelques minutes.";
+const ERREUR_RESEAU = "Impossible d'envoyer pour l'instant. Vérifie ta connexion et réessaie dans quelques minutes.";
+const texteErreur = (err) => err instanceof ErreurEnvoi ? err.message : ERREUR_RESEAU;
 
 /* ---------- Compte à rebours ---------- */
 function majCompte() {
@@ -556,13 +567,13 @@ function majCompte() {
 majCompte();
 setInterval(majCompte, 1000);
 
-/* ---------- Agenda ---------- */
+/* ---------- Agenda (pas d'heure de fin : seul le début est indiqué) ---------- */
 function formatUTC(d) { return d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, ""); }
 $("lien-google").href = "https://calendar.google.com/calendar/render?action=TEMPLATE"
   + "&text=" + encodeURIComponent(TITRE_AGENDA)
-  + "&dates=" + formatUTC(DEBUT) + "/" + formatUTC(FIN_AGENDA)
+  + "&dates=" + formatUTC(DEBUT) + "/" + formatUTC(DEBUT)
   + "&location=" + encodeURIComponent(LIEU)
-  + "&details=" + encodeURIComponent("Dress code : une touche de silver. Soirée sans enfants.");
+  + "&details=" + encodeURIComponent(DETAILS_AGENDA);
 
 $("lien-ics").addEventListener("click", () => {
   const ics = [
@@ -571,10 +582,9 @@ $("lien-ics").addEventListener("click", () => {
     "UID:silver-fever-20270130@anniversaire",
     "DTSTAMP:" + formatUTC(new Date()),
     "DTSTART:" + formatUTC(DEBUT),
-    "DTEND:" + formatUTC(FIN_AGENDA),
     "SUMMARY:" + TITRE_AGENDA,
     "LOCATION:" + LIEU.replace(/,/g, "\\,"),
-    "DESCRIPTION:Dress code : une touche de silver. Soirée sans enfants.",
+    "DESCRIPTION:" + DETAILS_AGENDA.replace(/,/g, "\\,"),
     "END:VEVENT", "END:VCALENDAR"
   ].join("\r\n");
   const url = URL.createObjectURL(new Blob([ics], { type: "text/calendar;charset=utf-8" }));
@@ -591,6 +601,11 @@ formVenue.addEventListener("change", (e) => {
   if (e.target.name === "venue") blocNb.hidden = e.target.value !== "oui";
 });
 
+// Passé le 15 janvier, on accepte encore les réponses, mais on le dit
+if (Date.now() >= DATE_LIMITE) {
+  $("echeance").textContent = "La date limite du 15 janvier est passée, mais réponds quand même : mieux vaut tard que jamais.";
+}
+
 function montrerDeja(rep) {
   $("deja-texte").textContent = rep.venue
     ? "Tu as répondu oui, " + rep.prenom + ". On t'attend en argenté !"
@@ -602,21 +617,9 @@ $("changer").addEventListener("click", () => {
   $("deja").hidden = true;
   formVenue.hidden = false;
   $("msg-venue").hidden = true;
+  $("btn-venue").before($("msg-venue"));
   $("v-prenom").focus();
 });
-
-async function majCompteur() {
-  try {
-    const r = await api("rpc/sf_compte_venues", { method: "POST", body: "{}" });
-    const nb = r && r.personnes ? r.personnes : 0;
-    if (nb > 0) {
-      $("compteur").innerHTML = "";
-      const b = document.createElement("b"); b.textContent = nb;
-      $("compteur").append(b, nb > 1 ? " personnes ont déjà dit oui." : " personne a déjà dit oui.");
-      $("compteur").hidden = false;
-    }
-  } catch (e) { /* le compteur est un bonus : s'il échoue, on ne montre rien */ }
-}
 
 formVenue.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -627,25 +630,27 @@ formVenue.addEventListener("submit", async (e) => {
   if (!choix) { afficherMessage(msg, "Choisis oui ou non.", "erreur"); return; }
 
   const venue = choix.value === "oui";
-  const ligne = {
-    prenom,
-    venue,
-    nb_personnes: venue ? Number($("v-nb").value) : 0,
-    mot: $("v-mot").value.trim() || null
+  const nb = venue ? Number($("v-nb").value) : 0;
+  const champs = {
+    _subject: (venue ? "✅ OUI" : "❌ NON") + " · " + prenom + (venue && nb > 1 ? " (" + nb + " personnes)" : "") + " · Silver Fever",
+    "Formulaire": "Venue",
+    "Prénom": prenom,
+    "Réponse": venue ? "Oui" : "Non",
+    "Nombre de personnes": nb,
+    "Petit mot": $("v-mot").value.trim() || "(aucun)"
   };
 
   const btn = $("btn-venue");
   btn.disabled = true; btn.textContent = "Envoi…";
   try {
-    await api("sf_reponses", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify(ligne) });
+    await envoyer(champs, formVenue);
     ecrire("sf-reponse", { prenom, venue });
     formVenue.reset(); blocNb.hidden = true;
     montrerDeja({ prenom, venue });
     afficherMessage(msg, venue ? "Noté ! Rendez-vous le 30 janvier." : "Bien reçu, tu vas nous manquer.", "ok");
     $("deja").after(msg);
-    majCompteur();
   } catch (err) {
-    afficherMessage(msg, ERREUR_RESEAU, "erreur");
+    afficherMessage(msg, texteErreur(err), "erreur");
   } finally {
     btn.disabled = false; btn.textContent = "Envoyer ma réponse";
   }
@@ -653,16 +658,18 @@ formVenue.addEventListener("submit", async (e) => {
 
 const dejaRepondu = lire("sf-reponse");
 if (dejaRepondu && dejaRepondu.prenom) montrerDeja(dejaRepondu);
-majCompteur();
 
-/* ---------- Playlist ---------- */
-function afficherPlaylist(sons) {
+/* ---------- Playlist ----------
+   Les suggestions partent par mail : les invités ne voient pas celles des
+   autres. On garde juste, dans ce navigateur, la liste de ses propres envois. */
+function afficherMesSons() {
+  const sons = lire("sf-sons") || [];
   const liste = $("playlist");
   liste.innerHTML = "";
-  $("playlist-vide").hidden = sons.length > 0;
+  $("mes-sons").hidden = sons.length === 0;
   sons.forEach((s, i) => {
     const li = document.createElement("li");
-    const n = document.createElement("span"); n.className = "n"; n.textContent = String(sons.length - i).padStart(2, "0");
+    const n = document.createElement("span"); n.className = "n"; n.textContent = String(i + 1).padStart(2, "0");
     const ligne = document.createElement("span");
     const t = document.createElement("span"); t.className = "titre"; t.textContent = s.titre;
     ligne.append(t);
@@ -671,51 +678,46 @@ function afficherPlaylist(sons) {
       ligne.append(a);
     }
     li.append(n, ligne);
-    if (s.propose_par) {
-      const p = document.createElement("span"); p.className = "par"; p.textContent = "proposé par " + s.propose_par;
-      li.append(p);
-    }
     liste.append(li);
   });
 }
 
-async function chargerPlaylist() {
-  try {
-    const sons = await api("sf_sons?select=titre,artiste,propose_par,cree_le&order=cree_le.desc&limit=300");
-    afficherPlaylist(sons || []);
-  } catch (e) {
-    $("playlist-vide").textContent = "La playlist n'a pas pu se charger. Recharge la page dans un instant.";
-  }
-}
-
 $("form-son").addEventListener("submit", async (e) => {
   e.preventDefault();
+  const form = e.currentTarget;
   const msg = $("msg-son");
   const titre = $("s-titre").value.trim();
   if (!titre) { afficherMessage(msg, "Indique au moins le titre du morceau.", "erreur"); $("s-titre").focus(); return; }
-  const ligne = {
-    titre,
-    artiste: $("s-artiste").value.trim() || null,
-    propose_par: $("s-prenom").value.trim() || null
+  const artiste = $("s-artiste").value.trim();
+  const par = $("s-prenom").value.trim();
+  const champs = {
+    _subject: "🎵 " + titre + (artiste ? " · " + artiste : "") + " · Silver Fever",
+    "Formulaire": "Playlist",
+    "Titre": titre,
+    "Artiste": artiste || "(non précisé)",
+    "Proposé par": par || "(anonyme)"
   };
   const btn = $("btn-son");
-  btn.disabled = true; btn.textContent = "Ajout…";
+  btn.disabled = true; btn.textContent = "Envoi…";
   try {
-    await api("sf_sons", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify(ligne) });
-    ecrire("sf-prenom-son", ligne.propose_par);
+    await envoyer(champs, form);
+    if (par) ecrire("sf-prenom-son", par);
+    const sons = lire("sf-sons") || [];
+    sons.push({ titre, artiste });
+    ecrire("sf-sons", sons);
+    afficherMesSons();
     $("s-titre").value = ""; $("s-artiste").value = "";
-    afficherMessage(msg, "Ajouté à la playlist !", "ok");
-    chargerPlaylist();
+    afficherMessage(msg, "Envoyé ! Tu peux en proposer un autre.", "ok");
   } catch (err) {
-    afficherMessage(msg, ERREUR_RESEAU, "erreur");
+    afficherMessage(msg, texteErreur(err), "erreur");
   } finally {
-    btn.disabled = false; btn.textContent = "Ajouter à la playlist";
+    btn.disabled = false; btn.textContent = "Proposer ce son";
   }
 });
 
 const prenomSon = lire("sf-prenom-son");
 if (prenomSon) $("s-prenom").value = prenomSon;
-chargerPlaylist();
+afficherMesSons();
 
 /* ---------- Reflets sur le fond ---------- */
 (function reflets() {
