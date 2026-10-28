@@ -1,0 +1,840 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Silver Fever · 30 ans</title>
+<meta name="description" content="Samedi 30 janvier 2027, 19h30, Expérience Park à Wittenheim. Soirée Silver Fever : une touche d'argent, des bulles et du son.">
+<meta property="og:title" content="Silver Fever · Thirty, flirty & silver">
+<meta property="og:description" content="Samedi 30 janvier 2027 à 19h30, Expérience Park, Wittenheim. Réponds au sondage et propose ton son.">
+<meta name="theme-color" content="#0b0d16">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=Jost:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Mise en page : une nuit bleu encre, une boule à facettes en ouverture,
+   puis une seule colonne de cartes « miroir » qui se lisent de haut en bas. */
+:root {
+  color-scheme: dark;
+  --nuit: #0b0d16;        /* fond */
+  --nuit-2: #141827;      /* surfaces */
+  --nuit-3: #1d2236;      /* champs */
+  --argent: #d9dde6;      /* texte principal */
+  --argent-doux: #9aa1b4; /* texte secondaire */
+  --chrome-1: #ffffff;
+  --chrome-2: #b9bfcc;
+  --chrome-3: #6f7689;
+  --lavande: #b8b2ff;     /* seul accent, froid et nocturne */
+  --ok: #9fe2c0;
+  --erreur: #ffb4b4;
+  --filet: rgba(217, 221, 230, .14);
+
+  --f-titre: "Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
+  --f-texte: "Jost", "Futura", "Avenir Next", system-ui, sans-serif;
+  --f-chiffres: "DM Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --chrome: linear-gradient(100deg, var(--chrome-3) 0%, var(--chrome-1) 22%, var(--chrome-2) 40%, var(--chrome-1) 58%, var(--chrome-3) 78%, var(--chrome-1) 100%);
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0;
+  background: var(--nuit);
+  color: var(--argent);
+  font-family: var(--f-texte);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  font-weight: 300;
+  overflow-x: hidden;
+}
+img, canvas { max-width: 100%; }
+[hidden] { display: none !important; }
+
+/* Reflets de la boule qui tournent lentement sur tout le fond */
+#reflets {
+  position: fixed;
+  inset: -50vmax;
+  pointer-events: none;
+  z-index: 0;
+  animation: tourne 140s linear infinite;
+}
+#reflets span {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,.9) 0%, rgba(214,220,255,.35) 35%, transparent 70%);
+  filter: blur(.4px);
+}
+@keyframes tourne { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { #reflets { animation: none; } }
+
+.page {
+  position: relative;
+  z-index: 1;
+  max-width: 44rem;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 3.5rem;
+}
+
+/* ---------- Ouverture ---------- */
+.ouverture {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1.1rem;
+  padding-top: max(1.5rem, env(safe-area-inset-top, 0px));
+}
+.boule-wrap { position: relative; width: min(15rem, 62vw); aspect-ratio: 1 / 1.25; }
+#boule { width: 100%; height: 100%; display: block; }
+.surtitre {
+  font-family: var(--f-chiffres);
+  font-size: .78rem;
+  letter-spacing: .28em;
+  text-transform: uppercase;
+  color: var(--argent-doux);
+  margin: 0;
+}
+h1 {
+  font-family: var(--f-titre);
+  font-weight: 500;
+  font-style: italic;
+  font-size: clamp(3.4rem, 15vw, 6.8rem);
+  line-height: .92;
+  letter-spacing: -.02em;
+  margin: 0;
+  text-wrap: balance;
+}
+.chrome {
+  background: var(--chrome);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: lustre 9s ease-in-out infinite alternate;
+}
+@keyframes lustre { from { background-position: 0% 50%; } to { background-position: 100% 50%; } }
+@media (prefers-reduced-motion: reduce) { .chrome { animation: none; } }
+h1 .petit { display: block; font-size: .32em; font-style: normal; letter-spacing: .02em; margin-top: .5em; font-weight: 400; }
+
+.quand {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .25rem 1rem;
+  font-size: 1.05rem;
+  font-weight: 400;
+  margin: 0;
+}
+.quand span + span::before { content: "·"; margin-right: 1rem; color: var(--chrome-3); }
+@media (max-width: 30rem) {
+  .quand { flex-direction: column; align-items: center; }
+  .quand span + span::before { content: none; }
+}
+
+.compte {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 4.6rem));
+  gap: .5rem;
+  justify-content: center;
+  margin-top: .4rem;
+}
+.compte div {
+  display: flex; flex-direction: column; align-items: center;
+  padding: .55rem 0 .45rem;
+  border: 1px solid var(--filet);
+  border-radius: 4px;
+  background: rgba(20, 24, 39, .6);
+}
+.compte b {
+  font-family: var(--f-chiffres);
+  font-weight: 500;
+  font-size: 1.5rem;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--chrome-1);
+}
+.compte small { font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; color: var(--argent-doux); }
+
+.actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .75rem; margin-top: .6rem; }
+
+.btn {
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: .8rem 1.5rem;
+  font: 500 .95rem/1 var(--f-texte);
+  letter-spacing: .04em;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  transition: transform .15s ease, box-shadow .2s ease, background-color .2s ease;
+}
+.btn-plein { background: var(--chrome); background-size: 200% 100%; color: #10131f; box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+.btn-plein:hover { box-shadow: 0 0 24px rgba(220, 225, 255, .35); transform: translateY(-1px); }
+.btn-trait { border-color: var(--chrome-2); color: var(--argent); background: transparent; }
+.btn-trait:hover { background: rgba(217, 221, 230, .08); }
+.btn:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, .choix input:focus-visible + span {
+  outline: 2px solid var(--lavande);
+  outline-offset: 3px;
+}
+.btn[disabled] { opacity: .55; cursor: wait; transform: none; }
+
+/* ---------- Sections ---------- */
+section { display: flex; flex-direction: column; gap: 1rem; scroll-margin-top: 1.5rem; }
+h2 {
+  font-family: var(--f-titre);
+  font-weight: 500;
+  font-size: clamp(1.9rem, 6vw, 2.5rem);
+  line-height: 1.1;
+  margin: 0;
+  text-wrap: balance;
+}
+.etiquette {
+  font-family: var(--f-chiffres);
+  font-size: .72rem;
+  letter-spacing: .24em;
+  text-transform: uppercase;
+  color: var(--lavande);
+  margin: 0;
+}
+p { margin: 0; }
+.texte { display: flex; flex-direction: column; gap: 1rem; max-width: 36rem; }
+.texte strong { font-weight: 500; color: var(--chrome-1); }
+.signature { font-family: var(--f-titre); font-style: italic; font-size: 1.4rem; color: var(--chrome-1); }
+
+/* Infos pratiques : liste étiquette / valeur */
+.infos {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  border-top: 1px solid var(--filet);
+  margin: 0;
+}
+.infos dt, .infos dd { padding: .9rem 0; border-bottom: 1px solid var(--filet); margin: 0; }
+.infos dt { font-family: var(--f-chiffres); font-size: .75rem; letter-spacing: .16em; text-transform: uppercase; color: var(--argent-doux); padding-top: 1.05rem; }
+.infos dd { font-weight: 400; }
+.infos a { color: var(--argent); text-decoration-color: var(--chrome-3); text-underline-offset: 3px; }
+.infos a:hover { text-decoration-color: var(--chrome-1); }
+.infos .mini { display: block; font-size: .9rem; color: var(--argent-doux); font-weight: 300; }
+.liens-cal { display: flex; flex-wrap: wrap; gap: .4rem 1rem; }
+.lien-bouton { background: none; border: 0; padding: 0; font: inherit; color: var(--argent); text-decoration: underline; text-decoration-color: var(--chrome-3); text-underline-offset: 3px; cursor: pointer; }
+.lien-bouton:hover { text-decoration-color: var(--chrome-1); }
+@media (max-width: 30rem) {
+  .infos { grid-template-columns: minmax(0, 1fr); }
+  .infos dt { border-bottom: 0; padding-bottom: 0; }
+  .infos dd { padding-top: .25rem; }
+}
+
+/* Bandeau « sans gosses » : la seule pièce posée de travers */
+.sans-gosses {
+  position: relative;
+  border: 1px dashed var(--chrome-2);
+  border-radius: 6px;
+  padding: 1.4rem 1.4rem 1.3rem;
+  transform: rotate(-1.2deg);
+  background: rgba(184, 178, 255, .06);
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+.sans-gosses h2 { font-size: clamp(1.6rem, 5.5vw, 2.1rem); }
+.tampon {
+  position: absolute;
+  top: -.9rem;
+  right: 1rem;
+  font-family: var(--f-chiffres);
+  font-size: .7rem;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  background: var(--lavande);
+  color: #14122b;
+  padding: .3rem .6rem;
+  border-radius: 3px;
+  transform: rotate(3deg);
+}
+
+/* ---------- Formulaires ---------- */
+.carte {
+  background: linear-gradient(160deg, rgba(29, 34, 54, .92), rgba(20, 24, 39, .92));
+  border: 1px solid var(--filet);
+  border-radius: 10px;
+  padding: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+form { display: flex; flex-direction: column; gap: 1.1rem; }
+.champ { display: flex; flex-direction: column; gap: .35rem; min-width: 0; }
+.champ label, .legende { font-size: .85rem; font-weight: 500; letter-spacing: .04em; color: var(--argent-doux); }
+.facultatif { font-weight: 300; }
+input[type="text"], textarea, select {
+  width: 100%;
+  font: 400 1rem/1.4 var(--f-texte);
+  color: var(--argent);
+  background: var(--nuit-3);
+  border: 1px solid var(--filet);
+  border-radius: 6px;
+  padding: .75rem .85rem;
+}
+textarea { resize: vertical; min-height: 4.5rem; }
+input::placeholder, textarea::placeholder { color: #6c7286; }
+.deux { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; }
+@media (max-width: 30rem) { .deux { grid-template-columns: minmax(0, 1fr); } }
+
+fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .5rem; }
+.choix-ligne { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+.choix { position: relative; display: block; cursor: pointer; }
+.choix input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.choix span {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: .1rem;
+  border: 1px solid var(--filet);
+  border-radius: 8px;
+  padding: .85rem .5rem;
+  background: var(--nuit-3);
+  text-align: center;
+  transition: border-color .15s ease, background-color .15s ease, box-shadow .2s ease;
+}
+.choix b { font-family: var(--f-titre); font-style: italic; font-weight: 500; font-size: 1.5rem; line-height: 1.1; }
+.choix small { font-size: .82rem; color: var(--argent-doux); }
+.choix input:checked + span { border-color: var(--chrome-1); background: rgba(217, 221, 230, .1); box-shadow: 0 0 18px rgba(220, 225, 255, .18); }
+.choix:hover span { border-color: var(--chrome-2); }
+
+.message { font-size: .95rem; padding: .7rem .9rem; border-radius: 6px; }
+.message.ok { color: var(--ok); background: rgba(159, 226, 192, .08); border: 1px solid rgba(159, 226, 192, .3); }
+.message.erreur { color: var(--erreur); background: rgba(255, 180, 180, .07); border: 1px solid rgba(255, 180, 180, .3); }
+.compteur { font-size: .95rem; color: var(--argent-doux); }
+.compteur b { font-family: var(--f-chiffres); font-weight: 500; color: var(--chrome-1); }
+
+.deja { display: flex; flex-wrap: wrap; align-items: baseline; gap: .4rem 1rem; }
+
+/* ---------- Playlist ---------- */
+.playlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border-top: 1px solid var(--filet); }
+.playlist li {
+  display: grid;
+  grid-template-columns: 2.2rem minmax(0, 1fr);
+  gap: .2rem .75rem;
+  align-items: baseline;
+  padding: .8rem 0;
+  border-bottom: 1px solid var(--filet);
+}
+.playlist .n { font-family: var(--f-chiffres); font-size: .8rem; color: var(--chrome-3); font-variant-numeric: tabular-nums; }
+.playlist .titre { font-weight: 500; color: var(--chrome-1); overflow-wrap: anywhere; }
+.playlist .artiste { color: var(--argent); }
+.playlist .par { grid-column: 2; font-size: .82rem; color: var(--argent-doux); }
+.vide { color: var(--argent-doux); font-style: italic; }
+
+footer {
+  text-align: center;
+  display: flex; flex-direction: column; gap: .4rem; align-items: center;
+  padding-top: 1rem;
+}
+footer .grand { font-family: var(--f-titre); font-style: italic; font-size: clamp(1.6rem, 6vw, 2.2rem); }
+footer small { color: var(--argent-doux); font-size: .85rem; }
+</style>
+</head>
+<body>
+
+<div id="reflets" aria-hidden="true"></div>
+
+<main class="page">
+
+  <header class="ouverture">
+    <div class="boule-wrap"><canvas id="boule" aria-hidden="true"></canvas></div>
+    <p class="surtitre">Thirty, flirty &amp; silver</p>
+    <h1><span class="chrome">Silver Fever</span><span class="petit chrome">mes 30 ans</span></h1>
+    <p class="quand">
+      <span>Samedi 30 janvier 2027</span>
+      <span>19h30</span>
+      <span>Expérience Park, Wittenheim</span>
+    </p>
+    <div class="compte" id="compte" aria-label="Compte à rebours avant la soirée">
+      <div><b id="cj">--</b><small>jours</small></div>
+      <div><b id="ch">--</b><small>heures</small></div>
+      <div><b id="cm">--</b><small>min</small></div>
+      <div><b id="cs">--</b><small>sec</small></div>
+    </div>
+    <div class="actions">
+      <a class="btn btn-plein" href="#venue">Je réponds</a>
+      <a class="btn btn-trait" href="#son">Je propose un son</a>
+    </div>
+  </header>
+
+  <section id="invitation" aria-labelledby="t-invitation">
+    <p class="etiquette">L'invitation</p>
+    <h2 id="t-invitation">On sort le grand jeu</h2>
+    <div class="texte">
+      <p>Pour mes 30 ans, on sort le grand jeu : une soirée sous le signe de l'argent, des reflets métallisés et des détails qui brillent.</p>
+      <p>L'idée ? Une ambiance chic, festive et un brin disco, entre élégance nocturne et extravagance assumée. Pas besoin d'un déguisement ni d'en faire des tonnes : une touche d'argenté, un accessoire qui capte la lumière, une pièce qui brille… et le tour est joué.</p>
+      <p>Le temps d'une soirée, on laisse le quotidien au vestiaire, on sort les bulles, on monte le son et on fait scintiller la nuit.</p>
+      <p class="signature">Thirty, flirty &amp; silver. 🪩</p>
+    </div>
+  </section>
+
+  <section id="infos" aria-labelledby="t-infos">
+    <p class="etiquette">Infos pratiques</p>
+    <h2 id="t-infos">Le rendez-vous</h2>
+    <dl class="infos">
+      <dt>Quand</dt>
+      <dd>Samedi 30 janvier 2027, à partir de 19h30
+        <span class="liens-cal">
+          <a id="lien-google" href="#" target="_blank" rel="noopener">Ajouter à Google Agenda</a>
+          <button type="button" class="lien-bouton" id="lien-ics">Ajouter à mon agenda (iPhone, Outlook)</button>
+        </span>
+      </dd>
+      <dt>Où</dt>
+      <dd>Expérience Park, Wittenheim
+        <a class="mini" href="https://www.google.com/maps/search/?api=1&amp;query=Exp%C3%A9rience%20Park%20Wittenheim" target="_blank" rel="noopener">Voir sur la carte</a>
+      </dd>
+      <dt>Dress code</dt>
+      <dd>Une touche de silver, autant ou aussi subtile que vous le souhaitez. Le reste, c'est vous qui le faites. 🥂✨</dd>
+    </dl>
+  </section>
+
+  <aside class="sans-gosses" aria-labelledby="t-gosses">
+    <span class="tampon">18+ only</span>
+    <h2 id="t-gosses">Soirée sans gosses</h2>
+    <p>On adore vos enfants, vraiment. Mais ce soir-là, ils dorment chez mamie. Prévoyez la baby-sitter, pas les doudous.</p>
+  </aside>
+
+  <section id="venue" aria-labelledby="t-venue">
+    <p class="etiquette">Sondage</p>
+    <h2 id="t-venue">Tu viens briller ?</h2>
+    <div class="carte">
+      <p class="compteur" id="compteur" hidden></p>
+
+      <div class="deja" id="deja" hidden>
+        <p id="deja-texte"></p>
+        <button type="button" class="lien-bouton" id="changer">Changer ma réponse</button>
+      </div>
+
+      <form id="form-venue" novalidate>
+        <div class="champ">
+          <label for="v-prenom">Ton prénom (et l'initiale de ton nom, au cas où)</label>
+          <input type="text" id="v-prenom" name="prenom" maxlength="80" autocomplete="name" required>
+        </div>
+
+        <fieldset>
+          <legend class="legende">Tu seras là le 30 janvier ?</legend>
+          <div class="choix-ligne">
+            <label class="choix">
+              <input type="radio" name="venue" value="oui" id="v-oui">
+              <span><b>Oui</b><small>je sors l'argenté</small></span>
+            </label>
+            <label class="choix">
+              <input type="radio" name="venue" value="non" id="v-non">
+              <span><b>Non</b><small>je trinquerai de loin</small></span>
+            </label>
+          </div>
+        </fieldset>
+
+        <div class="champ" id="bloc-nb" hidden>
+          <label for="v-nb">Vous serez combien, toi compris ?</label>
+          <select id="v-nb" name="nb">
+            <option value="1">1 personne</option>
+            <option value="2">2 personnes</option>
+            <option value="3">3 personnes</option>
+            <option value="4">4 personnes</option>
+          </select>
+        </div>
+
+        <div class="champ">
+          <label for="v-mot">Un petit mot <span class="facultatif">(facultatif)</span></label>
+          <textarea id="v-mot" name="mot" maxlength="500" rows="3"></textarea>
+        </div>
+
+        <p class="message" id="msg-venue" role="status" hidden></p>
+        <button type="submit" class="btn btn-plein" id="btn-venue">Envoyer ma réponse</button>
+      </form>
+    </div>
+  </section>
+
+  <section id="son" aria-labelledby="t-son">
+    <p class="etiquette">La playlist</p>
+    <h2 id="t-son">Ton son pour la soirée</h2>
+    <p class="texte">Le morceau qui te fait monter sur la piste, celui qu'on chante tous en chœur à 2h du matin. Propose-le, on le glissera dans la soirée.</p>
+    <div class="carte">
+      <form id="form-son" novalidate>
+        <div class="deux">
+          <div class="champ">
+            <label for="s-titre">Titre</label>
+            <input type="text" id="s-titre" name="titre" maxlength="120" placeholder="Dancing Queen" required>
+          </div>
+          <div class="champ">
+            <label for="s-artiste">Artiste</label>
+            <input type="text" id="s-artiste" name="artiste" maxlength="120" placeholder="ABBA">
+          </div>
+        </div>
+        <div class="champ">
+          <label for="s-prenom">Proposé par <span class="facultatif">(facultatif)</span></label>
+          <input type="text" id="s-prenom" name="propose_par" maxlength="80" autocomplete="given-name">
+        </div>
+        <p class="message" id="msg-son" role="status" hidden></p>
+        <button type="submit" class="btn btn-plein" id="btn-son">Ajouter à la playlist</button>
+      </form>
+    </div>
+
+    <ol class="playlist" id="playlist" aria-live="polite"></ol>
+    <p class="vide" id="playlist-vide">La playlist est encore vide. Le premier son, c'est peut-être le tien.</p>
+  </section>
+
+  <footer>
+    <p class="grand chrome">Thirty, flirty &amp; silver.</p>
+    <small>Samedi 30 janvier 2027 · 19h30 · Expérience Park, Wittenheim</small>
+  </footer>
+
+</main>
+
+<script>
+/* ============================================================
+   RÉGLAGES
+   La base Supabase où sont rangées les réponses et les chansons.
+   Ces deux valeurs sont publiques par nature (clé « anon »).
+   Pour utiliser un autre projet Supabase, change uniquement ces
+   deux lignes, puis lance silver-fever.sql dans ce projet.
+   ============================================================ */
+const SUPABASE_URL = "https://xvbrumwgarkynwjzljzt.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2YnJ1bXdnYXJreW53anpsanp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4OTg4ODUsImV4cCI6MjEwMzQ3NDg4NX0.yYecURzJDr1qTsDWwFtm0LMs16KKIe398Aiytp-fe6k";
+
+// Début de la soirée, heure de Paris (UTC+1 en janvier)
+const DEBUT = new Date("2027-01-30T19:30:00+01:00");
+const FIN_AGENDA = new Date("2027-01-31T02:00:00+01:00"); // fin indicative pour l'agenda
+const TITRE_AGENDA = "Silver Fever · 30 ans";
+const LIEU = "Expérience Park, Wittenheim";
+
+/* ---------- Petits outils ---------- */
+const $ = (id) => document.getElementById(id);
+const reduitMouvement = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function lire(cle) { try { return JSON.parse(localStorage.getItem(cle)); } catch (e) { return null; } }
+function ecrire(cle, val) { try { localStorage.setItem(cle, JSON.stringify(val)); } catch (e) {} }
+
+async function api(chemin, options = {}) {
+  const rep = await fetch(SUPABASE_URL + "/rest/v1/" + chemin, {
+    ...options,
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: "Bearer " + SUPABASE_ANON_KEY,
+      "Content-Type": "application/json",
+      ...(options.headers || {})
+    }
+  });
+  if (!rep.ok) throw new Error("HTTP " + rep.status);
+  const txt = await rep.text();
+  return txt ? JSON.parse(txt) : null;
+}
+
+function afficherMessage(el, texte, type) {
+  el.textContent = texte;
+  el.className = "message " + type;
+  el.hidden = false;
+}
+
+const ERREUR_RESEAU = "Impossible d'enregistrer pour l'instant. Vérifie ta connexion et réessaie dans quelques minutes.";
+
+/* ---------- Compte à rebours ---------- */
+function majCompte() {
+  let reste = Math.max(0, DEBUT - Date.now());
+  const j = Math.floor(reste / 864e5); reste -= j * 864e5;
+  const h = Math.floor(reste / 36e5); reste -= h * 36e5;
+  const m = Math.floor(reste / 6e4); reste -= m * 6e4;
+  const s = Math.floor(reste / 1e3);
+  $("cj").textContent = j;
+  $("ch").textContent = String(h).padStart(2, "0");
+  $("cm").textContent = String(m).padStart(2, "0");
+  $("cs").textContent = String(s).padStart(2, "0");
+}
+majCompte();
+setInterval(majCompte, 1000);
+
+/* ---------- Agenda ---------- */
+function formatUTC(d) { return d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, ""); }
+$("lien-google").href = "https://calendar.google.com/calendar/render?action=TEMPLATE"
+  + "&text=" + encodeURIComponent(TITRE_AGENDA)
+  + "&dates=" + formatUTC(DEBUT) + "/" + formatUTC(FIN_AGENDA)
+  + "&location=" + encodeURIComponent(LIEU)
+  + "&details=" + encodeURIComponent("Dress code : une touche de silver. Soirée sans enfants.");
+
+$("lien-ics").addEventListener("click", () => {
+  const ics = [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Silver Fever//FR", "CALSCALE:GREGORIAN",
+    "BEGIN:VEVENT",
+    "UID:silver-fever-20270130@anniversaire",
+    "DTSTAMP:" + formatUTC(new Date()),
+    "DTSTART:" + formatUTC(DEBUT),
+    "DTEND:" + formatUTC(FIN_AGENDA),
+    "SUMMARY:" + TITRE_AGENDA,
+    "LOCATION:" + LIEU.replace(/,/g, "\\,"),
+    "DESCRIPTION:Dress code : une touche de silver. Soirée sans enfants.",
+    "END:VEVENT", "END:VCALENDAR"
+  ].join("\r\n");
+  const url = URL.createObjectURL(new Blob([ics], { type: "text/calendar;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url; a.download = "silver-fever.ics";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+/* ---------- Sondage de venue ---------- */
+const formVenue = $("form-venue");
+const blocNb = $("bloc-nb");
+formVenue.addEventListener("change", (e) => {
+  if (e.target.name === "venue") blocNb.hidden = e.target.value !== "oui";
+});
+
+function montrerDeja(rep) {
+  $("deja-texte").textContent = rep.venue
+    ? "Tu as répondu oui, " + rep.prenom + ". On t'attend en argenté !"
+    : "Tu as répondu non, " + rep.prenom + ". On lèvera une coupe pour toi.";
+  $("deja").hidden = false;
+  formVenue.hidden = true;
+}
+$("changer").addEventListener("click", () => {
+  $("deja").hidden = true;
+  formVenue.hidden = false;
+  $("msg-venue").hidden = true;
+  $("v-prenom").focus();
+});
+
+async function majCompteur() {
+  try {
+    const r = await api("rpc/sf_compte_venues", { method: "POST", body: "{}" });
+    const nb = r && r.personnes ? r.personnes : 0;
+    if (nb > 0) {
+      $("compteur").innerHTML = "";
+      const b = document.createElement("b"); b.textContent = nb;
+      $("compteur").append(b, nb > 1 ? " personnes ont déjà dit oui." : " personne a déjà dit oui.");
+      $("compteur").hidden = false;
+    }
+  } catch (e) { /* le compteur est un bonus : s'il échoue, on ne montre rien */ }
+}
+
+formVenue.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = $("msg-venue");
+  const prenom = $("v-prenom").value.trim();
+  const choix = formVenue.querySelector('input[name="venue"]:checked');
+  if (!prenom) { afficherMessage(msg, "Indique ton prénom pour qu'on sache qui vient.", "erreur"); $("v-prenom").focus(); return; }
+  if (!choix) { afficherMessage(msg, "Choisis oui ou non.", "erreur"); return; }
+
+  const venue = choix.value === "oui";
+  const ligne = {
+    prenom,
+    venue,
+    nb_personnes: venue ? Number($("v-nb").value) : 0,
+    mot: $("v-mot").value.trim() || null
+  };
+
+  const btn = $("btn-venue");
+  btn.disabled = true; btn.textContent = "Envoi…";
+  try {
+    await api("sf_reponses", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify(ligne) });
+    ecrire("sf-reponse", { prenom, venue });
+    formVenue.reset(); blocNb.hidden = true;
+    montrerDeja({ prenom, venue });
+    afficherMessage(msg, venue ? "Noté ! Rendez-vous le 30 janvier." : "Bien reçu, tu vas nous manquer.", "ok");
+    $("deja").after(msg);
+    majCompteur();
+  } catch (err) {
+    afficherMessage(msg, ERREUR_RESEAU, "erreur");
+  } finally {
+    btn.disabled = false; btn.textContent = "Envoyer ma réponse";
+  }
+});
+
+const dejaRepondu = lire("sf-reponse");
+if (dejaRepondu && dejaRepondu.prenom) montrerDeja(dejaRepondu);
+majCompteur();
+
+/* ---------- Playlist ---------- */
+function afficherPlaylist(sons) {
+  const liste = $("playlist");
+  liste.innerHTML = "";
+  $("playlist-vide").hidden = sons.length > 0;
+  sons.forEach((s, i) => {
+    const li = document.createElement("li");
+    const n = document.createElement("span"); n.className = "n"; n.textContent = String(sons.length - i).padStart(2, "0");
+    const ligne = document.createElement("span");
+    const t = document.createElement("span"); t.className = "titre"; t.textContent = s.titre;
+    ligne.append(t);
+    if (s.artiste) {
+      const a = document.createElement("span"); a.className = "artiste"; a.textContent = " · " + s.artiste;
+      ligne.append(a);
+    }
+    li.append(n, ligne);
+    if (s.propose_par) {
+      const p = document.createElement("span"); p.className = "par"; p.textContent = "proposé par " + s.propose_par;
+      li.append(p);
+    }
+    liste.append(li);
+  });
+}
+
+async function chargerPlaylist() {
+  try {
+    const sons = await api("sf_sons?select=titre,artiste,propose_par,cree_le&order=cree_le.desc&limit=300");
+    afficherPlaylist(sons || []);
+  } catch (e) {
+    $("playlist-vide").textContent = "La playlist n'a pas pu se charger. Recharge la page dans un instant.";
+  }
+}
+
+$("form-son").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = $("msg-son");
+  const titre = $("s-titre").value.trim();
+  if (!titre) { afficherMessage(msg, "Indique au moins le titre du morceau.", "erreur"); $("s-titre").focus(); return; }
+  const ligne = {
+    titre,
+    artiste: $("s-artiste").value.trim() || null,
+    propose_par: $("s-prenom").value.trim() || null
+  };
+  const btn = $("btn-son");
+  btn.disabled = true; btn.textContent = "Ajout…";
+  try {
+    await api("sf_sons", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify(ligne) });
+    ecrire("sf-prenom-son", ligne.propose_par);
+    $("s-titre").value = ""; $("s-artiste").value = "";
+    afficherMessage(msg, "Ajouté à la playlist !", "ok");
+    chargerPlaylist();
+  } catch (err) {
+    afficherMessage(msg, ERREUR_RESEAU, "erreur");
+  } finally {
+    btn.disabled = false; btn.textContent = "Ajouter à la playlist";
+  }
+});
+
+const prenomSon = lire("sf-prenom-son");
+if (prenomSon) $("s-prenom").value = prenomSon;
+chargerPlaylist();
+
+/* ---------- Reflets sur le fond ---------- */
+(function reflets() {
+  const zone = $("reflets");
+  let graine = 7;
+  const alea = () => (graine = (graine * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 70; i++) {
+    const s = document.createElement("span");
+    const taille = 2 + alea() * 5;
+    s.style.width = s.style.height = taille + "px";
+    s.style.left = (alea() * 100) + "%";
+    s.style.top = (alea() * 100) + "%";
+    s.style.opacity = (.15 + alea() * .45).toFixed(2);
+    zone.append(s);
+  }
+})();
+
+/* ---------- Boule à facettes ---------- */
+(function boule() {
+  const cv = $("boule");
+  const ctx = cv.getContext("2d");
+  let L, H, R, cx, cy;
+
+  function dimension() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const r = cv.getBoundingClientRect();
+    L = r.width; H = r.height;
+    cv.width = Math.round(L * dpr); cv.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    R = L * 0.4; cx = L / 2; cy = H - R - L * 0.06;
+  }
+
+  // Facettes : bandes de latitude, nombre de carreaux selon la largeur de la bande
+  const BANDES = 16;
+  const facettes = [];
+  for (let b = 0; b < BANDES; b++) {
+    const lat0 = -Math.PI / 2 + (b / BANDES) * Math.PI;
+    const lat1 = -Math.PI / 2 + ((b + 1) / BANDES) * Math.PI;
+    const latM = (lat0 + lat1) / 2;
+    const n = Math.max(6, Math.round(BANDES * 2 * Math.cos(latM)));
+    for (let k = 0; k < n; k++) {
+      facettes.push({ lat0, lat1, lon0: (k / n) * 2 * Math.PI, lon1: ((k + 1) / n) * 2 * Math.PI, phase: Math.random() * 1000 });
+    }
+  }
+
+  function point(lat, lon) {
+    return [cx + R * Math.cos(lat) * Math.sin(lon), cy - R * Math.sin(lat), Math.cos(lat) * Math.cos(lon)];
+  }
+
+  function dessiner(t) {
+    ctx.clearRect(0, 0, L, H);
+    const rot = reduitMouvement ? 0.6 : t * 0.00025;
+
+    // fil
+    ctx.strokeStyle = "rgba(185,191,204,.55)";
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, cy - R); ctx.stroke();
+
+    // halo
+    const halo = ctx.createRadialGradient(cx, cy, R * 0.6, cx, cy, R * 1.22);
+    halo.addColorStop(0, "rgba(200,205,255,.16)");
+    halo.addColorStop(1, "rgba(200,205,255,0)");
+    ctx.fillStyle = halo;
+    ctx.beginPath(); ctx.arc(cx, cy, R * 1.22, 0, Math.PI * 2); ctx.fill();
+
+    // fond sombre de la sphère, visible entre les facettes
+    ctx.fillStyle = "#1a1d2b";
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
+
+    const etincelles = [];
+    for (const f of facettes) {
+      const lonM = (f.lon0 + f.lon1) / 2 + rot;
+      const latM = (f.lat0 + f.lat1) / 2;
+      const z = Math.cos(latM) * Math.cos(lonM);
+      if (z <= 0.02) continue;
+      const g = 0.012; // joint entre les carreaux
+      const p1 = point(f.lat0 + g, f.lon0 + rot + g);
+      const p2 = point(f.lat0 + g, f.lon1 + rot - g);
+      const p3 = point(f.lat1 - g, f.lon1 + rot - g);
+      const p4 = point(f.lat1 - g, f.lon0 + rot + g);
+
+      // lumière venant d'en haut à gauche
+      const nx = Math.cos(latM) * Math.sin(lonM), ny = Math.sin(latM), nz = z;
+      const lum = Math.max(0, -0.45 * nx + 0.55 * ny + 0.7 * nz);
+      const scint = reduitMouvement ? 0 : Math.pow(Math.max(0, Math.sin(t * 0.004 + f.phase)), 40);
+      let v = 70 + lum * 150 + scint * 120;
+      v = Math.min(255, v);
+      const bleu = Math.min(255, v + 14);
+      ctx.fillStyle = "rgb(" + (v | 0) + "," + ((v + 4) | 0) + "," + (bleu | 0) + ")";
+      ctx.beginPath();
+      ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.lineTo(p3[0], p3[1]); ctx.lineTo(p4[0], p4[1]);
+      ctx.closePath(); ctx.fill();
+      if (scint > 0.6) etincelles.push([(p1[0] + p3[0]) / 2, (p1[1] + p3[1]) / 2, scint]);
+    }
+
+    // ombre de bord pour donner le volume
+    const ombre = ctx.createRadialGradient(cx - R * 0.35, cy - R * 0.4, R * 0.2, cx, cy, R);
+    ombre.addColorStop(0, "rgba(11,13,22,0)");
+    ombre.addColorStop(1, "rgba(11,13,22,.55)");
+    ctx.fillStyle = ombre;
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
+
+    // étoiles sur les facettes qui accrochent la lumière
+    for (const [x, y, a] of etincelles) {
+      const l = R * 0.16 * a;
+      ctx.strokeStyle = "rgba(255,255,255," + (a * 0.9).toFixed(2) + ")";
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(x - l, y); ctx.lineTo(x + l, y);
+      ctx.moveTo(x, y - l); ctx.lineTo(x, y + l);
+      ctx.stroke();
+    }
+  }
+
+  dimension();
+  window.addEventListener("resize", dimension);
+  if (reduitMouvement) { dessiner(0); return; }
+  (function boucle(t) { dessiner(t); requestAnimationFrame(boucle); })(0);
+})();
+</script>
+</body>
+</html>
