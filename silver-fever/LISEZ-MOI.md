@@ -21,16 +21,10 @@ Deux circuits :
 
 ## Mise en ligne, dans l'ordre
 
-1. **Formspree (à faire par la personne qui doit recevoir les mails).**
-   Créer un compte sur formspree.io avec son adresse mail, confirmer
-   l'adresse, puis « New form ». Formspree donne une adresse du type
-   `https://formspree.io/f/xbjnqwer` : l'identifiant, ce sont les
-   caractères après `/f/`.
-2. **Brancher le site.** Dans `index.html`, en haut du script, remplacer
-   `A_REMPLACER` par cet identifiant :
-   `const FORMSPREE_ID = "xbjnqwer";`
-   Tant que ce n'est pas fait, les formulaires affichent « Le formulaire
-   n'est pas encore branché ».
+1. **Formspree.** Fait : le formulaire `https://formspree.io/f/xwllberr`
+   est branché (`FORMSPREE_ID` en haut du script d'`index.html`). Les
+   mails arrivent à l'adresse du compte Formspree qui a créé ce formulaire.
+2. **(rien à faire)**
 3. **La playlist.** Dans Supabase > SQL Editor, coller tout
    `silver-fever.sql` et cliquer sur Run. Sans cette étape, la playlist
    ne s'affiche pas et chaque son part par mail (plan B).
