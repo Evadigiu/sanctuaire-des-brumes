@@ -25,11 +25,12 @@ Deux circuits :
    est branché (`FORMSPREE_ID` en haut du script d'`index.html`). Les
    mails arrivent à l'adresse du compte Formspree qui a créé ce formulaire.
 2. **(rien à faire)**
-3. **La playlist.** Dans le projet Supabase dédié : SQL Editor, coller
-   tout `silver-fever.sql` et cliquer sur Run. Puis, dans `index.html`,
-   remplacer `A_REMPLACER` de `SUPABASE_ANON_KEY` par la clé « anon
-   public » du projet (Project Settings > API). Tant que ce n'est pas
-   fait, la playlist ne s'affiche pas et chaque son part par mail (plan B).
+3. **La playlist.** Le site est branché sur le projet Supabase dédié
+   (adresse et clé publique déjà dans `index.html`). Il reste seulement
+   à vérifier que la table existe : Table Editor > `sf_sons`. Sinon,
+   SQL Editor, coller tout `silver-fever.sql` et cliquer sur Run.
+   Sans la table, la playlist ne s'affiche pas et chaque son part par
+   mail (plan B).
 4. **Le dépôt.** Sur GitHub, créer un nouveau dépôt public (par exemple
    `silver-fever`) et y déposer `index.html` (bouton « Add file > Upload files »).
 5. **La publication.** Dans le dépôt : Settings > Pages > Source
