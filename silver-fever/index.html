@@ -331,6 +331,8 @@ fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-direction: colu
 }
 .playlist .n { font-family: var(--f-chiffres); font-size: .8rem; color: var(--chrome-3); font-variant-numeric: tabular-nums; }
 .playlist .titre { font-weight: 500; color: var(--chrome-1); overflow-wrap: anywhere; }
+.playlist .par { grid-column: 2; font-size: .82rem; color: var(--argent-doux); }
+.vide { color: var(--argent-doux); font-style: italic; }
 .playlist .artiste { color: var(--argent); }
 
 footer {
@@ -466,7 +468,7 @@ footer small { color: var(--argent-doux); font-size: .85rem; }
   <section id="son" aria-labelledby="t-son">
     <p class="etiquette">La playlist</p>
     <h2 id="t-son">Ton son pour la soirée</h2>
-    <p class="texte">Le morceau qui te fait monter sur la piste, celui qu'on chante tous en chœur à 2h du matin. Propose-le, ta suggestion m'arrive directement et je la glisse dans la soirée.</p>
+    <p class="texte">Le morceau qui te fait monter sur la piste, celui qu'on chante tous en chœur à 2h du matin. Propose-le : il s'ajoute à la liste ci-dessous, que tout le monde peut voir.</p>
     <div class="carte">
       <form id="form-son" novalidate>
         <div class="deux">
@@ -485,13 +487,14 @@ footer small { color: var(--argent-doux); font-size: .85rem; }
         </div>
         <input type="text" name="_gotcha" class="piege" tabindex="-1" autocomplete="off" aria-hidden="true">
         <p class="message" id="msg-son" role="status" hidden></p>
-        <button type="submit" class="btn btn-plein" id="btn-son">Proposer ce son</button>
+        <button type="submit" class="btn btn-plein" id="btn-son">Ajouter à la playlist</button>
       </form>
     </div>
 
-    <div class="mes-sons" id="mes-sons" hidden>
-      <p class="etiquette">Tes propositions</p>
+    <div class="mes-sons">
+      <p class="etiquette" id="playlist-titre">La playlist de la soirée</p>
       <ol class="playlist" id="playlist" aria-live="polite"></ol>
+      <p class="vide" id="playlist-vide">La playlist est encore vide. Le premier son, c'est peut-être le tien.</p>
     </div>
   </section>
 
@@ -511,6 +514,13 @@ footer small { color: var(--argent-doux); font-size: .85rem; }
    l'objet du mail indique de quoi il s'agit.
    ============================================================ */
 const FORMSPREE_ID = "A_REMPLACER";
+
+/* SUPABASE : la base qui garde la playlist partagée (table sf_sons,
+   créée par silver-fever.sql). Ces deux valeurs sont publiques par
+   nature (clé « anon »). Pour un autre projet Supabase, change ces
+   deux lignes et lance silver-fever.sql dans ce projet. */
+const SUPABASE_URL = "https://xvbrumwgarkynwjzljzt.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2YnJ1bXdnYXJreW53anpsanp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4OTg4ODUsImV4cCI6MjEwMzQ3NDg4NX0.yYecURzJDr1qTsDWwFtm0LMs16KKIe398Aiytp-fe6k";
 
 // Début de la soirée, heure de Paris (UTC+1 en janvier)
 const DEBUT = new Date("2027-01-30T19:30:00+01:00");
@@ -660,16 +670,34 @@ const dejaRepondu = lire("sf-reponse");
 if (dejaRepondu && dejaRepondu.prenom) montrerDeja(dejaRepondu);
 
 /* ---------- Playlist ----------
-   Les suggestions partent par mail : les invités ne voient pas celles des
-   autres. On garde juste, dans ce navigateur, la liste de ses propres envois. */
-function afficherMesSons() {
-  const sons = lire("sf-sons") || [];
+   Les sons sont rangés dans Supabase, et tout le monde voit la liste.
+   Si Supabase ne répond pas (projet en pause, par exemple), le son part
+   par mail via Formspree pour ne pas être perdu. */
+async function supabase(chemin, options = {}) {
+  const rep = await fetch(SUPABASE_URL + "/rest/v1/" + chemin, {
+    ...options,
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: "Bearer " + SUPABASE_ANON_KEY,
+      "Content-Type": "application/json",
+      ...(options.headers || {})
+    }
+  });
+  if (!rep.ok) throw new Error("HTTP " + rep.status);
+  const txt = await rep.text();
+  return txt ? JSON.parse(txt) : null;
+}
+
+function afficherPlaylist(sons) {
   const liste = $("playlist");
   liste.innerHTML = "";
-  $("mes-sons").hidden = sons.length === 0;
+  $("playlist-vide").hidden = sons.length > 0;
+  $("playlist-titre").textContent = sons.length
+    ? "La playlist de la soirée · " + sons.length + (sons.length > 1 ? " sons" : " son")
+    : "La playlist de la soirée";
   sons.forEach((s, i) => {
     const li = document.createElement("li");
-    const n = document.createElement("span"); n.className = "n"; n.textContent = String(i + 1).padStart(2, "0");
+    const n = document.createElement("span"); n.className = "n"; n.textContent = String(sons.length - i).padStart(2, "0");
     const ligne = document.createElement("span");
     const t = document.createElement("span"); t.className = "titre"; t.textContent = s.titre;
     ligne.append(t);
@@ -678,8 +706,22 @@ function afficherMesSons() {
       ligne.append(a);
     }
     li.append(n, ligne);
+    if (s.propose_par) {
+      const p = document.createElement("span"); p.className = "par"; p.textContent = "proposé par " + s.propose_par;
+      li.append(p);
+    }
     liste.append(li);
   });
+}
+
+async function chargerPlaylist() {
+  try {
+    const sons = await supabase("sf_sons?select=titre,artiste,propose_par,cree_le&order=cree_le.desc&limit=300");
+    afficherPlaylist(sons || []);
+  } catch (e) {
+    $("playlist-vide").hidden = false;
+    $("playlist-vide").textContent = "La playlist ne s'affiche pas pour l'instant, mais tu peux quand même proposer ton son.";
+  }
 }
 
 $("form-son").addEventListener("submit", async (e) => {
@@ -688,36 +730,50 @@ $("form-son").addEventListener("submit", async (e) => {
   const msg = $("msg-son");
   const titre = $("s-titre").value.trim();
   if (!titre) { afficherMessage(msg, "Indique au moins le titre du morceau.", "erreur"); $("s-titre").focus(); return; }
+  const piege = form.querySelector('input[name="_gotcha"]');
+  if (piege && piege.value) return;
   const artiste = $("s-artiste").value.trim();
   const par = $("s-prenom").value.trim();
-  const champs = {
-    _subject: "🎵 " + titre + (artiste ? " · " + artiste : "") + " · Silver Fever",
-    "Formulaire": "Playlist",
-    "Titre": titre,
-    "Artiste": artiste || "(non précisé)",
-    "Proposé par": par || "(anonyme)"
-  };
+
   const btn = $("btn-son");
-  btn.disabled = true; btn.textContent = "Envoi…";
+  btn.disabled = true; btn.textContent = "Ajout…";
   try {
-    await envoyer(champs, form);
-    if (par) ecrire("sf-prenom-son", par);
-    const sons = lire("sf-sons") || [];
-    sons.push({ titre, artiste });
-    ecrire("sf-sons", sons);
-    afficherMesSons();
-    $("s-titre").value = ""; $("s-artiste").value = "";
-    afficherMessage(msg, "Envoyé ! Tu peux en proposer un autre.", "ok");
-  } catch (err) {
-    afficherMessage(msg, texteErreur(err), "erreur");
+    await supabase("sf_sons", {
+      method: "POST",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({ titre, artiste: artiste || null, propose_par: par || null })
+    });
+    afficherMessage(msg, "Ajouté à la playlist !", "ok");
+    termine();
+    chargerPlaylist();
+  } catch (errBase) {
+    // Plan B : le son part par mail
+    try {
+      await envoyer({
+        _subject: "🎵 " + titre + (artiste ? " · " + artiste : "") + " · Silver Fever",
+        "Formulaire": "Playlist (liste partagée indisponible)",
+        "Titre": titre,
+        "Artiste": artiste || "(non précisé)",
+        "Proposé par": par || "(anonyme)"
+      }, form);
+      afficherMessage(msg, "Envoyé ! La liste partagée ne répond pas pour l'instant, mais ton son est bien arrivé.", "ok");
+      termine();
+    } catch (err) {
+      afficherMessage(msg, ERREUR_RESEAU, "erreur");
+    }
   } finally {
-    btn.disabled = false; btn.textContent = "Proposer ce son";
+    btn.disabled = false; btn.textContent = "Ajouter à la playlist";
+  }
+
+  function termine() {
+    if (par) ecrire("sf-prenom-son", par);
+    $("s-titre").value = ""; $("s-artiste").value = "";
   }
 });
 
 const prenomSon = lire("sf-prenom-son");
 if (prenomSon) $("s-prenom").value = prenomSon;
-afficherMesSons();
+chargerPlaylist();
 
 /* ---------- Reflets sur le fond ---------- */
 (function reflets() {
