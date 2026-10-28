@@ -518,7 +518,8 @@ const FORMSPREE_ID = "xwllberr";
 /* SUPABASE : le projet « silver-fever », séparé de tout autre projet,
    qui garde la playlist partagée (table sf_sons, créée par
    silver-fever.sql). Ces deux valeurs sont publiques par nature
-   (clé « anon public »). Ne jamais mettre ici la clé « service_role ». */
+   (clé « publishable » sb_publishable_…, ou ancienne clé « anon » eyJ…).
+   Ne jamais mettre ici une clé « secret » ou « service_role ». */
 const SUPABASE_URL = "https://rpsysgwdxifeneaxpkkx.supabase.co";
 const SUPABASE_ANON_KEY = "A_REMPLACER";
 
@@ -678,7 +679,9 @@ async function supabase(chemin, options = {}) {
     ...options,
     headers: {
       apikey: SUPABASE_ANON_KEY,
-      Authorization: "Bearer " + SUPABASE_ANON_KEY,
+      // Ancienne clé « anon » (eyJ…) : elle va aussi dans Authorization.
+      // Nouvelle clé « sb_publishable_… » : apikey suffit.
+      ...(SUPABASE_ANON_KEY.startsWith("eyJ") ? { Authorization: "Bearer " + SUPABASE_ANON_KEY } : {}),
       "Content-Type": "application/json",
       ...(options.headers || {})
     }
