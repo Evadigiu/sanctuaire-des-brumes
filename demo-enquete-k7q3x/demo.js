@@ -13,6 +13,9 @@ function demarrerDemo(codeSac) {
 
   function couperLesMedias() {
     document.querySelectorAll("video, audio").forEach(m => { try { m.pause(); } catch (e) {} });
+    const d = document.getElementById("decrocher");
+    if (d) d.classList.remove("sonne");
+    if (navigator.vibrate) { try { navigator.vibrate(0); } catch (e) {} }
   }
 
   function montrer(i) {
@@ -37,13 +40,19 @@ function demarrerDemo(codeSac) {
       compte.textContent = num ? num + " / " + total : "";
     }
     if (s.hasAttribute("data-verdict")) afficherVerdict(s);
+    if (s.hasAttribute("data-appel")) fairesonner();
     window.scrollTo(0, 0);
   }
 
   ecrans.forEach(s => {
     s.querySelectorAll("[data-suivant]").forEach(b => b.addEventListener("click", () => montrer(ici + 1)));
     s.querySelectorAll("[data-retour]").forEach(b => b.addEventListener("click", () => montrer(ici - 1)));
-    s.querySelectorAll("[data-passer]").forEach(b => b.addEventListener("click", () => montrer(ici + 1)));
+    // « Passer la démo » : droit aux écrans qui parlent à l'organisateur.
+    s.querySelectorAll("[data-passer-demo]").forEach(b => b.addEventListener("click", () => {
+      const k = ecrans.findIndex(x => x.getAttribute("data-nom") === "Côté organisateur");
+      montrer(k >= 0 ? k : ecrans.length - 1);
+    }));
+    s.querySelectorAll("[data-rejouer]").forEach(b => b.addEventListener("click", () => window.location.reload()));
   });
 
   // Les galeries : un bouton pour ouvrir, puis précédente et suivante.
@@ -55,7 +64,8 @@ function demarrerDemo(codeSac) {
     let n = 0;
     function voir(k) {
       n = Math.max(0, Math.min(photos.length - 1, k));
-      photos.forEach((p, j) => { p.hidden = (j !== n); });
+      // Un fondu entre deux images déjà chargées : pas d'écran noir.
+      photos.forEach((p, j) => { p.classList.toggle("actif", j === n); });
       compte.textContent = (n + 1) + " / " + photos.length;
       prec.disabled = (n === 0);
       suiv.disabled = (n === photos.length - 1);
@@ -69,9 +79,24 @@ function demarrerDemo(codeSac) {
     suiv.addEventListener("click", () => voir(n + 1));
   });
 
-  // L'appel du commissaire.
+  // L'appel du commissaire : le téléphone sonne à l'arrivée sur l'écran.
+  // Le joueur vient d'appuyer sur « Suivant » : le navigateur accepte donc
+  // de jouer un son. S'il refuse quand même, le bouton pulse en silence.
   const decrocher = document.getElementById("decrocher");
+  const sonnerie = document.getElementById("sonnerie");
+  function fairesonner() {
+    if (!decrocher || decrocher.hidden) return;
+    decrocher.classList.add("sonne");
+    if (sonnerie) { try { sonnerie.currentTime = 0; } catch (e) {} sonnerie.play().catch(() => {}); }
+    if (navigator.vibrate) { try { navigator.vibrate([400, 200, 400, 2000, 400, 200, 400]); } catch (e) {} }
+  }
+  function arreterSonnerie() {
+    if (sonnerie) sonnerie.pause();
+    if (decrocher) decrocher.classList.remove("sonne");
+    if (navigator.vibrate) { try { navigator.vibrate(0); } catch (e) {} }
+  }
   if (decrocher) decrocher.addEventListener("click", () => {
+    arreterSonnerie();
     decrocher.hidden = true;
     document.getElementById("blocAppel").hidden = false;
     const audio = document.getElementById("audioAppel");
