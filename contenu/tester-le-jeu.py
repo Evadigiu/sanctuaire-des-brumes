@@ -16,7 +16,7 @@ from playwright.sync_api import sync_playwright
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PORT = 8137
-CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome"
+CHROME = (sorted(__import__("glob").glob("/opt/pw-browsers/chromium-*/chrome-linux*/chrome")) or ["/usr/bin/google-chrome"])[-1]
 
 class Muet(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *a): pass

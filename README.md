@@ -32,8 +32,7 @@ Les deux sont déjà installés et fonctionnels. Il n'y a rien à mettre en rout
 | `assets/js/game.js` | La logique du jeu : activation, chrono, enregistrement des passages |
 | `assets/js/scanner.js` | Le bouton « Scanner le QR code » : lit le QR depuis la page, pour que la borne suivante s'ouvre dans le même navigateur et que la partie suive. Le lecteur jsQR est hébergé dans `assets/js/vendor/` |
 | `assets/js/supabase-client.js` | Le branchement à la base (adresse + clé publique) |
-| `backoffice/dashboard.html` | Suivi en direct des groupes en jeu |
-| `backoffice/statistiques.html` | Durées par étape, abandons, taux de complétion |
+| `demo-enquete-k7q3x/` | La démonstration commerciale (version « bureau » de l'enquête, sans billet ni base). Fabriquée par `contenu/fabriquer-la-demo.py`. Adresse volontairement non devinable, liée nulle part. |
 | `schema_escape_game.sql` | Description de la base telle qu'elle est réellement. **Contient les avertissements de sécurité.** |
 | `seed.sql` | Le contenu de départ : les 12 bornes et les codes de test |
 | `stats.sql` | Les calculs statistiques |
@@ -66,7 +65,7 @@ reste de publier et de tester en ligne.
   fonctionne partout (chrono, enregistrement du passage, passage à la suite).
   **Les textes restent à écrire**, les emplacements sont marqués `A REMPLIR`
   dans chaque fichier.
-- Tableaux de bord de suivi et de statistiques
+- Tableaux de bord de suivi et de statistiques (retirés le 18/11/2026, après l'export des données de l'opération)
 - Site en ligne sur GitHub Pages
 
 **Où en est le jeu au 18 septembre 2026**
