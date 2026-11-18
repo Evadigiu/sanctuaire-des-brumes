@@ -5,18 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>Le Sanctuaire des Brumes, démonstration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mulish:wght@300;700&display=swap">
 <link rel="stylesheet" href="../assets/css/style.css">
 <style>
-  .demo-etape { font-size: 0.72rem; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
-  .lead-demo { font-size: 1.1rem; color: var(--ink); }
-  .demo-liste { padding-left: 18px; color: var(--ink); }
+  .demo-badge { font-family: var(--texte); font-weight: 700; font-size: 0.68rem; letter-spacing: 2px;
+                text-transform: uppercase; color: var(--bg); background: var(--gold); border-radius: 999px;
+                padding: 3px 9px; flex: none; }
+  .lead-demo { font-size: 1.1rem; }
+  .demo-liste { padding-left: 18px; margin: 0 0 16px; }
   .demo-liste li { margin-bottom: 6px; }
-  .demo-chiffres { display: flex; gap: 12px; margin: 14px 0; }
-  .demo-chiffres div { flex: 1; border-top: 3px solid var(--gold); padding-top: 8px; }
-  .demo-chiffres b { display: block; font-size: 1.5rem; color: var(--gold-bright); }
-  .demo-chiffres span { font-size: 0.8rem; color: var(--fog); }
+  .demo-chiffres { display: flex; gap: 12px; margin: 16px 0 18px; }
+  .demo-chiffres div { flex: 1; border-top: 2px solid var(--gold); padding-top: 8px; }
+  .demo-chiffres b { display: block; font-size: 1.4rem; color: var(--gold-bright); font-weight: 700; }
+  .demo-chiffres span { font-size: 0.78rem; color: var(--fog); line-height: 1.3; display: block; }
   .capture { border: 1px solid var(--hair); }
-  .fin-classee { margin-top: 18px; }
+  .denouement { margin-bottom: 14px; }
+  .fin-classee { margin: 6px 0 16px; }
   .etincelle { position: fixed; top: -12px; width: 8px; height: 14px; border-radius: 2px; z-index: 50;
                animation: tombe linear forwards; pointer-events: none; }
   @keyframes tombe { to { transform: translateY(110vh) rotate(540deg); opacity: .2; } }
@@ -24,49 +30,44 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="eyebrow">Pomelo Événementiel · Démonstration</div>
-  <h1>Le Sanctuaire des Brumes</h1>
-<section class="ecran card" hidden>
-  <div class="demo-etape">Démonstration</div>
-  <div class="ecran-titre">Une disparition</div>
+  <div class="progression" id="position" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+    <span class="demo-badge">Démo</span>
+    <div class="progression-barre"><span></span></div>
+    <div class="progression-compte" data-total="6"></div>
+  </div>
+  <h1 id="titreEtape">Le Sanctuaire des Brumes</h1>
+<section class="ecran card" data-nom="Le Sanctuaire des Brumes" hidden>
+  <div class="eyebrow">Une enquête de démonstration</div>
   <p class="lead-demo">Une nuit de pleine lune, la brume a recouvert le Parc Zoologique &amp; Botanique de Mulhouse. Isabelle, soigneuse, a disparu près de l'enclos des loups.</p>
-  <p>Vous êtes l'enquêteur chargé de l'affaire. Pendant l'opération, les joueurs ont parcouru tout le parc, de borne en borne, en scannant des QR codes. Dans cette démonstration, un simple bouton vous mène d'une étape à l'autre.</p>
-  <p class="muted">Environ 10 à 15 minutes, avec le son.</p>
+  <p>Vous êtes l'enquêteur chargé de l'affaire. Pendant l'opération, les joueurs ont parcouru tout le parc de borne en borne, en scannant des QR codes. Ici, un simple bouton vous mène d'une étape à l'autre.</p>
+  <p class="muted">Environ 15 minutes. Montez le son.</p>
   <button data-suivant>Commencer l&#x27;enquête</button>
 </section>
-<section class="ecran card" hidden>
-  <div class="demo-etape">Étape 1 sur 6 · Le commissaire Jean</div>
-  <div class="ecran-titre">Le briefing</div>
-  <video controls preload="none" playsinline data-video><source src="https://sanctuaire-brumes.b-cdn.net/le-commissaire-jean-2-79swb7.mp4" type="video/mp4"></video>
+<section class="ecran card" data-nom="Le commissaire Jean" data-num="1" hidden>
+  <video controls preload="none" playsinline data-video poster="affiche-le-commissaire-jean.webp"><source src="https://sanctuaire-brumes.b-cdn.net/le-commissaire-jean-2-79swb7.mp4" type="video/mp4"></video>
   <p class="witness-name">Le commissaire Jean, votre supérieur</p>
   <button class="btn-lien" data-passer>Passer la vidéo</button>
   <button data-suivant>Suivant</button>
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
 </section>
-<section class="ecran card" hidden>
-  <div class="demo-etape">Étape 2 sur 6 · Greg</div>
-  <div class="ecran-titre">Un témoin</div>
-  <video controls preload="none" playsinline data-video><source src="https://sanctuaire-brumes.b-cdn.net/greg-sens-a-sj7kmm.mp4" type="video/mp4"></video>
+<section class="ecran card" data-nom="Greg" data-num="2" hidden>
+  <video controls preload="none" playsinline data-video poster="affiche-greg.webp"><source src="https://sanctuaire-brumes.b-cdn.net/greg-sens-a-sj7kmm.mp4" type="video/mp4"></video>
   <p class="witness-name">Greg, agent technique, pas très rassurant</p>
   <button class="btn-lien" data-passer>Passer la vidéo</button>
-  <p>Chaque témoin a sa version. À vous de démêler le vrai du faux.</p>
   <button data-suivant>Suivant</button>
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
 </section>
-<section class="ecran card" hidden>
-  <div class="demo-etape">Étape 3 sur 6 · L&#x27;appel du commissaire</div>
-  <div class="ecran-titre">Un appel inattendu</div>
+<section class="ecran card" data-nom="Appel du commissaire" data-num="3" hidden>
   <button id="decrocher" class="btn-appel">Décrocher</button>
   <div id="blocAppel" hidden><audio id="audioAppel" controls preload="none"><source src="https://sanctuaire-brumes.b-cdn.net/appel-du-commissaire-bm7fpb.mp3" type="audio/mpeg"></audio></div>
   <img class="photo-borne" src="../assets/img/appel-commissaire.webp" alt="Appel entrant du commissaire Jean">
+  <p class="witness-name">Commissaire Jean, dubitatif</p>
   <p>Vous avez un appel entrant du commissaire Jean.</p>
   <button data-suivant>Suivant</button>
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
 </section>
-<section class="ecran card" hidden>
-  <div class="demo-etape">Étape 3 sur 6 · L&#x27;appel du commissaire</div>
-  <div class="ecran-titre">Les images du commissaire</div>
-  <p>Le commissaire vous a envoyé 4 images. Examinez-les bien.</p>
+<section class="ecran card" data-nom="Appel du commissaire" data-num="3" hidden>
+  <p>Le commissaire vous a envoyé 4 images.</p>
   <div class="galerie" data-galerie>
     <button data-galerie-ouvrir>Voir les images</button>
     <div data-galerie-vue hidden><img class="photo-borne" loading="lazy" data-galerie-photo src="../assets/img/commissaire-1.webp" alt="Image envoyée par le commissaire"><img class="photo-borne" loading="lazy" data-galerie-photo src="../assets/img/commissaire-2.webp" alt="Image envoyée par le commissaire" hidden><img class="photo-borne" loading="lazy" data-galerie-photo src="../assets/img/commissaire-3.webp" alt="Image envoyée par le commissaire" hidden><img class="photo-borne" loading="lazy" data-galerie-photo src="../assets/img/commissaire-4.webp" alt="Image envoyée par le commissaire" hidden>
@@ -76,9 +77,7 @@
   <button data-suivant>Suivant</button>
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
 </section>
-<section class="ecran card" data-bloque="code" hidden>
-  <div class="demo-etape">Étape 4 sur 6 · Une énigme</div>
-  <div class="ecran-titre">Le sac du botaniste</div>
+<section class="ecran card" data-nom="Le sac du botaniste" data-num="4" hidden>
   <p>Vous venez de tomber sur un sac qui ne semble pas être à sa place. Faites défiler son contenu.</p>
   <div class="galerie" data-galerie>
     <button data-galerie-ouvrir>Voir le contenu du sac</button>
@@ -86,54 +85,57 @@
       <div class="galerie-barre"><button class="btn-secondary" data-galerie-prec>‹ Précédente</button><span class="galerie-compte" data-galerie-compte></span><button class="btn-secondary" data-galerie-suiv>Suivante ›</button></div>
     </div>
   </div>
-  <p>Certains objets portaient un chiffre. Dans l'ordre où vous les avez vus, ils forment le code qui ouvre la serre.</p>
+  <p>Certains objets portaient un chiffre. Dans l'ordre où vous les avez vus, ils forment un nombre à quatre chiffres. Notez-le : vous ne savez pas encore à quoi il sert.</p>
+  <button data-suivant>Suivant</button>
+  <button class="btn-secondary" data-retour>Revenir en arrière</button>
+</section>
+<section class="ecran card" data-nom="Louis, le botaniste" data-num="5" hidden>
+  <video controls preload="none" playsinline data-video poster="affiche-louis-le-botaniste.webp"><source src="https://sanctuaire-brumes.b-cdn.net/le-botaniste-acanpa-2.mp4" type="video/mp4"></video>
+  <p class="witness-name">Louis, botaniste au Parc Zoologique &amp; Botanique de Mulhouse</p>
+  <button class="btn-lien" data-passer>Passer la vidéo</button>
+  <button data-suivant>Suivant</button>
+  <button class="btn-secondary" data-retour>Revenir en arrière</button>
+</section>
+<section class="ecran card" data-nom="Louis, le botaniste" data-num="5" data-bloque="code" hidden>
+  <p>Pour pénétrer dans la serre, entrez le code que vous avez trouvé un peu plus tôt.</p>
   <input type="text" id="codeDemo" inputmode="numeric" maxlength="6" placeholder="4 chiffres" autocomplete="off">
-  <button id="validerCode">Ouvrir la serre</button>
+  <button id="validerCode">Ouvrir</button>
   <p class="quiz-verdict quiz-faux" id="codeFaux" hidden></p>
-  <button class="btn-lien" id="codeAide">Je n'y arrive pas</button>
+  <button class="btn-lien" id="codeAide">J'ai perdu le code</button>
   <div class="card indice" id="codeBon" hidden><div class="eyebrow">La porte s'ouvre</div><p>Entrez dans la serre.</p></div>
   <button data-suivant>Suivant</button>
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
 </section>
-<section class="ecran card" data-qcm hidden>
-  <div class="demo-etape">Étape 5 sur 6 · Vos conclusions</div>
-  <div class="ecran-titre">La serre</div>
-  <p>Vous êtes à deux doigts d'élucider le mystère. Une dernière question avant la vérité :</p>
+<section class="ecran card" data-nom="La serre" data-num="6" data-qcm hidden>
+  <p>Vous êtes à deux doigts d'élucider le mystère.</p>
   <div class="ecran-titre">Qu'est-il arrivé à Isabelle ?</div>
   <div data-conclusions><button class="quiz-prop" data-fin="Mauvais">Greg l&#x27;a kidnappée.</button><button class="quiz-prop" data-fin="Mauvais">Deux hommes entrés dans le parc après sa fermeture sont à l&#x27;origine de sa disparition.</button><button class="quiz-prop" data-fin="Moyen">Louis l&#x27;a empoisonnée avec sa tisane.</button><button class="quiz-prop" data-fin="Bon">Elle s&#x27;est endormie.</button><button class="quiz-prop" data-fin="Mauvais">Elle a eu un accident de voiture.</button></div>
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
 </section>
-<section class="ecran card" hidden>
-  <div class="demo-etape">Étape 6 sur 6 · Le dénouement</div>
-  <div class="ecran-titre">La vérité</div>
-  <video controls preload="none" playsinline data-video><source src="https://sanctuaire-brumes.b-cdn.net/la-serre-4.mp4" type="video/mp4"></video>
+<section class="ecran card" data-nom="La serre" data-num="6" hidden>
+  <video controls preload="none" playsinline data-video poster="affiche-la-soiree-d-isabelle.webp"><source src="https://sanctuaire-brumes.b-cdn.net/la-serre-4.mp4" type="video/mp4"></video>
   <p class="witness-name">La soirée d&#x27;Isabelle, vue de ses yeux</p>
   <button class="btn-lien" data-passer>Passer la vidéo</button>
   <button data-suivant>Suivant</button>
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
 </section>
-<section class="ecran card" hidden>
-  <div class="demo-etape">Étape 6 sur 6 · Le dénouement</div>
-  <div class="ecran-titre">La lettre de Greg</div>
+<section class="ecran card" data-nom="La serre" data-num="6" hidden>
   <img class="photo-borne" src="../assets/img/aveu-greg.webp" alt="La lettre de Greg">
   <p class="witness-name">Une dernière pièce au dossier : la lettre de Greg.</p>
   <button data-suivant>Suivant</button>
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
 </section>
-<section class="ecran card" data-verdict hidden>
-  <div class="demo-etape">Fin de l&#x27;enquête</div>
-  <div class="ecran-titre">Le verdict</div>
+<section class="ecran card" data-nom="La serre" data-num="6" data-verdict hidden>
   <div class="card indice denouement" data-denouement="Bon" hidden><div class="eyebrow">Vous avez élucidé le mystère</div><p>C&#x27;est exactement cela. Isabelle a bu la tisane à la valériane de son collègue botaniste. Prise d&#x27;une grande fatigue, elle est retournée à la serre pour lui dire que le dosage était bien trop fort — et s&#x27;y est endormie. Personne n&#x27;a disparu, personne n&#x27;a été enlevé : elle dormait, à deux pas de tout le monde.</p></div><div class="card indice denouement" data-denouement="Moyen" hidden><div class="eyebrow">Vous brûlez</div><p>Vous tenez le bon fil : la tisane du botaniste est bien à l&#x27;origine de tout. Mais il n&#x27;a empoisonné personne. Le dosage de valériane était trop fort, Isabelle s&#x27;est sentie épuisée, elle est retournée à la serre pour le lui dire, et s&#x27;y est endormie. Une maladresse, pas un crime.</p></div><div class="card indice denouement" data-denouement="Mauvais" hidden><div class="eyebrow">L&#x27;enquête reste ouverte</div><p>Ce n&#x27;est pas ce qui s&#x27;est passé. Personne ne lui a voulu de mal, et il ne lui est rien arrivé de grave. Elle a bu la tisane à la valériane du botaniste, dont le dosage était bien trop fort. Épuisée, elle est retournée à la serre pour l&#x27;avertir, et s&#x27;y est endormie. Elle dormait, à deux pas de vous, pendant que vous la cherchiez.</p></div>
   <p class="ecran-titre fin-classee">L'affaire est classée.</p>
   <button data-suivant>Suivant</button>
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
 </section>
-<section class="ecran card" hidden>
-  <div class="demo-etape">Dans les coulisses</div>
-  <div class="ecran-titre">Côté organisateur</div>
+<section class="ecran card" data-nom="Côté organisateur" hidden>
+  <div class="eyebrow">Dans les coulisses</div>
   <p>Pendant que les joueurs enquêtent, l'organisateur suit chaque groupe en direct : où il en est, depuis combien de temps, et qui a besoin d'aide.</p>
   <img class="photo-borne capture" src="suivi-en-direct-fictif.webp" alt="Le tableau de bord de suivi en direct, avec des données fictives">
-  <p class="muted">Capture avec des données fictives.</p>
+  <p class="witness-name">Le suivi en direct, avec des données fictives</p>
   <ul class="demo-liste">
     <li>Un groupe bloqué est débloqué à distance, en quelques minutes.</li>
     <li>Les joueurs signalent un problème depuis leur téléphone.</li>
@@ -142,9 +144,7 @@
   <button data-suivant>Suivant</button>
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
 </section>
-<section class="ecran card" hidden>
-  <div class="demo-etape">Pomelo Événementiel</div>
-  <div class="ecran-titre">Et chez vous ?</div>
+<section class="ecran card" data-nom="Et chez vous ?" hidden>
   <p class="lead-demo">Imaginez cette enquête dans vos murs, écrite à partir de vos collections, de vos lieux et de vos histoires.</p>
   <div class="demo-chiffres">
     <div><b>1 745</b><span>enquêteurs en 16 jours</span></div>
@@ -163,7 +163,7 @@
 </div>
 <footer>
   <img class="signature" src="../assets/img/logo-pomelo.webp" alt="Pomelo Événementiel">
-  Pomelo Événementiel
+  Le Sanctuaire des Brumes, une enquête Pomelo Événementiel
 </footer>
 <script src="demo.js"></script>
 <script>demarrerDemo("5824");</script>
