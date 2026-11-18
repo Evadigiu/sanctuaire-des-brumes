@@ -47,7 +47,12 @@ function demarrerDemo(codeSac) {
   ecrans.forEach(s => {
     s.querySelectorAll("[data-suivant]").forEach(b => b.addEventListener("click", () => montrer(ici + 1)));
     s.querySelectorAll("[data-retour]").forEach(b => b.addEventListener("click", () => montrer(ici - 1)));
-    s.querySelectorAll("[data-passer]").forEach(b => b.addEventListener("click", () => montrer(ici + 1)));
+    // « Passer la démo » : droit aux écrans qui parlent à l'organisateur.
+    s.querySelectorAll("[data-passer-demo]").forEach(b => b.addEventListener("click", () => {
+      const k = ecrans.findIndex(x => x.getAttribute("data-nom") === "Côté organisateur");
+      montrer(k >= 0 ? k : ecrans.length - 1);
+    }));
+    s.querySelectorAll("[data-rejouer]").forEach(b => b.addEventListener("click", () => window.location.reload()));
   });
 
   // Les galeries : un bouton pour ouvrir, puis précédente et suivante.
@@ -59,7 +64,8 @@ function demarrerDemo(codeSac) {
     let n = 0;
     function voir(k) {
       n = Math.max(0, Math.min(photos.length - 1, k));
-      photos.forEach((p, j) => { p.hidden = (j !== n); });
+      // Un fondu entre deux images déjà chargées : pas d'écran noir.
+      photos.forEach((p, j) => { p.classList.toggle("actif", j === n); });
       compte.textContent = (n + 1) + " / " + photos.length;
       prec.disabled = (n === 0);
       suiv.disabled = (n === photos.length - 1);

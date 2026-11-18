@@ -79,9 +79,11 @@ def sonnerie():
     return "sonnerie.wav"
 
 
-def ecran(contenu, nom, num=None, suivant="Suivant", retour=True, attr=""):
+def ecran(contenu, nom, num=None, suivant="Suivant", retour=True, attr="", passer=None):
     """Un écran = une carte, comme sur les bornes. Le nom de l'étape devient
     le grand titre de la page, et son numéro remplit la barre de progression."""
+    if passer is None:
+        passer = bool(num)
     h = ['<section class="ecran card" data-nom="%s"%s%s hidden>'
          % (e(nom), ' data-num="%d"' % num if num else "", attr)]
     h.append(contenu)
@@ -89,6 +91,9 @@ def ecran(contenu, nom, num=None, suivant="Suivant", retour=True, attr=""):
         h.append('  <button data-suivant>%s</button>' % e(suivant))
     if retour:
         h.append('  <button class="btn-secondary" data-retour>Revenir en arrière</button>')
+    if passer:
+        # Un client pressé file directement aux écrans qui le concernent.
+        h.append('  <button class="btn-lien" data-passer-demo>Passer la démo</button>')
     h.append('</section>')
     return "\n".join(h)
 
@@ -96,17 +101,18 @@ def ecran(contenu, nom, num=None, suivant="Suivant", retour=True, attr=""):
 def video(fichier, legende, nom=None):
     return ('  <video controls preload="none" playsinline data-video>'
             '<source src="%s/%s" type="video/mp4"></video>\n'
-            '  <p class="witness-name">%s</p>\n'
-            '  <button class="btn-lien" data-passer>Passer la vidéo</button>'
+            '  <p class="witness-name">%s</p>'
             % (MEDIA_BASE, e(fichier), e(legende)))
 
 
 def galerie(fichiers, bouton, texte_alt):
-    imgs = "".join('<img class="photo-borne" loading="lazy" data-galerie-photo src="../assets/img/%s" alt="%s"%s>'
-                   % (e(f), e(texte_alt), "" if i == 0 else " hidden") for i, f in enumerate(fichiers))
+    # Les images sont empilées et chargées d'avance : passer à la suivante est
+    # un fondu, sans le rectangle noir d'une image qui se charge.
+    imgs = "".join('<img class="photo-borne%s" data-galerie-photo src="../assets/img/%s" alt="%s">'
+                   % (" actif" if i == 0 else "", e(f), e(texte_alt)) for i, f in enumerate(fichiers))
     return ('  <div class="galerie" data-galerie>\n'
             '    <button data-galerie-ouvrir>%s</button>\n'
-            '    <div data-galerie-vue hidden>%s\n'
+            '    <div data-galerie-vue hidden><div class="galerie-pile">%s</div>\n'
             '      <div class="galerie-barre"><button class="btn-secondary" data-galerie-prec>‹ Précédente</button>'
             '<span class="galerie-compte" data-galerie-compte></span>'
             '<button class="btn-secondary" data-galerie-suiv>Suivante ›</button></div>\n'
@@ -122,7 +128,7 @@ E.append(ecran(
     '  <p>Vous êtes l\'enquêteur chargé de l\'affaire. Pendant l\'opération, les joueurs ont parcouru tout le '
     'parc de borne en borne, en scannant des QR codes. Ici, un simple bouton vous mène d\'une étape à l\'autre.</p>\n'
     '  <p class="muted">Environ 15 minutes. Montez le son.</p>',
-    "Le Sanctuaire des Brumes", suivant="Commencer l'enquête", retour=False))
+    "Le Sanctuaire des Brumes", suivant="Commencer l'enquête", retour=False, passer=True))
 
 E.append(ecran(video("le-commissaire-jean-2-79swb7.mp4", "Le commissaire Jean, votre supérieur", "Le commissaire Jean"),
                "Le commissaire Jean", 1))
@@ -168,7 +174,7 @@ E.append(ecran(
 props = "".join('<button class="quiz-prop" data-fin="%s">%s</button>' % (e(f), e(p)) for p, f in QCM)
 E.append(ecran(
     '  <p>Vous êtes à deux doigts d\'élucider le mystère.</p>\n'
-    '  <div class="ecran-titre">Qu\'est-il arrivé à Isabelle ?</div>\n'
+    '  <div class="ecran-titre question-finale">Qu\'est-il arrivé à Isabelle ?</div>\n'
     '  <div data-conclusions>%s</div>' % props,
     "La serre", 6, suivant=None, attr=' data-qcm'))
 
@@ -180,44 +186,49 @@ E.append(ecran(
     "La serre", 6))
 
 verdicts = "".join('<div class="card indice denouement" data-denouement="%s" hidden><div class="eyebrow">%s</div>%s</div>'
-                   % (e(nom), e(titre), "".join("<p>%s</p>" % e(p) for p in texte.split("\n") if p.strip()))
+                   % (e(nom), e(titre), "".join("<p>%s</p>" % e(p.replace(" — ", ", ").replace(" – ", ", ")) for p in texte.split("\n") if p.strip()))
                    for nom, (titre, texte) in fins.items() if nom in {f for _, f in QCM})
 E.append(ecran('  ' + verdicts + '\n  <p class="ecran-titre fin-classee">L\'affaire est classée.</p>',
                "La serre", 6, attr=' data-verdict'))
 
 E.append(ecran(
     '  <div class="eyebrow">Dans les coulisses</div>\n'
-    '  <p>Pendant que les joueurs enquêtent, l\'organisateur suit chaque groupe en direct : où il en est, '
-    'depuis combien de temps, et qui a besoin d\'aide.</p>\n'
-    '  <img class="photo-borne capture" src="suivi-en-direct-fictif.webp" '
-    'alt="Le tableau de bord de suivi en direct, avec des données fictives">\n'
-    '  <p class="witness-name">Le suivi en direct, avec des données fictives</p>\n'
-    '  <ul class="demo-liste">\n'
-    '    <li>Un groupe bloqué est débloqué à distance, en quelques minutes.</li>\n'
-    '    <li>Les joueurs signalent un problème depuis leur téléphone.</li>\n'
-    '    <li>Un bilan chiffré à la fin : fréquentation, parcours, avis.</li>\n'
-    '  </ul>',
+    '  <p class="lead-demo">Pendant que vos visiteurs enquêtent, vous gardez la main, en direct, depuis votre téléphone.</p>\n'
+    '  <div class="coulisse">\n'
+    '    <div class="coulisse-titre"><span>1</span>Le suivi en direct</div>\n'
+    '    <p>Combien de groupes jouent, où en est chacun, qui est bloqué : tout se voit en temps réel, '
+    'et chaque problème signalé par un joueur arrive aussitôt.</p>\n'
+    '    <img class="photo-borne capture" src="suivi-en-direct-fictif.webp" alt="Le suivi en direct, avec des données fictives">\n'
+    '  </div>\n'
+    '  <div class="coulisse">\n'
+    '    <div class="coulisse-titre"><span>2</span>Les statistiques</div>\n'
+    '    <p>Fréquentation, temps passé à chaque étape, enquêtes terminées : vous suivez votre opération '
+    'chiffres en main, jour après jour.</p>\n'
+    '    <img class="photo-borne capture" src="statistiques-fictives.webp" alt="Les statistiques, avec des données fictives">\n'
+    '  </div>\n'
+    '  <p class="witness-name">Captures avec des données fictives.</p>',
     "Côté organisateur"))
 
 contact = ('<a class="btn" href="mailto:%s?subject=%s">Demander un rendez-vous</a>'
            % (e(CONTACT_MAIL), e("Une enquête dans notre établissement")) if CONTACT_MAIL else "")
+AVANTAGES = [
+    ("Plus de visiteurs", "1 745 enquêteurs en 16 jours, et presque deux fois plus de joueurs en deuxième semaine."),
+    ("Des visites plus longues", "2h17 de jeu en médiane : plus de temps sur place, et autant d'occasions de passer au café et à la boutique."),
+    ("Des visiteurs conquis", "4,71/5 de satisfaction, et des joueurs qui réclament déjà la prochaine enquête."),
+    ("Zéro charge pour vos équipes", "Scénario, tournage, outil numérique, billetterie, accueil et suivi : nous nous occupons de tout."),
+]
 E.append(ecran(
-    '  <p class="lead-demo">Imaginez cette enquête dans vos murs, écrite à partir de vos collections, '
-    'de vos lieux et de vos histoires.</p>\n'
-    '  <div class="demo-chiffres">\n'
-    '    <div><b>1 745</b><span>enquêteurs en 16 jours</span></div>\n'
-    '    <div><b>4,71/5</b><span>de satisfaction</span></div>\n'
-    '    <div><b>2h17</b><span>de visite en médiane</span></div>\n'
-    '  </div>\n'
-    '  <ul class="demo-liste">\n'
-    '    <li>De nouveaux publics : familles, groupes d\'amis, de tous âges.</li>\n'
-    '    <li>Une visite plus longue, des lieux redécouverts.</li>\n'
-    '    <li>Clé en main : scénario, tournage, outil numérique, accueil et suivi.</li>\n'
-    '  </ul>\n'
+    '  <div class="eyebrow">Pomelo Événementiel</div>\n'
+    '  <p class="accroche-fin">Votre lieu mérite son enquête.</p>\n'
+    '  <p>Nous l\'écrivons à partir de vos collections, de vos lieux et de vos histoires. Vous, vous récoltez :</p>\n'
+    '  <div class="avantages">%s</div>\n'
+    '  <blockquote class="citation-demo">« On n\'a jamais autant visité le parc&nbsp;!&nbsp;»<span>Une joueuse du Sanctuaire des Brumes</span></blockquote>\n'
     '  %s\n'
-    '  <a class="btn%s" href="%s" target="_blank" rel="noopener">Découvrir Pomelo</a>'
-    % (contact, " btn-secondary" if contact else "", e(SITE_POMELO)),
-    "Et chez vous ?", suivant=None))
+    '  <a class="btn%s" href="%s" target="_blank" rel="noopener">Découvrir Pomelo</a>\n'
+    '  <button class="btn-secondary" data-rejouer>Rejouer la démo</button>'
+    % ("".join('<div class="avantage"><b>%s</b><span>%s</span></div>' % (e(a), e(b)) for a, b in AVANTAGES),
+       contact, " btn-secondary" if contact else "", e(SITE_POMELO)),
+    "Et chez vous ?", suivant=None, retour=False))
 
 STYLE = """
   .demo-badge { font-family: var(--texte); font-weight: 700; font-size: 0.68rem; letter-spacing: 2px;
@@ -236,6 +247,25 @@ STYLE = """
   .btn-appel.sonne { animation: sonne 1s ease-in-out infinite; }
   @keyframes sonne { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(123,178,125,.25); } }
   @media (prefers-reduced-motion: reduce) { .btn-appel.sonne { animation: none; } }
+  .galerie-pile { display: grid; }
+  .galerie-pile > img { grid-area: 1 / 1; opacity: 0; transition: opacity .35s ease; margin: 0; }
+  .galerie-pile > img.actif { opacity: 1; }
+  .question-finale { margin-top: 30px; }
+  .coulisse { margin: 26px 0 8px; }
+  .coulisse-titre { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--gold-bright);
+                    text-transform: uppercase; letter-spacing: 1px; font-size: 0.9rem; margin-bottom: 8px; }
+  .coulisse-titre span { width: 26px; height: 26px; border-radius: 50%; background: var(--gold); color: var(--bg);
+                         display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; }
+  .coulisse p { margin-bottom: 12px; }
+  .accroche-fin { font-family: var(--titre); color: var(--titre-or); font-size: 1.7rem; line-height: 1.15;
+                  text-transform: uppercase; letter-spacing: 1px; margin: 4px 0 12px; }
+  .avantages { display: grid; gap: 12px; margin: 18px 0 22px; }
+  .avantage { background: var(--panel2); border-left: 3px solid var(--gold); border-radius: 6px; padding: 12px 14px; }
+  .avantage b { display: block; color: var(--gold-bright); font-size: 1.02rem; margin-bottom: 3px; }
+  .avantage span { color: var(--ink); font-size: 0.9rem; line-height: 1.45; }
+  .citation-demo { margin: 0 0 22px; padding: 4px 0 4px 14px; border-left: 2px solid var(--hair);
+                   font-style: italic; color: var(--ink); font-size: 1.05rem; }
+  .citation-demo span { display: block; font-style: normal; font-size: 0.78rem; color: var(--fog); margin-top: 4px; }
   .etincelle { position: fixed; top: -12px; width: 8px; height: 14px; border-radius: 2px; z-index: 50;
                animation: tombe linear forwards; pointer-events: none; }
   @keyframes tombe { to { transform: translateY(110vh) rotate(540deg); opacity: .2; } }
@@ -267,7 +297,7 @@ page = "\n".join([
     '</div>',
     '<footer>',
     '  <img class="signature" src="../assets/img/logo-pomelo.webp" alt="Pomelo Événementiel">',
-    '  Le Sanctuaire des Brumes, une enquête Pomelo Événementiel',
+    '  Le Sanctuaire des Brumes, version démo - une enquête Pomelo',
     '</footer>',
     '<script src="demo.js"></script>',
     '<script>demarrerDemo(%s);</script>' % json.dumps(CODE_SAC),

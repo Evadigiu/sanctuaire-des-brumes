@@ -65,7 +65,7 @@ def jouer(nav, choix, aide=False):
         visible(pg).locator("[data-suivant]").click(); pg.wait_for_timeout(120)
     suivant()                                   # accueil
     suivant()                                   # commissaire
-    visible(pg).locator("[data-passer]").click(); pg.wait_for_timeout(120)   # Greg, passé
+    suivant()                                   # Greg
     pg.wait_for_timeout(300)
     sonne = pg.evaluate("!document.getElementById('sonnerie').paused && document.getElementById('decrocher').classList.contains('sonne')")
     pg.click("#decrocher", force=True); pg.wait_for_timeout(100)
@@ -76,6 +76,10 @@ def jouer(nav, choix, aide=False):
     compte = visible(pg).locator("[data-galerie-compte]").inner_text()
     for _ in range(3): visible(pg).locator("[data-galerie-suiv]").click()
     fin_galerie = visible(pg).locator("[data-galerie-compte]").inner_text()
+    pg.wait_for_timeout(450)
+    fondu = pg.evaluate("""() => { const v = [...document.querySelectorAll('.ecran:not([hidden]) [data-galerie-photo]')];
+        return v.filter(i => getComputedStyle(i).opacity === '1').length === 1 && v[3].classList.contains('actif')
+               && v.every(i => i.complete && i.naturalWidth > 0); }""")
     suivant()                                   # images
     suivant()                                   # sac
     botaniste = pg.inner_text("#titreEtape")
@@ -96,16 +100,21 @@ def jouer(nav, choix, aide=False):
     suivant()                                   # vidéo de la serre
     suivant()                                   # lettre
     verdict = visible(pg).locator("[data-denouement]:not([hidden])")
-    out = {"sonne": sonne, "silence": silence, "titres": titres, "comptes": comptes, "appel": appel_ok, "galerie": (compte, fin_galerie),
+    sans_tiret = "—" not in verdict.inner_text()
+    out = {"fondu": fondu, "sonne": sonne, "silence": silence, "titres": titres, "comptes": comptes, "appel": appel_ok, "galerie": (compte, fin_galerie),
            "bloque": bloque, "faux": faux, "ouvert": ouvert, "botaniste": botaniste, "video_bota": video_bota,
            "verdict": verdict.get_attribute("data-denouement") if verdict.count() == 1 else None,
-           "etincelles": pg.locator(".etincelle").count()}
+           "etincelles": pg.locator(".etincelle").count(), "sans_tiret": sans_tiret}
     suivant()                                   # verdict
     out["coulisses"] = pg.inner_text("#titreEtape")
     out["capture"] = pg.evaluate("[...document.querySelectorAll('.capture')].every(i => i.complete && i.naturalWidth > 0)")
     suivant()                                   # coulisses
     out["fin"] = pg.inner_text("#titreEtape")
     out["site"] = visible(pg).locator('a[href="https://www.pomelolab.fr"]').count() == 1
+    out["avantages"] = visible(pg).locator(".avantage").count()
+    out["pied"] = pg.inner_text("footer")
+    visible(pg).locator("[data-rejouer]").click(); pg.wait_for_timeout(600)
+    out["rejoue"] = pg.inner_text("#titreEtape")
     out["externes"] = [u for u in pg.__appels if not u.startswith("http://127.0.0.1")
                        and "b-cdn.net" not in u and "fonts.g" not in u]
     out["erreurs"] = pg.__err
@@ -118,8 +127,8 @@ with sync_playwright() as pw:
     print("\nLe parcours complet, avec la bonne réponse")
     r = jouer(nav, "Elle s'est endormie.")
     note("14 écrans, de l'accueil au contact", r["fin"].lower() == "et chez vous ?", r)
-    note("le grand titre suit l'étape", [t.lower() for t in r["titres"][:3]] ==
-         ["le sanctuaire des brumes", "le commissaire jean", "appel du commissaire"], r["titres"])
+    note("le grand titre suit l'étape", [t.lower() for t in r["titres"][:4]] ==
+         ["le sanctuaire des brumes", "le commissaire jean", "greg", "appel du commissaire"], r["titres"])
     note("la barre compte de 1 / 6 à 6 / 6", r["comptes"][1] == "1 / 6" and "6 / 6" in r["comptes"], r["comptes"])
     note("le botaniste vient après le sac, avec sa vidéo", r["botaniste"].lower() == "louis, le botaniste"
          and r["video_bota"].endswith("le-botaniste-acanpa-2.mp4"), (r["botaniste"], r["video_bota"]))
@@ -127,13 +136,18 @@ with sync_playwright() as pw:
     note("l'appel se décroche", r["appel"])
     note("la sonnerie s'arrête quand on décroche", r["silence"])
     note("la galerie défile de 1/4 à 4/4", r["galerie"] == ("1 / 4", "4 / 4"), r["galerie"])
+    note("carrousel : images chargées d'avance, une seule visible, en fondu", r["fondu"])
     note("la porte de la serre bloque la suite tant qu'elle est fermée", r["bloque"])
     note("un mauvais code est refusé", r["faux"])
     note("« 58 24 » validé par Entrée ouvre la serre", r["ouvert"])
     note("bonne réponse : dénouement « Bon »", r["verdict"] == "Bon", r["verdict"])
     note("bonne réponse : des étincelles", r["etincelles"] > 0)
+    note("le dénouement n'a plus de tiret", r["sans_tiret"])
     note("l'écran coulisses montre la capture fictive", r["coulisses"].lower() == "côté organisateur" and r["capture"], r)
     note("le lien vers pomelolab.fr est là", r["site"])
+    note("« Et chez vous ? » : quatre bénéfices", r["avantages"] == 4, r["avantages"])
+    note("pied de page « version démo - une enquête Pomelo »", "version démo - une enquête Pomelo" in r["pied"], r["pied"])
+    note("« Rejouer la démo » revient au début", r["rejoue"].lower() == "le sanctuaire des brumes", r["rejoue"])
     note("aucun appel réseau hors site et vidéos", not r["externes"], r["externes"])
     note("aucune erreur JavaScript", not r["erreurs"], r["erreurs"])
 
@@ -143,6 +157,22 @@ with sync_playwright() as pw:
         note("« %s » : dénouement %s, sans étincelles" % (choix[:22], attendu),
              r["verdict"] == attendu and r["etincelles"] == 0, r["verdict"])
         note("« J'ai perdu le code » ouvre aussi la serre", r["ouvert"])
+
+    print("\nPasser la démo")
+    for etapes in (0, 2):
+        pg = nouvelle_page(nav); pg.goto(URL); pg.wait_for_timeout(300)
+        for _ in range(etapes):
+            visible(pg).locator("[data-suivant]").click(); pg.wait_for_timeout(120)
+        visible(pg).locator("[data-passer-demo]").click(); pg.wait_for_timeout(200)
+        t = pg.inner_text("#titreEtape")
+        note("« Passer la démo » après %d écran(s) mène à « Côté organisateur »" % etapes,
+             t.lower() == "côté organisateur", t)
+        pg.close()
+    pg = nouvelle_page(nav); pg.goto(URL); pg.wait_for_timeout(300)
+    n = pg.evaluate("document.querySelectorAll('[data-passer-demo]').length")
+    sans_video = pg.evaluate("document.querySelectorAll('[data-passer]').length === 0")
+    note("« Passer la démo » sur l'accueil et les 13 écrans d'enquête, plus de « Passer la vidéo »", n >= 11 and sans_video, n)
+    pg.close()
 
     print("\nQuitter l'appel sans décrocher")
     pg = nouvelle_page(nav); pg.goto(URL); pg.wait_for_timeout(300)
