@@ -66,8 +66,11 @@ def jouer(nav, choix, aide=False):
     suivant()                                   # accueil
     suivant()                                   # commissaire
     visible(pg).locator("[data-passer]").click(); pg.wait_for_timeout(120)   # Greg, passé
-    pg.click("#decrocher"); pg.wait_for_timeout(100)
+    pg.wait_for_timeout(300)
+    sonne = pg.evaluate("!document.getElementById('sonnerie').paused && document.getElementById('decrocher').classList.contains('sonne')")
+    pg.click("#decrocher", force=True); pg.wait_for_timeout(100)
     appel_ok = pg.is_visible("#blocAppel")
+    silence = pg.evaluate("document.getElementById('sonnerie').paused && !document.getElementById('decrocher').classList.contains('sonne')")
     suivant()                                   # appel
     visible(pg).locator("[data-galerie-ouvrir]").click(); pg.wait_for_timeout(100)
     compte = visible(pg).locator("[data-galerie-compte]").inner_text()
@@ -93,7 +96,7 @@ def jouer(nav, choix, aide=False):
     suivant()                                   # vidéo de la serre
     suivant()                                   # lettre
     verdict = visible(pg).locator("[data-denouement]:not([hidden])")
-    out = {"titres": titres, "comptes": comptes, "appel": appel_ok, "galerie": (compte, fin_galerie),
+    out = {"sonne": sonne, "silence": silence, "titres": titres, "comptes": comptes, "appel": appel_ok, "galerie": (compte, fin_galerie),
            "bloque": bloque, "faux": faux, "ouvert": ouvert, "botaniste": botaniste, "video_bota": video_bota,
            "verdict": verdict.get_attribute("data-denouement") if verdict.count() == 1 else None,
            "etincelles": pg.locator(".etincelle").count()}
@@ -120,7 +123,9 @@ with sync_playwright() as pw:
     note("la barre compte de 1 / 6 à 6 / 6", r["comptes"][1] == "1 / 6" and "6 / 6" in r["comptes"], r["comptes"])
     note("le botaniste vient après le sac, avec sa vidéo", r["botaniste"].lower() == "louis, le botaniste"
          and r["video_bota"].endswith("le-botaniste-acanpa-2.mp4"), (r["botaniste"], r["video_bota"]))
+    note("le téléphone sonne à l'arrivée sur l'appel", r["sonne"])
     note("l'appel se décroche", r["appel"])
+    note("la sonnerie s'arrête quand on décroche", r["silence"])
     note("la galerie défile de 1/4 à 4/4", r["galerie"] == ("1 / 4", "4 / 4"), r["galerie"])
     note("la porte de la serre bloque la suite tant qu'elle est fermée", r["bloque"])
     note("un mauvais code est refusé", r["faux"])
@@ -138,6 +143,16 @@ with sync_playwright() as pw:
         note("« %s » : dénouement %s, sans étincelles" % (choix[:22], attendu),
              r["verdict"] == attendu and r["etincelles"] == 0, r["verdict"])
         note("« J'ai perdu le code » ouvre aussi la serre", r["ouvert"])
+
+    print("\nQuitter l'appel sans décrocher")
+    pg = nouvelle_page(nav); pg.goto(URL); pg.wait_for_timeout(300)
+    for _ in range(3):
+        visible(pg).locator("[data-suivant]").click(); pg.wait_for_timeout(150)
+    sonne = pg.evaluate("!document.getElementById('sonnerie').paused")
+    visible(pg).locator("[data-retour]").click(); pg.wait_for_timeout(150)
+    coupe = pg.evaluate("document.getElementById('sonnerie').paused")
+    note("revenir en arrière coupe la sonnerie", sonne and coupe, (sonne, coupe))
+    pg.close()
 
     print("\nSur un écran d'ordinateur")
     pg = nav.new_page(viewport={"width": 1280, "height": 800})

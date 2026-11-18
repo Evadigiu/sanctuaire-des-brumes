@@ -23,6 +23,9 @@
   .capture { border: 1px solid var(--hair); }
   .denouement { margin-bottom: 14px; }
   .fin-classee { margin: 6px 0 16px; }
+  .btn-appel.sonne { animation: sonne 1s ease-in-out infinite; }
+  @keyframes sonne { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(123,178,125,.25); } }
+  @media (prefers-reduced-motion: reduce) { .btn-appel.sonne { animation: none; } }
   .etincelle { position: fixed; top: -12px; width: 8px; height: 14px; border-radius: 2px; z-index: 50;
                animation: tombe linear forwards; pointer-events: none; }
   @keyframes tombe { to { transform: translateY(110vh) rotate(540deg); opacity: .2; } }
@@ -57,7 +60,8 @@
   <button data-suivant>Suivant</button>
   <button class="btn-secondary" data-retour>Revenir en arrière</button>
 </section>
-<section class="ecran card" data-nom="Appel du commissaire" data-num="3" hidden>
+<section class="ecran card" data-nom="Appel du commissaire" data-num="3" data-appel hidden>
+  <audio id="sonnerie" loop preload="auto"><source src="sonnerie.wav" type="audio/wav"></audio>
   <button id="decrocher" class="btn-appel">Décrocher</button>
   <div id="blocAppel" hidden><audio id="audioAppel" controls preload="none"><source src="https://sanctuaire-brumes.b-cdn.net/appel-du-commissaire-bm7fpb.mp3" type="audio/mpeg"></audio></div>
   <img class="photo-borne" src="../assets/img/appel-commissaire.webp" alt="Appel entrant du commissaire Jean">

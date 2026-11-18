@@ -13,6 +13,9 @@ function demarrerDemo(codeSac) {
 
   function couperLesMedias() {
     document.querySelectorAll("video, audio").forEach(m => { try { m.pause(); } catch (e) {} });
+    const d = document.getElementById("decrocher");
+    if (d) d.classList.remove("sonne");
+    if (navigator.vibrate) { try { navigator.vibrate(0); } catch (e) {} }
   }
 
   function montrer(i) {
@@ -37,6 +40,7 @@ function demarrerDemo(codeSac) {
       compte.textContent = num ? num + " / " + total : "";
     }
     if (s.hasAttribute("data-verdict")) afficherVerdict(s);
+    if (s.hasAttribute("data-appel")) fairesonner();
     window.scrollTo(0, 0);
   }
 
@@ -69,9 +73,24 @@ function demarrerDemo(codeSac) {
     suiv.addEventListener("click", () => voir(n + 1));
   });
 
-  // L'appel du commissaire.
+  // L'appel du commissaire : le téléphone sonne à l'arrivée sur l'écran.
+  // Le joueur vient d'appuyer sur « Suivant » : le navigateur accepte donc
+  // de jouer un son. S'il refuse quand même, le bouton pulse en silence.
   const decrocher = document.getElementById("decrocher");
+  const sonnerie = document.getElementById("sonnerie");
+  function fairesonner() {
+    if (!decrocher || decrocher.hidden) return;
+    decrocher.classList.add("sonne");
+    if (sonnerie) { try { sonnerie.currentTime = 0; } catch (e) {} sonnerie.play().catch(() => {}); }
+    if (navigator.vibrate) { try { navigator.vibrate([400, 200, 400, 2000, 400, 200, 400]); } catch (e) {} }
+  }
+  function arreterSonnerie() {
+    if (sonnerie) sonnerie.pause();
+    if (decrocher) decrocher.classList.remove("sonne");
+    if (navigator.vibrate) { try { navigator.vibrate(0); } catch (e) {} }
+  }
   if (decrocher) decrocher.addEventListener("click", () => {
+    arreterSonnerie();
     decrocher.hidden = true;
     document.getElementById("blocAppel").hidden = false;
     const audio = document.getElementById("audioAppel");

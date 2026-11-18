@@ -53,6 +53,32 @@ for _, f in QCM:
     assert f in fins, "dénouement absent du cahier : %s" % f
 
 
+def sonnerie():
+    """La sonnerie de l'appel du commissaire : « drring, drring », puis un
+    silence, 3 secondes jouées en boucle. Un vrai fichier audio et non un son
+    synthétisé dans le navigateur : sur iPhone, un fichier sonne même en mode
+    silencieux, un son synthétisé non."""
+    import wave, struct, math
+    taux = 22050
+    motif = [(0.4, True), (0.2, False), (0.4, True), (2.0, False)]
+    ech = []
+    for duree, sonne in motif:
+        n = int(duree * taux)
+        for i in range(n):
+            t = i / taux
+            if sonne:
+                v = 0.5 * math.sin(2 * math.pi * 400 * t) + 0.5 * math.sin(2 * math.pi * 450 * t)
+                v *= 0.5 + 0.5 * (math.sin(2 * math.pi * 20 * t) > 0)      # le grésillement
+                v *= min(1.0, i / 200, (n - i) / 200)                        # sans clic
+                ech.append(int(v * 0.45 * 32767))
+            else:
+                ech.append(0)
+    with wave.open(os.path.join(RACINE, DOSSIER, "sonnerie.wav"), "wb") as w:
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(taux)
+        w.writeframes(b"".join(struct.pack("<h", x) for x in ech))
+    return "sonnerie.wav"
+
+
 def ecran(contenu, nom, num=None, suivant="Suivant", retour=True, attr=""):
     """Un écran = une carte, comme sur les bornes. Le nom de l'étape devient
     le grand titre de la page, et son numéro remplit la barre de progression."""
@@ -105,13 +131,14 @@ E.append(ecran(video("greg-sens-a-sj7kmm.mp4", "Greg, agent technique, pas très
                "Greg", 2))
 
 E.append(ecran(
+    '  <audio id="sonnerie" loop preload="auto"><source src="%s" type="audio/wav"></audio>\n' % sonnerie() +
     '  <button id="decrocher" class="btn-appel">Décrocher</button>\n'
     '  <div id="blocAppel" hidden><audio id="audioAppel" controls preload="none">'
     '<source src="%s/appel-du-commissaire-bm7fpb.mp3" type="audio/mpeg"></audio></div>\n'
     '  <img class="photo-borne" src="../assets/img/appel-commissaire.webp" alt="Appel entrant du commissaire Jean">\n'
     '  <p class="witness-name">Commissaire Jean, dubitatif</p>\n'
     '  <p>Vous avez un appel entrant du commissaire Jean.</p>' % MEDIA_BASE,
-    "Appel du commissaire", 3))
+    "Appel du commissaire", 3, attr=' data-appel'))
 
 E.append(ecran(
     '  <p>Le commissaire vous a envoyé 4 images.</p>\n'
@@ -206,6 +233,9 @@ STYLE = """
   .capture { border: 1px solid var(--hair); }
   .denouement { margin-bottom: 14px; }
   .fin-classee { margin: 6px 0 16px; }
+  .btn-appel.sonne { animation: sonne 1s ease-in-out infinite; }
+  @keyframes sonne { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(123,178,125,.25); } }
+  @media (prefers-reduced-motion: reduce) { .btn-appel.sonne { animation: none; } }
   .etincelle { position: fixed; top: -12px; width: 8px; height: 14px; border-radius: 2px; z-index: 50;
                animation: tombe linear forwards; pointer-events: none; }
   @keyframes tombe { to { transform: translateY(110vh) rotate(540deg); opacity: .2; } }
