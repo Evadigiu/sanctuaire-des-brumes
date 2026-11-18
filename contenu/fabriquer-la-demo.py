@@ -67,50 +67,12 @@ def ecran(contenu, nom, num=None, suivant="Suivant", retour=True, attr=""):
     return "\n".join(h)
 
 
-def affiche(nom):
-    """L'affiche d'une vidéo, tant qu'elle n'est pas lancée : le fond brumeux
-    du jeu, le nom du personnage et un bouton lecture. Sans elle, le joueur
-    voit un rectangle gris vide. Fabriquée ici, au format 9/16 des témoignages."""
-    from PIL import Image, ImageDraw, ImageFont, ImageFilter
-    import re, unicodedata
-    W, H = 720, 1280
-    fond = Image.open(os.path.join(RACINE, "assets/img/fond.webp")).convert("RGB")
-    k = max(W / fond.width, H / fond.height)
-    fond = fond.resize((int(fond.width * k) + 1, int(fond.height * k) + 1))
-    x0, y0 = (fond.width - W) // 2, (fond.height - H) // 2
-    img = fond.crop((x0, y0, x0 + W, y0 + H)).filter(ImageFilter.GaussianBlur(2))
-    voile = Image.new("RGB", (W, H), (11, 13, 20))
-    img = Image.blend(img, voile, 0.45)
-    d = ImageDraw.Draw(img)
-    cx, cy, r = W // 2, H // 2 - 60, 92
-    d.ellipse((cx - r, cy - r, cx + r, cy + r), outline=(201, 162, 75), width=6)
-    d.polygon([(cx - 30, cy - 46), (cx - 30, cy + 46), (cx + 52, cy)], fill=(228, 200, 122))
-    titre = ImageFont.truetype(os.path.join(RACINE, "assets/fonts/dcc-ash-fr.otf"), 64)
-    lignes, ligne = [], ""
-    for mot in nom.upper().split():
-        essai = (ligne + " " + mot).strip()
-        if d.textlength(essai, font=titre) > W - 100 and ligne:
-            lignes.append(ligne); ligne = mot
-        else:
-            ligne = essai
-    lignes.append(ligne)
-    y = cy + r + 60
-    for l in lignes:
-        d.text((W // 2, y), l, font=titre, fill=(219, 218, 125), anchor="ma"); y += 72
-    petit = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 28)
-    d.text((W // 2, y + 18), "Appuyez pour lancer la vidéo", font=petit, fill=(191, 183, 172), anchor="ma")
-    nomfic = "affiche-" + re.sub(r"[^a-z0-9]+", "-", unicodedata.normalize("NFD", nom.lower())
-                                 .encode("ascii", "ignore").decode()).strip("-") + ".webp"
-    img.save(os.path.join(RACINE, DOSSIER, nomfic), "WEBP", quality=78)
-    return nomfic
-
-
-def video(fichier, legende, nom):
-    return ('  <video controls preload="none" playsinline data-video poster="%s">'
+def video(fichier, legende, nom=None):
+    return ('  <video controls preload="none" playsinline data-video>'
             '<source src="%s/%s" type="video/mp4"></video>\n'
             '  <p class="witness-name">%s</p>\n'
             '  <button class="btn-lien" data-passer>Passer la vidéo</button>'
-            % (e(affiche(nom)), MEDIA_BASE, e(fichier), e(legende)))
+            % (MEDIA_BASE, e(fichier), e(legende)))
 
 
 def galerie(fichiers, bouton, texte_alt):
