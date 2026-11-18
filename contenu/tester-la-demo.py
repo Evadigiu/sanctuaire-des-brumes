@@ -51,15 +51,17 @@ def nouvelle_page(nav):
     pg.on("request", lambda r: pg.__appels.append(r.url))
     pg.route("**/*.mp4", lambda r: r.abort())
     pg.route("**/*.mp3", lambda r: r.abort())
+    pg.route("**fonts.g**", lambda r: r.abort())
     return pg
 
 visible = lambda pg: pg.locator(".ecran:not([hidden])")
 
-def jouer(nav, choix, code="5824", aide=False):
+def jouer(nav, choix, aide=False):
     pg = nouvelle_page(nav); pg.goto(URL); pg.wait_for_timeout(300)
-    titres = []
+    titres, comptes = [], []
     def suivant():
-        titres.append(visible(pg).locator(".ecran-titre").first.inner_text())
+        titres.append(pg.inner_text("#titreEtape"))
+        comptes.append(pg.inner_text(".progression-compte"))
         visible(pg).locator("[data-suivant]").click(); pg.wait_for_timeout(120)
     suivant()                                   # accueil
     suivant()                                   # commissaire
@@ -72,7 +74,12 @@ def jouer(nav, choix, code="5824", aide=False):
     for _ in range(3): visible(pg).locator("[data-galerie-suiv]").click()
     fin_galerie = visible(pg).locator("[data-galerie-compte]").inner_text()
     suivant()                                   # images
+    suivant()                                   # sac
+    botaniste = pg.inner_text("#titreEtape")
+    video_bota = visible(pg).locator("video source").get_attribute("src")
+    suivant()                                   # vidéo du botaniste
     bloque = not visible(pg).locator("[data-suivant]").is_visible()
+    faux = None
     if aide:
         pg.click("#codeAide")
     else:
@@ -81,24 +88,24 @@ def jouer(nav, choix, code="5824", aide=False):
         pg.fill("#codeDemo", " 58 24 "); pg.press("#codeDemo", "Enter")
     pg.wait_for_timeout(100)
     ouvert = pg.is_visible("#codeBon") and visible(pg).locator("[data-suivant]").is_visible()
-    suivant()                                   # sac
+    suivant()                                   # porte de la serre
     visible(pg).locator(".quiz-prop", has_text=choix).click(); pg.wait_for_timeout(150)
     suivant()                                   # vidéo de la serre
     suivant()                                   # lettre
     verdict = visible(pg).locator("[data-denouement]:not([hidden])")
-    out = {"titres": titres, "appel": appel_ok, "galerie": (compte, fin_galerie), "bloque": bloque,
-           "ouvert": ouvert, "verdict": verdict.get_attribute("data-denouement") if verdict.count() == 1 else None,
+    out = {"titres": titres, "comptes": comptes, "appel": appel_ok, "galerie": (compte, fin_galerie),
+           "bloque": bloque, "faux": faux, "ouvert": ouvert, "botaniste": botaniste, "video_bota": video_bota,
+           "verdict": verdict.get_attribute("data-denouement") if verdict.count() == 1 else None,
            "etincelles": pg.locator(".etincelle").count()}
-    if not aide: out["faux"] = faux
     suivant()                                   # verdict
-    out["coulisses"] = visible(pg).locator(".ecran-titre").first.inner_text()
+    out["coulisses"] = pg.inner_text("#titreEtape")
     out["capture"] = pg.evaluate("[...document.querySelectorAll('.capture')].every(i => i.complete && i.naturalWidth > 0)")
     suivant()                                   # coulisses
-    out["fin"] = visible(pg).locator(".ecran-titre").first.inner_text()
+    out["fin"] = pg.inner_text("#titreEtape")
     out["site"] = visible(pg).locator('a[href="https://www.pomelolab.fr"]').count() == 1
-    externes = [u for u in pg.__appels if not u.startswith("http://127.0.0.1")
-                and "b-cdn.net" not in u]
-    out["externes"] = externes; out["erreurs"] = pg.__err
+    out["externes"] = [u for u in pg.__appels if not u.startswith("http://127.0.0.1")
+                       and "b-cdn.net" not in u and "fonts.g" not in u]
+    out["erreurs"] = pg.__err
     pg.close()
     return out
 
@@ -107,10 +114,15 @@ with sync_playwright() as pw:
 
     print("\nLe parcours complet, avec la bonne réponse")
     r = jouer(nav, "Elle s'est endormie.")
-    note("12 écrans, de l'accueil au contact", r["fin"].lower() == "et chez vous ?", r)
+    note("14 écrans, de l'accueil au contact", r["fin"].lower() == "et chez vous ?", r)
+    note("le grand titre suit l'étape", [t.lower() for t in r["titres"][:3]] ==
+         ["le sanctuaire des brumes", "le commissaire jean", "appel du commissaire"], r["titres"])
+    note("la barre compte de 1 / 6 à 6 / 6", r["comptes"][1] == "1 / 6" and "6 / 6" in r["comptes"], r["comptes"])
+    note("le botaniste vient après le sac, avec sa vidéo", r["botaniste"].lower() == "louis, le botaniste"
+         and r["video_bota"].endswith("le-botaniste-acanpa-2.mp4"), (r["botaniste"], r["video_bota"]))
     note("l'appel se décroche", r["appel"])
     note("la galerie défile de 1/4 à 4/4", r["galerie"] == ("1 / 4", "4 / 4"), r["galerie"])
-    note("le sac bloque la suite tant que la serre est fermée", r["bloque"])
+    note("la porte de la serre bloque la suite tant qu'elle est fermée", r["bloque"])
     note("un mauvais code est refusé", r["faux"])
     note("« 58 24 » validé par Entrée ouvre la serre", r["ouvert"])
     note("bonne réponse : dénouement « Bon »", r["verdict"] == "Bon", r["verdict"])
@@ -125,7 +137,7 @@ with sync_playwright() as pw:
         r = jouer(nav, choix, aide=True)
         note("« %s » : dénouement %s, sans étincelles" % (choix[:22], attendu),
              r["verdict"] == attendu and r["etincelles"] == 0, r["verdict"])
-        note("« Je n'y arrive pas » ouvre aussi la serre", r["ouvert"])
+        note("« J'ai perdu le code » ouvre aussi la serre", r["ouvert"])
 
     print("\nSur un écran d'ordinateur")
     pg = nav.new_page(viewport={"width": 1280, "height": 800})

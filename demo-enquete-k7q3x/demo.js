@@ -17,9 +17,25 @@ function demarrerDemo(codeSac) {
 
   function montrer(i) {
     couperLesMedias();
+    // Les étincelles du verdict ne suivent pas le joueur sur l'écran suivant.
+    document.querySelectorAll(".etincelle").forEach(p => p.remove());
     ici = Math.max(0, Math.min(ecrans.length - 1, i));
     ecrans.forEach((s, k) => { s.hidden = (k !== ici); });
     const s = ecrans[ici];
+    // Comme sur une borne : le nom de l'étape en grand titre, et la barre
+    // de progression remplie selon son numéro.
+    const titre = document.getElementById("titreEtape");
+    if (titre) titre.textContent = s.getAttribute("data-nom") || "";
+    const barre = document.getElementById("position");
+    if (barre) {
+      const compte = barre.querySelector(".progression-compte");
+      const total = parseInt(compte.getAttribute("data-total"), 10) || 1;
+      const num = parseInt(s.getAttribute("data-num"), 10);
+      const part = num ? num / total * 100 : (ici === 0 ? 0 : 100);
+      barre.style.setProperty("--part", Math.round(part) + "%");
+      barre.setAttribute("aria-valuenow", Math.round(part));
+      compte.textContent = num ? num + " / " + total : "";
+    }
     if (s.hasAttribute("data-verdict")) afficherVerdict(s);
     window.scrollTo(0, 0);
   }
